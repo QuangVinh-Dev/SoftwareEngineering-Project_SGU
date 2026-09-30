@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#3a2617" />
+  <meta name="description" content="Hội An — Di sản & Ẩm thực. Bản đồ số và thuyết minh đa ngôn ngữ." />
+  <title>HỘI AN — DI SẢN &amp; ẨM THỰC</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&family=Oswald:wght@600;700&family=Playfair+Display:ital,wght@1,500&display=swap"
+    rel="stylesheet"
+  />
+
+  <!-- MapLibre GL — CSS -->
+  <link
+    href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
+    rel="stylesheet"
+  />
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- MapLibre GL — JS (load trước main.jsx để window.maplibregl có sẵn) -->
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+
+  <!-- React app -->
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+</html>
