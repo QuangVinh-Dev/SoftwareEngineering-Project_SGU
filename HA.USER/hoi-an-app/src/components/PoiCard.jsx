@@ -1,8 +1,9 @@
+// src/components/PoiCard.jsx — chỉ sửa nút play
 import { encodeUrl } from '../utils/encodeUrl';
 import { FALLBACK } from '../utils/constants';
 
 export default function PoiCard({
-  p, t, getPoiText, onOpenPoi, onOpenPlayer, onOpenMap
+  p, t, getPoiText, onOpenPoi, onOpenPlayer, onOpenMap,
 }) {
   const txt = getPoiText(p);
 
@@ -33,10 +34,15 @@ export default function PoiCard({
         <button
           type="button"
           className="poi-card__play"
-          onClick={(e) => { e.stopPropagation(); onOpenPlayer(p); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenPlayer(p, 'VI', { priority: 'normal' });
+          }}
           aria-label="Play audio"
         >
-          ▶
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
+            <path d="M8 5v14l11-7z" />
+          </svg>
         </button>
       </div>
 
@@ -44,9 +50,23 @@ export default function PoiCard({
         <div className="poi-card__cat">{txt.tag}</div>
         <h3 className="poi-card__name">{txt.name}</h3>
         <p className="poi-card__desc">{txt.desc}</p>
+
         <div className="poi-card__meta">
-          <span>📍 {txt.dist}</span>
-          <span>🎧 5 lang</span>
+          <span className="poi-card__meta-item">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+              <circle cx="12" cy="10" r="3" />
+            </svg>
+            <span>{txt.dist}</span>
+          </span>
+
+          <span className="poi-card__meta-item">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
+              <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
+            </svg>
+            <span>5 lang</span>
+          </span>
         </div>
       </div>
 
@@ -63,7 +83,12 @@ export default function PoiCard({
           className="poi-card__btn"
           onClick={(e) => { e.stopPropagation(); onOpenMap(p); }}
         >
-          {t('card.map')}
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
+            <line x1="8" y1="2" x2="8" y2="18" />
+            <line x1="16" y1="6" x2="16" y2="22" />
+          </svg>
+          <span>{t('card.map')}</span>
         </button>
       </div>
     </article>

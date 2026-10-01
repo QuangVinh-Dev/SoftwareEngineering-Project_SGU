@@ -1,14 +1,14 @@
+// src/App.jsx
 import { useState, useEffect, useCallback } from 'react';
 import { useI18n } from './hooks/useI18n';
 import { useTranslation } from './hooks/useTranslation';
 import { usePlayer } from './hooks/usePlayer';
+import { useGeofence } from './hooks/useGeofence';
 import { POIS } from './data/pois';
 
 import Topbar from './components/Topbar';
 import Header from './components/Header';
 import Hero from './components/Hero';
-import Stats from './components/Stats';
-import Marquee from './components/Marquee';
 import Intro from './components/Intro';
 import Routes from './components/Routes';
 import Categories from './components/Categories';
@@ -18,6 +18,27 @@ import PoiModal from './components/PoiModal';
 import MapPage from './components/MapPage';
 import AllPoisPage from './components/AllPoisPage';
 import Player from './components/Player';
+import PaymentGate from './components/PaymentGate';
+
+/* ============================================================
+   Tạo text ngắn để đọc: name + câu đầu của desc
+   Tránh đọc desc dài → không giật map
+   ============================================================ */
+function buildSpeechText(txt) {
+  if (!txt) return '';
+  const name = (txt.name || '').trim();
+  const desc = (txt.desc || '').trim();
+
+  if (!desc) return name;
+
+  // Lấy câu đầu tiên (kết thúc bởi . ! ? hoặc hết chuỗi)
+  const firstSentence = desc.split(/(?<=[.!?])\s+/)[0] || desc;
+  const shortDesc = firstSentence.length > 150
+    ? firstSentence.slice(0, 147).trim() + '...'
+    : firstSentence;
+
+  return `${name}. ${shortDesc}`;
+}
 
 export default function App() {
   const { currentLang, setCurrentLang, t } = useI18n();
@@ -29,9 +50,38 @@ export default function App() {
   const [allOpen, setAllOpen] = useState(false);
   const [mapFocusPoi, setMapFocusPoi] = useState(null);
 
+  const [unlocked, setUnlocked] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return sessionStorage.getItem('hoian_unlocked') === '1';
+  });
+
+  const handleUnlock = useCallback(() => {
+    sessionStorage.setItem('hoian_unlocked', '1');
+    setUnlocked(true);
+  }, []);
+
+  /* 4.1 — Tự động phát khi vào POI */
+  const handleEnterPoi = useCallback((poi) => {
+    const txt = getPoiText(poi);
+    const speechText = buildSpeechText(txt);
+    console.log('[Geofence] Vào POI:', txt.name);
+    player.openPlayer(txt.name, currentLang, poi.id, speechText, {
+      priority: 'high',
+      force: false,
+    });
+  }, [getPoiText, currentLang, player]);
+
+  /* Geofence chỉ chạy khi ở trang chủ, không mở modal/map/player */
+  useGeofence(
+    POIS,
+    50,
+    handleEnterPoi,
+    unlocked && !modalPoi && !mapOpen && !allOpen && !player.isOpen
+  );
+
   /* Sync <html lang> */
   useEffect(() => {
-    const map = { ZH:'zh', JA:'ja', KO:'ko', EN:'en', VI:'vi' };
+    const map = { ZH: 'zh', JA: 'ja', KO: 'ko', EN: 'en', VI: 'vi' };
     document.documentElement.lang = map[currentLang] || 'vi';
   }, [currentLang]);
 
@@ -42,7 +92,7 @@ export default function App() {
     return () => document.body.classList.remove('is-lock');
   }, [modalPoi, mapOpen, allOpen]);
 
-  /* ESC key handler */
+  /* ESC */
   useEffect(() => {
     const onKey = (e) => {
       if (e.key !== 'Escape') return;
@@ -54,14 +104,13 @@ export default function App() {
     return () => document.removeEventListener('keydown', onKey);
   }, [modalPoi, mapOpen, allOpen]);
 
-  /* Translate POIs khi đổi ngôn ngữ */
+  /* Translate */
   useEffect(() => {
-    translateAllPois(POIS);
-  }, [currentLang, translateAllPois]);
+    if (unlocked) translateAllPois(POIS);
+  }, [currentLang, translateAllPois, unlocked]);
 
   /* Handlers */
   const handleSetLang = useCallback((code) => setCurrentLang(code), [setCurrentLang]);
-
   const handleOpenPoi = useCallback((p) => setModalPoi(p), []);
   const handleClosePoi = useCallback(() => setModalPoi(null), []);
 
@@ -77,20 +126,25 @@ export default function App() {
   const handleOpenAll = useCallback(() => setAllOpen(true), []);
   const handleCloseAll = useCallback(() => setAllOpen(false), []);
 
-  const handleOpenPlayer = useCallback((p, langCode) => {
+  /* 4.2 — Phát khi chạm vào POI */
+  const handleOpenPlayer = useCallback((p, langCode, opts = {}) => {
     const txt = getPoiText(p);
-    player.openPlayer(txt.name, langCode);
-  }, [getPoiText, player]);
+    const speechText = buildSpeechText(txt);
+    player.openPlayer(txt.name, langCode || currentLang, p.id, speechText, opts);
+  }, [getPoiText, currentLang, player]);
 
   const handleModalOpenMap = useCallback((p) => {
     setModalPoi(null);
     handleOpenMap(p);
   }, [handleOpenMap]);
 
+  if (!unlocked) {
+    return <PaymentGate onUnlock={handleUnlock} />;
+  }
+
   return (
     <>
       <Topbar t={t} />
-
       <Header
         t={t}
         currentLang={currentLang}
@@ -99,19 +153,10 @@ export default function App() {
         onOpenAll={handleOpenAll}
       />
 
-      <Hero t={t} onOpenMap={() => handleOpenMap()} />
-
-      <Stats t={t} />
-
-      <Marquee />
-
+      <Hero onOpenMap={() => handleOpenMap()} />
       <Intro t={t} />
 
-      <Routes
-        t={t}
-        getPoiText={getPoiText}
-        onOpenPoi={handleOpenPoi}
-      />
+      <Routes t={t} getPoiText={getPoiText} onOpenPoi={handleOpenPoi} />
 
       <Categories
         t={t}
@@ -122,7 +167,6 @@ export default function App() {
       />
 
       <CtaBanner t={t} onOpenMap={() => handleOpenMap()} />
-
       <Footer t={t} onOpenMap={() => handleOpenMap()} />
 
       {modalPoi && (
@@ -165,6 +209,7 @@ export default function App() {
         timeText={player.timeText}
         title={player.title}
         meta={player.meta}
+        queueLength={player.queueLength}
         onTogglePlay={player.togglePlay}
         onClose={player.closePlayer}
         onSeek={player.seek}
