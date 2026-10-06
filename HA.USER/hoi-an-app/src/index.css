@@ -9092,22 +9092,8 @@ html[data-reduce-motion="true"] .map-sidebar {
 }
 
 /* ---------- BACKDROP mờ phía sau khi sidebar mở ---------- */
-.map-page .map-layout.is-sidebar-open::after {
-  content: '' !important;
-  position: absolute !important;
-  inset: 0 !important;
-  z-index: 5 !important;
-  background: rgba(15, 10, 6, 0.35) !important;
-  backdrop-filter: blur(2px) !important;
-  -webkit-backdrop-filter: blur(2px) !important;
-  pointer-events: none !important;
-  animation: mapFadeIn 200ms ease-out !important;
-}
 
-@keyframes mapFadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
+
 
 /* ---------- MOBILE: sidebar hẹp hơn ---------- */
 @media (max-width: 640px) {
@@ -9139,9 +9125,6 @@ html[data-reduce-motion="true"] .map-page .map-sidebar {
   transition: none !important;
 }
 
-html[data-reduce-motion="true"] .map-page .map-layout.is-sidebar-open::after {
-  animation: none !important;
-}
 /* ============================================================
    FIX — Bản đồ trắng khi màn hình nhỏ
    ============================================================ */
