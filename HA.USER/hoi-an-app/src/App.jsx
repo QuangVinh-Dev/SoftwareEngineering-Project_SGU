@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useI18n } from './hooks/useI18n';
 import { useTranslation } from './hooks/useTranslation';
 import { usePlayer } from './hooks/usePlayer';
-import { useGeofence } from './hooks/useGeofence';
+import { usePoiLocation } from './hooks/useGeofence';
 import { POIS } from './data/pois';
 
 import Topbar from './components/Topbar';
@@ -60,24 +60,29 @@ export default function App() {
     setUnlocked(true);
   }, []);
 
-  /* 4.1 — Tự động phát khi vào POI */
-  const handleEnterPoi = useCallback((poi) => {
-    const txt = getPoiText(poi);
-    const speechText = buildSpeechText(txt);
-    console.log('[Geofence] Vào POI:', txt.name);
-    player.openPlayer(txt.name, currentLang, poi.id, speechText, {
-      priority: 'high',
-      force: false,
-    });
-  }, [getPoiText, currentLang, player]);
+  // ----------------------------------------------------------------
+  // Automatic POI audio playback by GPS
+  // Enabled only when:
+  //   - user has unlocked the tour
+  //   - no modal/map/allPois overlay is open
+  //   - player is not already open (avoid audio interruption)
+  // ----------------------------------------------------------------
+  const gpsEnabled = unlocked && !modalPoi && !mapOpen && !allOpen && !player.isOpen;
 
-  /* Geofence chỉ chạy khi ở trang chủ, không mở modal/map/player */
-  useGeofence(
-    POIS,
-    50,
-    handleEnterPoi,
-    unlocked && !modalPoi && !mapOpen && !allOpen && !player.isOpen
-  );
+  const { gpsError, error: poiApiError } = usePoiLocation({
+    enabled: gpsEnabled,
+    currentLang,
+    openPlayerFn: player.openPlayer,
+  });
+
+  // Log GPS / API errors in development — don't crash the app
+  useEffect(() => {
+    if (gpsError) console.warn('[App] GPS error:', gpsError);
+  }, [gpsError]);
+
+  useEffect(() => {
+    if (poiApiError) console.warn('[App] POI API error:', poiApiError);
+  }, [poiApiError]);
 
   /* Sync <html lang> */
   useEffect(() => {
