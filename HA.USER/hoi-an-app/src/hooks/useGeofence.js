@@ -21,7 +21,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { getPoiLocations } from '../services/poiService';
-import { calculateDistance, isInsidePoi } from '../utils/geo';
+import { isInsidePoi } from '../utils/geo';
 import { playPoiAudio } from '../services/audioService';
 
 // GPS watchPosition options
@@ -60,9 +60,7 @@ export function usePoiLocation({ enabled = true, currentLang = 'VI', openPlayerF
   const [error, setError] = useState(null);
   const [gpsError, setGpsError] = useState(null);
 
-  // Tracks which POI IDs have already played audio this session.
-  // useRef — no re-render needed, persists across renders.
-  const playedPoiIds = useRef(new Set());
+  const lastAudioKey = useRef(null);
 
   // watchPosition ID for cleanup
   const watchIdRef = useRef(null);
@@ -154,24 +152,21 @@ export function usePoiLocation({ enabled = true, currentLang = 'VI', openPlayerF
     setCurrentDistance(nearestPoi ? nearestDist : null);
     setIsInside(!!nearestPoi);
 
-    // ---- Trigger audio (once per POI per session) ----
-    if (nearestPoi) {
-      const { id } = nearestPoi;
-
-      if (!playedPoiIds.current.has(id)) {
-        playedPoiIds.current.add(id);
-
-        console.log('[usePoiLocation] OUTSIDE → INSIDE POI:', nearestPoi.name, `(${Math.round(nearestDist)}m)`);
-
-        playPoiAudio(
-          nearestPoi,
-          langRef.current,
-          openPlayerRef.current,
-          { priority: 'high', force: false },
-        );
-      }
-    }
   }, []); // stable — reads via refs
+
+  // Fetch once on entry, POI change, or language change. GPS updates inside
+  // the same geofence do not repeat the request.
+  useEffect(() => {
+    if (!currentPoi) {
+      lastAudioKey.current = null;
+      return;
+    }
+    const key = `${currentPoi.id}:${String(currentLang || 'VI').toUpperCase()}`;
+    if (lastAudioKey.current === key) return;
+    lastAudioKey.current = key;
+    console.log('[usePoiLocation] Loading audio for POI/language:', key);
+    playPoiAudio(currentPoi, currentLang, openPlayerRef.current, () => lastAudioKey.current === key);
+  }, [currentPoi, currentLang]);
 
   // ----------------------------------------------------------------
   // GPS error handler

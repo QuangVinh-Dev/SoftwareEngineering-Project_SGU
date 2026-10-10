@@ -208,6 +208,9 @@ CREATE TABLE daily_statistic (
 
 -- ----- Index suggestions -----
 CREATE INDEX idx_poi_coordinates        ON poi(latitude, longitude);
+CREATE INDEX idx_audio_translation_id   ON audio(translation_id);
+CREATE INDEX idx_translation_poi_language_status
+                                        ON translation(poi_id, language_code, status);
 CREATE INDEX idx_listen_log_poi         ON listen_log(poi_id);
 CREATE INDEX idx_listen_log_created_at  ON listen_log(created_at);
 CREATE INDEX idx_access_session_device  ON access_session(anonymous_device_id);
