@@ -65,7 +65,7 @@ services:
     restart: unless-stopped
 
     ports:
-      - "8888:8080"
+      - "9999:8080"
 
     environment:
 
@@ -77,6 +77,10 @@ services:
       SPRING_DATA_REDIS_PORT: 6379
 
       SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      AUDIO_STORAGE_PATH: /app/uploads/audio
+
+    volumes:
+      - /home/qvinh/Workspace/SoftwareEngineering-Project_SGU/Test:/app/uploads/audio
 
     depends_on:
 

@@ -4,6 +4,7 @@ import React, { useRef } from 'react';
 export default function Player({
   isOpen,
   isPlaying,
+  isLoading = false,
   progress,
   timeText,
   title,
@@ -44,7 +45,7 @@ export default function Player({
         <div className="player__info">
           <div className="player__title">{title}</div>
           <div className="player__meta">
-            {meta}
+            {isLoading ? 'Đang tải audio…' : meta}
             {queueLength > 0 && (
               <span className="player__queue"> · {queueLength} tiếp theo</span>
             )}

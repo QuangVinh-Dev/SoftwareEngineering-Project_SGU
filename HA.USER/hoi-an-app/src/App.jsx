@@ -4,6 +4,7 @@ import { useI18n } from './hooks/useI18n';
 import { useTranslation } from './hooks/useTranslation';
 import { usePlayer } from './hooks/usePlayer';
 import { usePoiLocation } from './hooks/useGeofence';
+import { playPoiAudio } from './services/audioService';
 import { POIS } from './data/pois';
 
 import Topbar from './components/Topbar';
@@ -19,26 +20,6 @@ import MapPage from './components/MapPage';
 import AllPoisPage from './components/AllPoisPage';
 import Player from './components/Player';
 import PaymentGate from './components/PaymentGate';
-
-/* ============================================================
-   Tạo text ngắn để đọc: name + câu đầu của desc
-   Tránh đọc desc dài → không giật map
-   ============================================================ */
-function buildSpeechText(txt) {
-  if (!txt) return '';
-  const name = (txt.name || '').trim();
-  const desc = (txt.desc || '').trim();
-
-  if (!desc) return name;
-
-  // Lấy câu đầu tiên (kết thúc bởi . ! ? hoặc hết chuỗi)
-  const firstSentence = desc.split(/(?<=[.!?])\s+/)[0] || desc;
-  const shortDesc = firstSentence.length > 150
-    ? firstSentence.slice(0, 147).trim() + '...'
-    : firstSentence;
-
-  return `${name}. ${shortDesc}`;
-}
 
 export default function App() {
   const { currentLang, setCurrentLang, t } = useI18n();
@@ -132,11 +113,9 @@ export default function App() {
   const handleCloseAll = useCallback(() => setAllOpen(false), []);
 
   /* 4.2 — Phát khi chạm vào POI */
-  const handleOpenPlayer = useCallback((p, langCode, opts = {}) => {
-    const txt = getPoiText(p);
-    const speechText = buildSpeechText(txt);
-    player.openPlayer(txt.name, langCode || currentLang, p.id, speechText, opts);
-  }, [getPoiText, currentLang, player]);
+  const handleOpenPlayer = useCallback((p, langCode) => {
+    playPoiAudio(p, langCode || currentLang, player.openPlayer);
+  }, [currentLang, player.openPlayer]);
 
   const handleModalOpenMap = useCallback((p) => {
     setModalPoi(null);
@@ -210,6 +189,7 @@ export default function App() {
       <Player
         isOpen={player.isOpen}
         isPlaying={player.isPlaying}
+        isLoading={player.isLoading}
         progress={player.progress}
         timeText={player.timeText}
         title={player.title}
