@@ -1,20 +1,32 @@
 import { useState } from 'react';
 import { Volume2, Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { useApp } from '@/hooks/useApp';
+import { login } from '@/services/authApi';
 
 export default function Login() {
-  const { setIsLoggedIn } = useApp();
-  const [email, setEmail] = useState('admin@hoianaudioguide.vn');
-  const [password, setPassword] = useState('admin123');
+  const { signIn } = useApp();
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [remember, setRemember] = useState(true);
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (email === 'admin@hoianaudioguide.vn' && password === 'admin123') {
-      setIsLoggedIn(true);
-    } else {
-      setError('Invalid credentials. Use admin@hoianaudioguide.vn / admin123');
+    setError('');
+    setIsSubmitting(true);
+    try {
+      const response = await login(username, password);
+      if (response.user.accountType !== 'ADMIN'
+        || !['ADMIN', 'SUPER_ADMIN'].includes(response.user.role)) {
+        throw new Error('Tài khoản này không có quyền truy cập cổng quản trị.');
+      }
+      signIn(response.accessToken, response.user, remember);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Đăng nhập thất bại.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -37,15 +49,16 @@ export default function Login() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-brown-700 mb-1.5">Email</label>
+              <label className="block text-sm font-medium text-brown-700 mb-1.5">Username</label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brown-400" />
                 <input
-                  type="email"
-                  value={email}
-                  onChange={e => { setEmail(e.target.value); setError(''); }}
+                  type="text"
+                  autoComplete="username"
+                  value={username}
+                  onChange={e => { setUsername(e.target.value); setError(''); }}
                   className="w-full pl-10 pr-3 py-2.5 rounded-lg border border-brown-200 text-sm text-brown-800 outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100 transition-all"
-                  placeholder="admin@example.com"
+                  placeholder="admin"
                   required
                 />
               </div>
@@ -57,6 +70,7 @@ export default function Login() {
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brown-400" />
                 <input
                   type={showPass ? 'text' : 'password'}
+                  autoComplete="current-password"
                   value={password}
                   onChange={e => { setPassword(e.target.value); setError(''); }}
                   className="w-full pl-10 pr-10 py-2.5 rounded-lg border border-brown-200 text-sm text-brown-800 outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100 transition-all"
@@ -77,7 +91,12 @@ export default function Login() {
 
             <div className="flex items-center justify-between text-sm">
               <label className="flex items-center gap-2 text-brown-600">
-                <input type="checkbox" defaultChecked className="rounded border-brown-300 text-primary-600 focus:ring-primary-400" />
+                <input
+                  type="checkbox"
+                  checked={remember}
+                  onChange={e => setRemember(e.target.checked)}
+                  className="rounded border-brown-300 text-primary-600 focus:ring-primary-400"
+                />
                 Remember me
               </label>
               <button type="button" className="text-primary-600 hover:text-primary-700 font-medium">Forgot password?</button>
@@ -85,14 +104,15 @@ export default function Login() {
 
             <button
               type="submit"
+              disabled={isSubmitting}
               className="w-full flex items-center justify-center gap-2 bg-primary-600 hover:bg-primary-700 text-white font-medium py-2.5 rounded-lg transition-colors"
             >
-              Sign in <ArrowRight className="w-4 h-4" />
+              {isSubmitting ? 'Signing in…' : 'Sign in'} <ArrowRight className="w-4 h-4" />
             </button>
           </form>
 
           <div className="mt-6 text-center text-xs text-brown-400">
-            <p>Demo credentials are pre-filled. Just click Sign in.</p>
+            <p>Đăng nhập bằng tài khoản quản trị đã được cấp.</p>
           </div>
         </div>
 
