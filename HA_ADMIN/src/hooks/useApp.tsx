@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
+import type { AuthUser } from '@/services/authApi';
 
 type PageKey = 'dashboard' | 'poi' | 'audio' | 'history' | 'analytics' | 'heatmap' | 'reports' | 'settings';
 
@@ -14,7 +15,9 @@ interface AppState {
   language: 'vi' | 'en';
   setLanguage: (l: 'vi' | 'en') => void;
   isLoggedIn: boolean;
-  setIsLoggedIn: (v: boolean) => void;
+  authUser: AuthUser | null;
+  signIn: (token: string, user: AuthUser, remember: boolean) => void;
+  signOut: () => void;
 }
 
 const AppContext = createContext<AppState | null>(null);
@@ -31,7 +34,40 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('light');
   const [language, setLanguage] = useState<'vi' | 'en'>('vi');
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [authToken, setAuthToken] = useState(() =>
+    localStorage.getItem('ha_auth_token') || sessionStorage.getItem('ha_auth_token'),
+  );
+  const [authUser, setAuthUser] = useState<AuthUser | null>(() => {
+    const stored = localStorage.getItem('ha_auth_user') || sessionStorage.getItem('ha_auth_user');
+    if (!stored) return null;
+    try {
+      return JSON.parse(stored) as AuthUser;
+    } catch {
+      localStorage.removeItem('ha_auth_user');
+      sessionStorage.removeItem('ha_auth_user');
+      return null;
+    }
+  });
+
+  const signIn = (token: string, user: AuthUser, remember: boolean) => {
+    const storage = remember ? localStorage : sessionStorage;
+    const otherStorage = remember ? sessionStorage : localStorage;
+    storage.setItem('ha_auth_token', token);
+    storage.setItem('ha_auth_user', JSON.stringify(user));
+    otherStorage.removeItem('ha_auth_token');
+    otherStorage.removeItem('ha_auth_user');
+    setAuthToken(token);
+    setAuthUser(user);
+  };
+
+  const signOut = () => {
+    localStorage.removeItem('ha_auth_token');
+    localStorage.removeItem('ha_auth_user');
+    sessionStorage.removeItem('ha_auth_token');
+    sessionStorage.removeItem('ha_auth_user');
+    setAuthToken(null);
+    setAuthUser(null);
+  };
 
   return (
     <AppContext.Provider value={{
@@ -40,7 +76,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       mobileSidebarOpen, setMobileSidebarOpen,
       theme, setTheme,
       language, setLanguage,
-      isLoggedIn, setIsLoggedIn,
+      isLoggedIn: Boolean(authToken && authUser?.accountType === 'ADMIN'
+        && ['ADMIN', 'SUPER_ADMIN'].includes(authUser.role)),
+      authUser, signIn, signOut,
     }}>
       {children}
     </AppContext.Provider>

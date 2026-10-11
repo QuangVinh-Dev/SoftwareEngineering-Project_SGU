@@ -26,9 +26,9 @@ import { playPoiAudio } from '../services/audioService';
 
 // GPS watchPosition options
 const GEO_OPTIONS = {
-  enableHighAccuracy: true,
-  maximumAge: 5000,   // accept cached positions up to 5 s old
-  timeout: 10000,     // fail if no fix within 10 s
+  enableHighAccuracy: false,
+  maximumAge: 30000,
+  timeout: 30000,
 };
 
 /**

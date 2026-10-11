@@ -78,6 +78,10 @@ services:
 
       SPRING_JPA_HIBERNATE_DDL_AUTO: validate
       AUDIO_STORAGE_PATH: /app/uploads/audio
+      JWT_SECRET: ${JWT_SECRET:-dev-only-secret-change-me-please-0123456789abcdef}
+      JWT_EXPIRATION_MINUTES: ${JWT_EXPIRATION_MINUTES:-60}
+      APP_ADMIN_PASSWORD: ${APP_ADMIN_PASSWORD:-}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:5174}
 
     volumes:
       - /home/qvinh/Workspace/SoftwareEngineering-Project_SGU/Test:/app/uploads/audio

@@ -12,7 +12,7 @@ export default function ProfileDropdown({ onProfile }: ProfileDropdownProps) {
   const [open, setOpen] = useState(false);
   const [logoutConfirm, setLogoutConfirm] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const { setIsLoggedIn, setCurrentPage } = useApp();
+  const { signOut, setCurrentPage, authUser } = useApp();
 
   useEffect(() => {
     function handler(e: MouseEvent) {
@@ -22,7 +22,8 @@ export default function ProfileDropdown({ onProfile }: ProfileDropdownProps) {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const initials = stallOwnerProfile.name.split(' ').slice(-1)[0]?.charAt(0).toUpperCase() || 'CG';
+  const displayName = authUser?.fullName || authUser?.username || stallOwnerProfile.name;
+  const initials = displayName.split(' ').slice(-1)[0]?.charAt(0).toUpperCase() || 'CG';
 
   return (
     <div ref={ref} className="relative">
@@ -47,8 +48,8 @@ export default function ProfileDropdown({ onProfile }: ProfileDropdownProps) {
               {initials}
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-brown-900 truncate">{stallOwnerProfile.name}</p>
-              <p className="text-xs text-brown-400">{stallOwnerProfile.email}</p>
+              <p className="text-sm font-semibold text-brown-900 truncate">{displayName}</p>
+              <p className="text-xs text-brown-400">{authUser?.email || authUser?.username}</p>
             </div>
           </div>
 
@@ -72,7 +73,7 @@ export default function ProfileDropdown({ onProfile }: ProfileDropdownProps) {
       <ConfirmDialog
         open={logoutConfirm}
         onClose={() => setLogoutConfirm(false)}
-        onConfirm={() => setIsLoggedIn(false)}
+        onConfirm={signOut}
         title="Đăng xuất"
         message="Bạn có chắc chắn muốn đăng xuất không?"
         confirmLabel="Đăng xuất"

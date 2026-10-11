@@ -14,7 +14,7 @@ export default function ProfileDropdown({ onProfile, onChangePassword, onAccount
   const [open, setOpen] = useState(false);
   const [logoutConfirm, setLogoutConfirm] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const { setIsLoggedIn } = useApp();
+  const { signOut, authUser } = useApp();
 
   useEffect(() => {
     function handler(e: MouseEvent) {
@@ -47,8 +47,8 @@ export default function ProfileDropdown({ onProfile, onChangePassword, onAccount
               AD
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-brown-900 truncate">Quản trị viên</p>
-              <p className="text-xs text-brown-400">admin@hoianaudioguide.vn</p>
+              <p className="text-sm font-semibold text-brown-900 truncate">{authUser?.fullName || authUser?.username || 'Quản trị viên'}</p>
+              <p className="text-xs text-brown-400">{authUser?.email || authUser?.username}</p>
             </div>
           </div>
 
@@ -78,7 +78,7 @@ export default function ProfileDropdown({ onProfile, onChangePassword, onAccount
       <ConfirmDialog
         open={logoutConfirm}
         onClose={() => setLogoutConfirm(false)}
-        onConfirm={() => setIsLoggedIn(false)}
+        onConfirm={signOut}
         title="Đăng xuất"
         message="Bạn có chắc chắn muốn đăng xuất?"
         confirmLabel="Đăng xuất"
