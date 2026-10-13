@@ -35,7 +35,7 @@ public class AudioRepository {
                   AND l.is_active = TRUE
                   AND v.is_active = TRUE
                   AND v.language_code = t.language_code
-                ORDER BY a.id
+                ORDER BY CASE WHEN a.source = 'TTS' THEN 0 ELSE 1 END, a.id
                 """, this::mapAudio, poiId, languageCode);
     }
 

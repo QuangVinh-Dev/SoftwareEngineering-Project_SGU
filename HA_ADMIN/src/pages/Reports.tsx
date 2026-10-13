@@ -118,8 +118,7 @@ export default function Reports() {
                   onClick={() => {
                     const end = new Date('2026-10-07');
                     const start = new Date(end);
-                    if (preset === 'Today') {}
-                    else if (preset === 'Last 7 days') start.setDate(start.getDate() - 7);
+                    if (preset === 'Last 7 days') start.setDate(start.getDate() - 7);
                     else if (preset === 'Last 30 days') start.setDate(start.getDate() - 30);
                     else if (preset === 'This month') start.setDate(1);
                     else if (preset === 'This year') start.setMonth(0, 1);

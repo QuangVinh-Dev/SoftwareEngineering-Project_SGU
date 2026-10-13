@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { MapPin, X, Headphones, Languages, Clock, Activity } from 'lucide-react';
-import { Card, CardHeader } from '@/components/ui';
+import { Card } from '@/components/ui';
 import { heatmapAreas } from '@/data/mockData';
 import { classNames, formatNumber } from '@/utils/helpers';
 

@@ -93,4 +93,16 @@ public class Poi {
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
     }
+
+    public void setMerchantId(Integer merchantId) { this.merchantId = merchantId; }
+    public void setName(String name) { this.name = name; }
+    public void setLatitude(BigDecimal latitude) { this.latitude = latitude; }
+    public void setLongitude(BigDecimal longitude) { this.longitude = longitude; }
+    public void setRadius(Integer radius) { this.radius = radius; }
+    public void setPriorityLevel(Integer priorityLevel) { this.priorityLevel = priorityLevel; }
+    public void setOriginalDescription(String originalDescription) { this.originalDescription = originalDescription; }
+    public void setDirectionLink(String directionLink) { this.directionLink = directionLink; }
+    public void setStatus(String status) { this.status = status; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

@@ -43,6 +43,7 @@ export interface ListeningHistoryEntry {
   poi: string;
   language: string;
   duration: string;
+  device: string;
   status: HistoryStatus;
 }
 

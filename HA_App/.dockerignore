@@ -1,11 +1,5 @@
 target/
+Data_Storage/
+tts-service/models/*.onnx
+test-en.mp3
 .git/
-.github/
-.idea/
-.vscode/
-
-*.log
-
-README.md
-
-node_modules/

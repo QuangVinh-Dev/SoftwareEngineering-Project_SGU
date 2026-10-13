@@ -69,7 +69,9 @@ function NavSection({ title, items, collapsed }: { title: string; items: NavItem
 }
 
 export default function Sidebar() {
-  const { sidebarCollapsed, setSidebarCollapsed, mobileSidebarOpen, setMobileSidebarOpen } = useApp();
+  const { sidebarCollapsed, setSidebarCollapsed, mobileSidebarOpen, setMobileSidebarOpen, authUser } = useApp();
+  const poiOnly = authUser?.role === 'POI_ADMIN';
+  const allowedManagement = poiOnly ? managementItems.filter(item => item.key === 'poi' || item.key === 'audio') : managementItems;
 
   return (
     <>
@@ -97,10 +99,10 @@ export default function Sidebar() {
         </div>
 
         <nav className="flex-1 overflow-y-auto scrollbar-thin py-4 px-3">
-          <NavSection title="Tổng quan" items={mainItems} collapsed={sidebarCollapsed} />
-          <NavSection title="Quản lý" items={managementItems} collapsed={sidebarCollapsed} />
-          <NavSection title="Phân tích" items={analyticsItems} collapsed={sidebarCollapsed} />
-          <NavSection title="Hệ thống" items={systemItems} collapsed={sidebarCollapsed} />
+          {!poiOnly && <NavSection title="Tổng quan" items={mainItems} collapsed={sidebarCollapsed} />}
+          <NavSection title="Quản lý" items={allowedManagement} collapsed={sidebarCollapsed} />
+          {!poiOnly && <NavSection title="Phân tích" items={analyticsItems} collapsed={sidebarCollapsed} />}
+          {!poiOnly && <NavSection title="Hệ thống" items={systemItems} collapsed={sidebarCollapsed} />}
         </nav>
 
         <button

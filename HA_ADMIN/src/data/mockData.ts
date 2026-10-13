@@ -24,11 +24,6 @@ export const languages: Language[] = [
   { id: 6, name: 'Tiếng Pháp', code: 'fr', status: false, isDefault: false },
 ];
 
-const langMap: Record<string, string> = {
-  'Vietnamese': 'Tiếng Việt', 'English': 'Tiếng Anh', 'Chinese': 'Tiếng Trung',
-  'Japanese': 'Tiếng Nhật', 'Korean': 'Tiếng Hàn', 'French': 'Tiếng Pháp',
-};
-
 export const audioContents: AudioContent[] = [
   { id: 1, poiId: 1, poiName: 'Chùa Cầu', language: 'Tiếng Việt', title: 'Lịch sử Chùa Cầu', ttsVoice: 'vi-VN-HoaiTrang', duration: '07:12', status: 'enabled' },
   { id: 2, poiId: 1, poiName: 'Chùa Cầu', language: 'Tiếng Anh', title: 'Lịch sử Chùa Cầu (EN)', ttsVoice: 'en-US-JennyNeural', duration: '06:55', status: 'enabled' },
@@ -91,6 +86,7 @@ export const listeningHistory: ListeningHistoryEntry[] = Array.from({ length: 12
     poi: poiNames[poiIdx],
     language: langNames[langIdx],
     duration: `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`,
+    device: ['mobile', 'desktop', 'tablet'][i % 3],
     status: histStatuses[statusIdx],
   };
 });

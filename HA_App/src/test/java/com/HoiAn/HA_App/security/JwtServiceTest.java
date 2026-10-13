@@ -11,6 +11,8 @@ class JwtServiceTest {
 
     private final AuthUser merchant = new AuthUser(7, "caolau_bamy", "MERCHANT", "MERCHANT", 3);
     private final AuthUser admin = new AuthUser(1, "admin", "SUPER_ADMIN", "ADMIN", null);
+    private final AuthUser poiAdmin = new AuthUser(9, "poi-editor", "POI_ADMIN", "ADMIN", null);
+    private final AuthUser merchantUser = new AuthUser(10, "merchant", "MERCHANT", "MERCHANT", 2);
 
     @Test
     void tokenRoundTripKeepsClaims() {
@@ -29,7 +31,15 @@ class JwtServiceTest {
 
         assertThat(parsed.merchantId()).isNull();
         assertThat(parsed.authorities()).extracting(Object::toString)
-                .contains("ROLE_SUPER_ADMIN", "ROLE_ADMIN");
+                .contains("ROLE_SUPER_ADMIN", "ROLE_ADMIN", "ROLE_POI_ADMIN");
+    }
+
+    @Test
+    void poiAdminGetsOnlyPoiModuleAuthority() {
+        assertThat(poiAdmin.authorities()).extracting(Object::toString)
+                .containsExactly("ROLE_POI_ADMIN");
+        assertThat(merchantUser.authorities()).extracting(Object::toString)
+                .containsExactly("ROLE_MERCHANT");
     }
 
     @Test
