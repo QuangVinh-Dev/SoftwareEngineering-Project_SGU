@@ -14,7 +14,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/poi")
-@CrossOrigin
 public class PoiController {
     private final PoiService poiService;
 

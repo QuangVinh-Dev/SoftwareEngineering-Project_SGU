@@ -12,9 +12,24 @@ import Reports from '@/pages/Reports';
 import Settings from '@/pages/Settings';
 
 function AppContent() {
-  const { isLoggedIn, currentPage } = useApp();
+  const { authStatus, authError, authUser, currentPage, signOut, retryAuth } = useApp();
 
-  if (!isLoggedIn) return <Login />;
+  if (authStatus === 'loading') return <div className="min-h-screen grid place-items-center text-brown-500">Đang xác minh phiên đăng nhập…</div>;
+  if (authStatus === 'error') return (
+    <div className="min-h-screen grid place-items-center p-6 text-center">
+      <div><p className="mb-4 text-brown-700">{authError}</p><button className="text-primary-700 underline" onClick={retryAuth}>Thử lại</button><button className="ml-4 text-brown-500 underline" onClick={signOut}>Đăng nhập lại</button></div>
+    </div>
+  );
+  if (authStatus === 'anonymous') return <Login />;
+  if (authStatus === 'forbidden') return (
+    <div className="min-h-screen grid place-items-center p-6 text-center">
+      <div><h1 className="text-2xl font-bold text-brown-900">403 — Không có quyền truy cập</h1><p className="mt-2 text-brown-500">Tài khoản {authUser?.username ?? ''} không có role quản trị.</p><button className="mt-5 text-primary-700 underline" onClick={signOut}>Đăng xuất</button></div>
+    </div>
+  );
+
+  if (authUser?.role === 'POI_ADMIN' && currentPage !== 'poi' && currentPage !== 'audio') {
+    return <Layout><POIManagement /></Layout>;
+  }
 
   const pages: Record<string, React.ReactNode> = {
     dashboard: <Dashboard />,

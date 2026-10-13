@@ -1,13 +1,12 @@
 import { useState } from 'react';
 import { Volume2, Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { useApp } from '@/hooks/useApp';
-import { login } from '@/services/authApi';
+import { apiMessage, login } from '@/services/authApi';
 
 export default function Login() {
   const { signIn } = useApp();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [remember, setRemember] = useState(true);
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -19,12 +18,12 @@ export default function Login() {
     try {
       const response = await login(username, password);
       if (response.user.accountType !== 'ADMIN'
-        || !['ADMIN', 'SUPER_ADMIN'].includes(response.user.role)) {
+        || !['ADMIN', 'SUPER_ADMIN', 'POI_ADMIN'].includes(response.user.role)) {
         throw new Error('Tài khoản này không có quyền truy cập cổng quản trị.');
       }
-      signIn(response.accessToken, response.user, remember);
+      signIn(response.accessToken, response.user);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Đăng nhập thất bại.');
+      setError(apiMessage(err));
     } finally {
       setIsSubmitting(false);
     }
@@ -89,18 +88,7 @@ export default function Login() {
               </div>
             )}
 
-            <div className="flex items-center justify-between text-sm">
-              <label className="flex items-center gap-2 text-brown-600">
-                <input
-                  type="checkbox"
-                  checked={remember}
-                  onChange={e => setRemember(e.target.checked)}
-                  className="rounded border-brown-300 text-primary-600 focus:ring-primary-400"
-                />
-                Remember me
-              </label>
-              <button type="button" className="text-primary-600 hover:text-primary-700 font-medium">Forgot password?</button>
-            </div>
+            <p className="text-xs text-brown-400">Phiên đăng nhập được giữ trong tab hiện tại và cần đăng nhập lại sau khi đóng tab.</p>
 
             <button
               type="submit"

@@ -1,74 +1,95 @@
 services:
-
   postgres:
     image: postgres:16
     container_name: hoian-postgres
-
     restart: unless-stopped
-
     environment:
       POSTGRES_DB: hoian_db
       POSTGRES_USER: hoian
       POSTGRES_PASSWORD: hoian123
-
     ports:
       - "5433:5432"
-
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./version_1.0.sql:/docker-entrypoint-initdb.d/01-version_1.0.sql:ro
-
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "pg_isready -U hoian -d hoian_db"
-        ]
+      test: ["CMD-SHELL", "pg_isready -U hoian -d hoian_db"]
       interval: 5s
       timeout: 5s
       retries: 10
 
-
   redis:
     image: redis:7-alpine
     container_name: hoian-redis
-
     restart: unless-stopped
-
     ports:
       - "6380:6379"
-
     volumes:
       - redis_data:/data
-
     command: redis-server --appendonly yes
-
     healthcheck:
-      test:
-        [
-          "CMD",
-          "redis-cli",
-          "ping"
-        ]
+      test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 10
 
+  libretranslate:
+    image: libretranslate/libretranslate:latest
+    container_name: hoian-libretranslate
+    restart: unless-stopped
+    environment:
+      LT_LOAD_ONLY: "en,vi,ja,ko,zh"
+    expose:
+      - "5000"
+    # Chỉ mở cổng trên máy local để tiện kiểm thử khi phát triển.
+    # Có thể xóa ports khi triển khai thật.
+    ports:
+      - "127.0.0.1:5000:5000"
+    volumes:
+      - libretranslate_models:/home/libretranslate/.local
+
+  piper-tts:
+    build:
+      context: ./tts-service
+      dockerfile: Dockerfile
+    container_name: hoian-piper-tts
+    restart: unless-stopped
+    environment:
+      MODEL_DIR: /models
+      PIPER_MODEL_VI: "vi_VN-vais1000-medium.onnx"
+      PIPER_MODEL_EN: "en_US-lessac-medium.onnx"
+      PIPER_MODEL_JA: "ja_JP-hi_fi_captain-medium.onnx"
+      PIPER_MODEL_KO: "ko_KR-kss-medium.onnx"
+      PIPER_MODEL_ZH: "zh_CN-huayan-medium.onnx"
+    expose:
+      - "5001"
+    # Chỉ mở cổng trên máy local để tiện kiểm thử khi phát triển.
+    ports:
+      - "127.0.0.1:5001:5001"
+    volumes:
+      - ./tts-service/models:/models:ro
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:5001/health', timeout=3)"
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
 
   app:
     build:
       context: .
       dockerfile: Dockerfile
-
     container_name: hoian-app
-
     restart: unless-stopped
-
     ports:
       - "9999:8080"
-
     environment:
-
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/hoian_db
       SPRING_DATASOURCE_USERNAME: hoian
       SPRING_DATASOURCE_PASSWORD: hoian123
@@ -77,24 +98,31 @@ services:
       SPRING_DATA_REDIS_PORT: 6379
 
       SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+
+      LIBRETRANSLATE_URL: http://libretranslate:5000
+      PIPER_TTS_URL: http://piper-tts:5001
       AUDIO_STORAGE_PATH: /app/uploads/audio
+
       JWT_SECRET: ${JWT_SECRET:-dev-only-secret-change-me-please-0123456789abcdef}
       JWT_EXPIRATION_MINUTES: ${JWT_EXPIRATION_MINUTES:-60}
       APP_ADMIN_PASSWORD: ${APP_ADMIN_PASSWORD:-}
+      APP_SUPER_ADMIN_PASSWORD: ${APP_SUPER_ADMIN_PASSWORD:-123456}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:5174}
 
     volumes:
-      - /home/qvinh/Workspace/SoftwareEngineering-Project_SGU/Test:/app/uploads/audio
+      - ./Data_Storage:/app/uploads/audio
 
     depends_on:
-
       postgres:
         condition: service_healthy
-
       redis:
         condition: service_healthy
-
+      libretranslate:
+        condition: service_started
+      piper-tts:
+        condition: service_healthy
 
 volumes:
   postgres_data:
   redis_data:
+  libretranslate_models:

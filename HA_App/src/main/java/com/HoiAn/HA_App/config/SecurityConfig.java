@@ -50,8 +50,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register/merchant").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/poi/**").permitAll()
                         .requestMatchers("/api/auth/register/admin").hasRole("SUPER_ADMIN")
+                        .requestMatchers("/api/admin/pois", "/api/admin/pois/**").hasRole("POI_ADMIN")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/poi/**").hasRole("ADMIN")
+                        .requestMatchers("/api/poi/**").hasRole("POI_ADMIN")
                         .anyRequest().authenticated())
                 .addFilterBefore(new JwtAuthenticationFilter(jwtService),
                         UsernamePasswordAuthenticationFilter.class)

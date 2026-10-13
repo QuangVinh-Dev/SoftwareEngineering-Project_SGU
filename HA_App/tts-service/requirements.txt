@@ -1,0 +1,4 @@
+fastapi
+uvicorn[standard]
+piper-tts
+pyopenjtalk-plus==0.4.1.post9
