@@ -33,6 +33,11 @@ export function usePlayer() {
     setCurrentTime(0);
     setDuration(Number(options.durationSeconds) || 0);
 
+    if (options.loading) {
+      setMeta(`${LANG_LABEL[language] || language} · Đang tải audio`);
+      setIsLoading(true);
+      return;
+    }
     if (options.empty) {
       setMeta(`${LANG_LABEL[language] || language} · Không có audio cho địa điểm này`);
       return;

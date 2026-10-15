@@ -136,6 +136,7 @@ public class PoiService {
 
     private PoiLocationResponse toLocationResponse(Poi poi) {
         return new PoiLocationResponse(poi.getId(), poi.getName(), poi.getLatitude(),
-                poi.getLongitude(), poi.getRadius());
+                poi.getLongitude(), poi.getRadius(), poi.getStatus(),
+                poi.getOriginalDescription(), poi.getDirectionLink());
     }
 }

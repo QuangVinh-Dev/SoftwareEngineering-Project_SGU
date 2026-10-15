@@ -1,11 +1,11 @@
 // src/App.jsx
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useI18n } from './hooks/useI18n';
 import { useTranslation } from './hooks/useTranslation';
 import { usePlayer } from './hooks/usePlayer';
 import { usePoiLocation } from './hooks/useGeofence';
 import { playPoiAudio } from './services/audioService';
-import { POIS } from './data/pois';
+import { getPoiLocations } from './services/poiService';
 
 import Topbar from './components/Topbar';
 import Header from './components/Header';
@@ -25,6 +25,13 @@ export default function App() {
   const { currentLang, setCurrentLang, t } = useI18n();
   const { getPoiText, translateAllPois } = useTranslation(currentLang);
   const player = usePlayer();
+  const audioRequestRef = useRef(0);
+  const previousLanguageRef = useRef(currentLang);
+  const [playerPoi, setPlayerPoi] = useState(null);
+  const [playerLang, setPlayerLang] = useState(currentLang);
+  const [pois, setPois] = useState([]);
+  const [poiLoading, setPoiLoading] = useState(false);
+  const [poiError, setPoiError] = useState(null);
 
   const [modalPoi, setModalPoi] = useState(null);
   const [mapOpen, setMapOpen] = useState(false);
@@ -35,6 +42,18 @@ export default function App() {
     if (typeof window === 'undefined') return false;
     return sessionStorage.getItem('hoian_unlocked') === '1';
   });
+
+  useEffect(() => {
+    if (!unlocked) return;
+    let cancelled = false;
+    setPoiLoading(true);
+    getPoiLocations().then(data => {
+      if (!cancelled) { setPois(data); setPoiError(null); }
+    }).catch(error => {
+      if (!cancelled) { setPois([]); setPoiError(error.message || 'Không tải được danh sách địa điểm.'); }
+    }).finally(() => { if (!cancelled) setPoiLoading(false); });
+    return () => { cancelled = true; };
+  }, [unlocked]);
 
   const handleUnlock = useCallback(() => {
     sessionStorage.setItem('hoian_unlocked', '1');
@@ -54,6 +73,7 @@ export default function App() {
     enabled: gpsEnabled,
     currentLang,
     openPlayerFn: player.openPlayer,
+    suppliedPois: pois,
   });
 
   // Log GPS / API errors in development — don't crash the app
@@ -92,8 +112,8 @@ export default function App() {
 
   /* Translate */
   useEffect(() => {
-    if (unlocked) translateAllPois(POIS);
-  }, [currentLang, translateAllPois, unlocked]);
+    if (unlocked) translateAllPois(pois);
+  }, [currentLang, translateAllPois, unlocked, pois]);
 
   /* Handlers */
   const handleSetLang = useCallback((code) => setCurrentLang(code), [setCurrentLang]);
@@ -114,8 +134,41 @@ export default function App() {
 
   /* 4.2 — Phát khi chạm vào POI */
   const handleOpenPlayer = useCallback((p, langCode) => {
-    playPoiAudio(p, langCode || currentLang, player.openPlayer);
-  }, [currentLang, player.openPlayer]);
+    if (!p) return;
+    ++audioRequestRef.current;
+    setPlayerPoi(p);
+    setPlayerLang(langCode || currentLang);
+    player.closePlayer();
+  }, [currentLang, player.closePlayer]);
+
+  useEffect(() => {
+    if (previousLanguageRef.current !== currentLang) {
+      previousLanguageRef.current = currentLang;
+      if (playerPoi) setPlayerLang(currentLang);
+    }
+  }, [currentLang, playerPoi]);
+
+  // Keep the open player bound to its selected POI and current language.
+  // A sequence token prevents a slower response for an older language/POI
+  // from replacing the latest selection.
+  useEffect(() => {
+    if (!playerPoi) return;
+    const requestId = ++audioRequestRef.current;
+    const controller = new AbortController();
+    player.openPlayer(playerPoi.name, playerLang, playerPoi.id, null, { loading: true });
+    playPoiAudio(playerPoi, playerLang, player.openPlayer,
+      () => audioRequestRef.current === requestId, { signal: controller.signal });
+    return () => {
+      controller.abort();
+      ++audioRequestRef.current;
+    };
+  }, [playerPoi, playerLang, player.openPlayer]);
+
+  const handleClosePlayer = useCallback(() => {
+    ++audioRequestRef.current;
+    setPlayerPoi(null);
+    player.closePlayer();
+  }, [player.closePlayer]);
 
   const handleModalOpenMap = useCallback((p) => {
     setModalPoi(null);
@@ -140,10 +193,13 @@ export default function App() {
       <Hero onOpenMap={() => handleOpenMap()} />
       <Intro t={t} />
 
-      <Routes t={t} getPoiText={getPoiText} onOpenPoi={handleOpenPoi} />
+      <Routes t={t} pois={pois} loading={poiLoading} error={poiError} getPoiText={getPoiText} onOpenPoi={handleOpenPoi} />
 
       <Categories
         t={t}
+        pois={pois}
+        loading={poiLoading}
+        error={poiError}
         getPoiText={getPoiText}
         onOpenPoi={handleOpenPoi}
         onOpenPlayer={handleOpenPlayer}
@@ -167,6 +223,9 @@ export default function App() {
       {mapOpen && (
         <MapPage
           t={t}
+          pois={pois}
+          loading={poiLoading}
+          error={poiError}
           getPoiText={getPoiText}
           onClose={handleCloseMap}
           focusPoi={mapFocusPoi}
@@ -178,6 +237,9 @@ export default function App() {
       {allOpen && (
         <AllPoisPage
           t={t}
+          pois={pois}
+          loading={poiLoading}
+          error={poiError}
           getPoiText={getPoiText}
           onClose={handleCloseAll}
           onOpenPoi={handleOpenPoi}
@@ -196,7 +258,7 @@ export default function App() {
         meta={player.meta}
         queueLength={player.queueLength}
         onTogglePlay={player.togglePlay}
-        onClose={player.closePlayer}
+        onClose={handleClosePlayer}
         onSeek={player.seek}
       />
     </>
