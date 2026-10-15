@@ -24,7 +24,8 @@ export default function PoiModal({
   if (!poi) return null;
 
   const txt = getPoiText(poi);
-  const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${poi.lat},${poi.lng}`;
+  const directionsUrl = poi.directionLink
+    || `https://www.google.com/maps/dir/?api=1&destination=${poi.latitude},${poi.longitude}`;
 
   return (
     <div
@@ -71,10 +72,10 @@ export default function PoiModal({
 
         <div className="poi-modal__info">
           <div className="poi-modal__num">
-            {t('cat.' + CAT_ID[poi.cat])} · {poi.num}
+            {CAT_ID[poi.cat] ? t('cat.' + CAT_ID[poi.cat]) : (poi.status || 'POI')} · {poi.num}
           </div>
           <h2 className="poi-modal__name">{txt.name}</h2>
-          <span className="poi-modal__tag">{txt.tag}</span>
+          {txt.tag && <span className="poi-modal__tag">{txt.tag}</span>}
           <p className="poi-modal__desc">{txt.desc}</p>
 
           <div className="poi-modal__meta">
@@ -139,7 +140,7 @@ export default function PoiModal({
                 >
                   <span className="audio-lang__flag">{flagImg(L.cc, L.name)}</span>
                   <span className="audio-lang__name">{L.name}</span>
-                  <span className="audio-lang__dur">{L.dur}</span>
+                  <span className="audio-lang__dur">{L.code.toUpperCase()}</span>
                 </button>
               ))}
             </div>

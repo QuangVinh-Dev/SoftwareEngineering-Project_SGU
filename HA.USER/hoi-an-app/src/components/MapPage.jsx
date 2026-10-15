@@ -1,13 +1,13 @@
 // src/components/MapPage.jsx
 import { useEffect, useRef, useState, useCallback, useMemo, memo } from 'react';
-import { POIS } from '../data/pois';
-import { CATEGORIES, CAT_ID } from '../data/categories';
+import { CAT_ID } from '../data/categories';
 import SearchBox from './SearchBox';
 
 const maplibregl = window.maplibregl;
+const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
 
 function MapPage({
-  t, getPoiText, onClose, focusPoi, onOpenPoi, onOpenPlayer
+  t, pois = [], loading = false, error = null, getPoiText, onClose, focusPoi, onOpenPoi, onOpenPlayer
 }) {
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
@@ -16,7 +16,7 @@ function MapPage({
   const [activePoi, setActivePoi] = useState(null);
   const [activeChip, setActiveChip] = useState('all');
   const [search, setSearch] = useState('');
-  const [count, setCount] = useState(POIS.length);
+  const [count, setCount] = useState(0);
   const [mapReady, setMapReady] = useState(false);
 
   /* Sidebar đóng mặc định */
@@ -43,16 +43,16 @@ function MapPage({
       closeOnClick: false,
       maxWidth: '280px'
     })
-      .setLngLat([p.lng, p.lat])
+      .setLngLat([p.longitude, p.latitude])
       .setHTML(`<div class="ha-popup">
-        <div class="ha-popup__num">${t('cat.' + CAT_ID[p.cat])} · ${p.num}</div>
-        <div class="ha-popup__name">${txt.name}</div>
+        <div class="ha-popup__num">${CAT_ID[p.cat] ? t('cat.' + CAT_ID[p.cat]) : escapeHtml(p.status || 'POI')} · ${escapeHtml(p.num)}</div>
+        <div class="ha-popup__name">${escapeHtml(txt.name)}</div>
         <div class="ha-popup__meta">
           <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
             <circle cx="12" cy="10" r="3" />
           </svg>
-          <span>${txt.dist}</span>
+          <span>${escapeHtml(txt.dist)}</span>
         </div>
         <div class="ha-popup__btns">
           <button class="ha-popup__btn" data-act="detail">
@@ -84,7 +84,7 @@ function MapPage({
       popupRef.current = null;
     });
 
-    map.flyTo({ center: [p.lng, p.lat], zoom: 16.5, duration: 700, essential: true });
+    map.flyTo({ center: [p.longitude, p.latitude], zoom: 16.5, duration: 700, essential: true });
   }, [t, getPoiText, onOpenPoi, onOpenPlayer]);
 
   /* ---------- INIT MAP ---------- */
@@ -140,22 +140,6 @@ function MapPage({
     );
     map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
 
-    /* Markers */
-    POIS.forEach(p => {
-      const el = document.createElement('div');
-      el.className = 'ha-marker';
-      el.innerHTML = `<div class="ha-marker__pin"><b>${p.num}</b></div>`;
-      el.addEventListener('click', (e) => {
-        e.stopPropagation();
-        setActivePoiId(p.id);
-        showPopup(p);
-      });
-      const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
-        .setLngLat([p.lng, p.lat])
-        .addTo(map);
-      markersRef.current[p.id] = { el, marker };
-    });
-
     return () => {
       if (popupRef.current) popupRef.current.remove();
       map.remove();
@@ -163,6 +147,35 @@ function MapPage({
       markersRef.current = {};
     };
   }, [setActivePoiId, showPopup]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+    Object.values(markersRef.current).forEach(({ marker }) => marker.remove());
+    markersRef.current = {};
+    pois.forEach(p => {
+      const lat = Number(p.latitude), lng = Number(p.longitude);
+      if (!Number.isFinite(lat) || Math.abs(lat) > 90 || !Number.isFinite(lng) || Math.abs(lng) > 180) {
+        console.warn('[MapPage] Bỏ qua POI không có tọa độ hợp lệ:', p.id);
+        return;
+      }
+      const el = document.createElement('div');
+      el.className = 'ha-marker';
+      el.innerHTML = `<div class="ha-marker__pin"><b>${p.num}</b></div>`;
+      el.addEventListener('click', e => {
+        e.stopPropagation();
+        setActivePoiId(p.id);
+        showPopup(p);
+      });
+      const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
+        .setLngLat([lng, lat]).addTo(map);
+      markersRef.current[p.id] = { el, marker };
+    });
+    return () => {
+      Object.values(markersRef.current).forEach(({ marker }) => marker.remove());
+      markersRef.current = {};
+    };
+  }, [pois, mapReady, setActivePoiId, showPopup]);
 
   /* ---------- ResizeObserver ---------- */
   useEffect(() => {
@@ -199,7 +212,7 @@ function MapPage({
 
   /* ---------- Focus POI ---------- */
   useEffect(() => {
-    if (focusPoi && mapRef.current) {
+    if (focusPoi && mapRef.current && Number.isFinite(Number(focusPoi.latitude)) && Number.isFinite(Number(focusPoi.longitude))) {
       const timer = setTimeout(() => {
         mapRef.current.resize();
         setActivePoiId(focusPoi.id);
@@ -212,23 +225,25 @@ function MapPage({
   /* ---------- Filter logic ---------- */
   const visiblePois = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return POIS.filter(p => {
+    return pois.filter(p => {
+      if (!Number.isFinite(Number(p.latitude)) || Math.abs(Number(p.latitude)) > 90
+        || !Number.isFinite(Number(p.longitude)) || Math.abs(Number(p.longitude)) > 180) return false;
       const txt = getPoiText(p);
       const matchQ = !q
         || txt.name.toLowerCase().includes(q)
         || txt.desc.toLowerCase().includes(q)
         || txt.addr.toLowerCase().includes(q);
 
-      const matchChip = activeChip === 'all' || CAT_ID[p.cat] === activeChip;
+      const matchChip = activeChip === 'all';
       return matchQ && matchChip;
     });
-  }, [search, activeChip, getPoiText]);
+  }, [pois, search, activeChip, getPoiText]);
 
   /* ---------- Apply filter to markers ---------- */
   useEffect(() => {
     const visibleIds = new Set(visiblePois.map(p => p.id));
     let n = 0;
-    POIS.forEach(p => {
+    pois.forEach(p => {
       const show = visibleIds.has(p.id);
       if (show) n++;
       const m = markersRef.current[p.id];
@@ -239,7 +254,7 @@ function MapPage({
       popupRef.current.remove();
       popupRef.current = null;
     }
-  }, [visiblePois]);
+  }, [visiblePois, pois]);
 
   const handleChipClick = (chipId) => setActiveChip(chipId);
 
@@ -285,8 +300,10 @@ function MapPage({
       <div className={`map-layout${sidebarOpen ? ' is-sidebar-open' : ''}`}>
         <div className="map-canvas">
           <div ref={mapContainerRef} id="map" />
-          <div className="map-overlay">GPS · 50M</div>
-          {!mapReady && (
+          <div className="map-overlay">GPS</div>
+          {error ? <div className="map-loading" role="alert">Không thể tải POI: {error}</div> : loading ? (
+            <div className="map-loading"><div className="map-loading__spinner" /><div className="map-loading__text">Đang tải POI…</div></div>
+          ) : !mapReady && (
             <div className="map-loading">
               <div className="map-loading__spinner" />
               <div className="map-loading__text">{t('map.loading')}</div>
@@ -328,15 +345,6 @@ function MapPage({
                 >
                   {t('chips.all')}
                 </button>
-                {CATEGORIES.map(c => (
-                  <button
-                    key={c.id}
-                    className={`filter-btn${activeChip === c.id ? ' is-active' : ''}`}
-                    onClick={() => handleChipClick(c.id)}
-                  >
-                    {t(c.labelKey)}
-                  </button>
-                ))}
               </div>
             </div>
           </div>
@@ -362,7 +370,7 @@ function MapPage({
                   <div className="poi-item__num">{p.num}</div>
                   <div>
                     <div className="poi-item__name">{txt.name}</div>
-                    <div className="poi-item__meta">{t('cat.' + CAT_ID[p.cat])}</div>
+              <div className="poi-item__meta">{p.status || 'POI'}</div>
                   </div>
                   <div className="poi-item__dist">{txt.dist}</div>
                 </li>

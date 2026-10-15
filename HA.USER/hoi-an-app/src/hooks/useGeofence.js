@@ -21,13 +21,13 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { getPoiLocations } from '../services/poiService';
-import { isInsidePoi } from '../utils/geo';
+import { nearestPoiInRange } from '../utils/geo';
 import { playPoiAudio } from '../services/audioService';
 
 // GPS watchPosition options
 const GEO_OPTIONS = {
-  enableHighAccuracy: false,
-  maximumAge: 30000,
+  enableHighAccuracy: true,
+  maximumAge: 5000,
   timeout: 30000,
 };
 
@@ -50,7 +50,7 @@ const GEO_OPTIONS = {
  *   gpsError:        string|null,
  * }}
  */
-export function usePoiLocation({ enabled = true, currentLang = 'VI', openPlayerFn }) {
+export function usePoiLocation({ enabled = true, currentLang = 'VI', openPlayerFn, suppliedPois = null }) {
   const [pois, setPois] = useState([]);
   const [currentPosition, setCurrentPosition] = useState(null);
   const [currentPoi, setCurrentPoi] = useState(null);
@@ -61,6 +61,7 @@ export function usePoiLocation({ enabled = true, currentLang = 'VI', openPlayerF
   const [gpsError, setGpsError] = useState(null);
 
   const lastAudioKey = useRef(null);
+  const playedAudioKeys = useRef(new Set());
 
   // watchPosition ID for cleanup
   const watchIdRef = useRef(null);
@@ -85,10 +86,13 @@ export function usePoiLocation({ enabled = true, currentLang = 'VI', openPlayerF
   }, [currentLang]);
 
   // ----------------------------------------------------------------
-  // Step 1: Fetch POI locations from backend (once when enabled)
+  // Use the app's shared POI collection so list, map and GPS use the same IDs.
   // ----------------------------------------------------------------
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || suppliedPois) {
+      if (suppliedPois) { setPois(suppliedPois); setError(null); }
+      return;
+    }
 
     let cancelled = false;
     setLoading(true);
@@ -97,7 +101,15 @@ export function usePoiLocation({ enabled = true, currentLang = 'VI', openPlayerF
     getPoiLocations()
       .then((data) => {
         if (cancelled) return;
-        setPois(Array.isArray(data) ? data : []);
+        const validPois = Array.isArray(data) ? data.filter((poi) => {
+          const lat = Number(poi?.latitude);
+          const lng = Number(poi?.longitude);
+          const radius = Number(poi?.radius);
+          return poi?.id != null && Number.isFinite(lat) && Math.abs(lat) <= 90
+            && Number.isFinite(lng) && Math.abs(lng) <= 180
+            && Number.isFinite(radius) && radius >= 0;
+        }) : [];
+        setPois(validPois);
         console.log('[usePoiLocation] Fetched', data?.length, 'POIs from backend');
       })
       .catch((err) => {
@@ -110,13 +122,19 @@ export function usePoiLocation({ enabled = true, currentLang = 'VI', openPlayerF
       });
 
     return () => { cancelled = true; };
-  }, [enabled]);
+  }, [enabled, suppliedPois]);
 
   // ----------------------------------------------------------------
   // GPS position handler — called on every watchPosition update
   // ----------------------------------------------------------------
   const handlePosition = useCallback((position) => {
+    if (!position?.coords) return;
     const { latitude, longitude, accuracy } = position.coords;
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)
+      || Math.abs(latitude) > 90 || Math.abs(longitude) > 180) {
+      setGpsError('Tọa độ GPS không hợp lệ.');
+      return;
+    }
 
     setCurrentPosition({ latitude, longitude, accuracy });
     setGpsError(null);
@@ -125,17 +143,11 @@ export function usePoiLocation({ enabled = true, currentLang = 'VI', openPlayerF
     if (!activePois || activePois.length === 0) return;
 
     // ---- Find nearest POI that is inside its radius ----
-    let nearestPoi = null;
-    let nearestDist = Infinity;
-
-    for (const poi of activePois) {
-      const { inside, distance } = isInsidePoi(latitude, longitude, poi, accuracy);
-
-      if (inside && distance < nearestDist) {
-        nearestPoi = poi;
-        nearestDist = distance;
-      }
-    }
+    const nearest = Number.isFinite(accuracy) && accuracy >= 0
+      ? nearestPoiInRange(latitude, longitude, activePois, accuracy)
+      : nearestPoiInRange(latitude, longitude, activePois);
+    const nearestPoi = nearest?.poi ?? null;
+    const nearestDist = nearest?.distance ?? Infinity;
 
     // Debug log (development only)
     console.log('[GPS]', {
@@ -157,16 +169,21 @@ export function usePoiLocation({ enabled = true, currentLang = 'VI', openPlayerF
   // Fetch once on entry, POI change, or language change. GPS updates inside
   // the same geofence do not repeat the request.
   useEffect(() => {
+    // Manual player selections are handled by App. The GPS watcher is disabled
+    // while that player is open, so it must not replace its selected POI audio.
+    if (!enabled) return;
     if (!currentPoi) {
       lastAudioKey.current = null;
       return;
     }
     const key = `${currentPoi.id}:${String(currentLang || 'VI').toUpperCase()}`;
     if (lastAudioKey.current === key) return;
+    if (playedAudioKeys.current.has(key)) return;
+    playedAudioKeys.current.add(key);
     lastAudioKey.current = key;
     console.log('[usePoiLocation] Loading audio for POI/language:', key);
     playPoiAudio(currentPoi, currentLang, openPlayerRef.current, () => lastAudioKey.current === key);
-  }, [currentPoi, currentLang]);
+  }, [currentPoi, currentLang, enabled]);
 
   // ----------------------------------------------------------------
   // GPS error handler
@@ -248,10 +265,8 @@ export function usePoiLocation({ enabled = true, currentLang = 'VI', openPlayerF
 }
 
 // ---------------------------------------------------------------------------
-// Legacy export — kept for backward compatibility with existing App.jsx usage.
-// App.jsx currently calls: useGeofence(POIS, 50, handleEnterPoi, enabled)
-// After this refactor, App.jsx will use usePoiLocation instead.
-// The function below is intentionally left as a thin stub that warns the dev.
+// Legacy export retained for any older imports; the active application uses
+// usePoiLocation with the shared backend POI collection above.
 // ---------------------------------------------------------------------------
 export function useGeofence(pois, _radiusMeters, _onEnter, _enabled) {
   console.warn(

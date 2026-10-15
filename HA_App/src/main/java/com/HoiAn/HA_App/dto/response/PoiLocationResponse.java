@@ -9,6 +9,9 @@ public record PoiLocationResponse(
         String name,
         BigDecimal latitude,
         BigDecimal longitude,
-        Integer radius
+        Integer radius,
+        String status,
+        String originalDescription,
+        String directionLink
 ) {
 }

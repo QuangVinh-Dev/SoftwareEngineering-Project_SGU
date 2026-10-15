@@ -18,7 +18,8 @@ public class AdminPoiContentService {
     private final PoiRepository pois; 
     private final PoiContentRepository content;
     private final TranslationService translator; 
-    private final TtsService tts; private final AudioFileStorageService files;
+    private final TtsService tts; 
+    private final AudioFileStorageService files;
     private final Map<String,Object> generationLocks=new ConcurrentHashMap<>();
     public AdminPoiContentService(PoiRepository pois,PoiContentRepository content,TranslationService translator,TtsService tts,AudioFileStorageService files) {
         this.pois=pois;this.content=content;this.translator=translator;this.tts=tts;this.files=files;

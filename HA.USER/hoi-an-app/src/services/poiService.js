@@ -11,6 +11,34 @@
 // The project uses plain fetch (no Axios) — we keep that convention.
 
 import { API_BASE_URL } from '../config/api';
+import { FALLBACK } from '../utils/constants';
+
+function unwrapList(payload) {
+  const value = payload?.data ?? payload?.content ?? payload;
+  return Array.isArray(value) ? value : [];
+}
+
+export function normalizePoi(poi) {
+  const coordinate = value => value == null || value === '' ? NaN : Number(value);
+  return {
+    ...poi,
+    id: poi.id,
+    num: String(poi.id).padStart(2, '0'),
+    name: poi.name || '',
+    desc: poi.originalDescription || poi.description || '',
+    tag: poi.status || 'POI',
+    latitude: coordinate(poi.latitude),
+    longitude: coordinate(poi.longitude),
+    lat: coordinate(poi.latitude),
+    lng: coordinate(poi.longitude),
+    radius: poi.radius == null || poi.radius === '' ? NaN : Number(poi.radius),
+    addr: '',
+    directionLink: poi.directionLink || '',
+    dist: '', hours: '', price: '', video: null,
+    imgs: [FALLBACK],
+    cat: null,
+  };
+}
 
 /**
  * Fetch the list of POI locations from the backend.
@@ -20,7 +48,7 @@ import { API_BASE_URL } from '../config/api';
  *         non-OK HTTP status.  Callers should catch and handle errors.
  */
 export async function getPoiLocations() {
-  const res = await fetch(`${API_BASE_URL}/api/poi/locations`);
+  const res = await fetch(`${API_BASE_URL}/api/poi/locations`, { headers: { Accept: 'application/json' } });
 
   if (!res.ok) {
     throw new Error(
@@ -29,5 +57,6 @@ export async function getPoiLocations() {
   }
 
   const data = await res.json();
-  return data; // Array of { id, name, latitude, longitude, radius }
+  return unwrapList(data).filter(poi => poi?.id != null && typeof poi.name === 'string')
+    .map(normalizePoi);
 }

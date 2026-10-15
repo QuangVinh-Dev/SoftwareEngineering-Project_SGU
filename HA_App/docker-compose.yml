@@ -18,20 +18,34 @@ services:
       timeout: 5s
       retries: 10
 
+
   redis:
     image: redis:7-alpine
     container_name: hoian-redis
     restart: unless-stopped
+    command:
+      - redis-server
+      - --port
+      - "6380"
+      - --appendonly
+      - "yes"
+      - --requirepass
+      - "${REDIS_PASSWORD}"
     ports:
-      - "6380:6379"
+      - "6380:6380"
     volumes:
       - redis_data:/data
-    command: redis-server --appendonly yes
+    environment:
+      REDIS_PASSWORD: "${REDIS_PASSWORD}"
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test:
+        - CMD-SHELL
+        - 'REDISCLI_AUTH="$${REDIS_PASSWORD}" redis-cli -p 6380 ping | grep -q PONG'
       interval: 5s
       timeout: 3s
-      retries: 10
+      retries: 5
+
+
 
   libretranslate:
     image: libretranslate/libretranslate:latest
@@ -95,7 +109,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: hoian123
 
       SPRING_DATA_REDIS_HOST: redis
-      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_DATA_REDIS_PORT: 6380
 
       SPRING_JPA_HIBERNATE_DDL_AUTO: validate
 

@@ -1,27 +1,23 @@
 import { useState, useMemo } from 'react';
-import { POIS } from '../data/pois';
-import { CATEGORIES, CAT_ID } from '../data/categories';
 import PoiCard from './PoiCard';
 import SearchBox from './SearchBox';
 
 export default function AllPoisPage({
-  t, getPoiText, onClose, onOpenPoi, onOpenPlayer, onOpenMap
+  t, pois = [], loading = false, error = null, getPoiText, onClose, onOpenPoi, onOpenPlayer, onOpenMap
 }) {
   const [search, setSearch] = useState('');
-  const [catFilter, setCatFilter] = useState('all');
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return POIS.filter(p => {
+    return pois.filter(p => {
       const txt = getPoiText(p);
       const matchQ = !q
         || txt.name.toLowerCase().includes(q)
         || txt.desc.toLowerCase().includes(q)
         || txt.addr.toLowerCase().includes(q);
-      const matchCat = catFilter === 'all' || CAT_ID[p.cat] === catFilter;
-      return matchQ && matchCat;
+      return matchQ;
     });
-  }, [search, catFilter, getPoiText]);
+  }, [search, pois, getPoiText]);
 
   return (
     <div className="all-pois-page is-open">
@@ -39,19 +35,14 @@ export default function AllPoisPage({
             className={`chip${catFilter === 'all' ? ' is-active' : ''}`}
             onClick={() => setCatFilter('all')}
           >{t('chips.all')}</button>
-          {CATEGORIES.map(c => (
-            <button
-              key={c.id}
-              className={`chip${catFilter === c.id ? ' is-active' : ''}`}
-              onClick={() => setCatFilter(c.id)}
-            >{t(c.labelKey)}</button>
-          ))}
         </div>
       </div>
 
       <div className="all-pois-page__body">
         <div className="wrap">
-          {filtered.length === 0 ? (
+          {error ? <div className="all-pois-page__empty" role="alert">Không thể tải địa điểm: {error}</div> : loading ? (
+            <div className="all-pois-page__empty">Đang tải địa điểm…</div>
+          ) : filtered.length === 0 ? (
             <div className="all-pois-page__empty">{t('search.empty')}</div>
           ) : (
             <div className="poi-grid">

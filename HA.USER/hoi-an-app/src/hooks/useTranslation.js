@@ -46,11 +46,12 @@ export function useTranslation(currentLang) {
   }, [translateOne]);
 
   const getPoiText = useCallback((p) => {
+    if (!p) return { name: '', tag: '', desc: '', dist: '', hours: '', price: '', addr: '' };
     if (currentLang === 'VI') {
-      return { name:p.name, tag:p.tag, desc:p.desc, dist:p.dist, hours:p.hours, price:p.price, addr:p.addr };
+      return { name:p.name || '', tag:p.tag || '', desc:p.desc || '', dist:p.dist || '', hours:p.hours || '', price:p.price || '', addr:p.addr || '' };
     }
     const target = MM_LANG[currentLang];
-    const pick = (field) => transCache[`${target}::${p[field]}`] || p[field];
+    const pick = (field) => p[field] ? (transCache[`${target}::${p[field]}`] || p[field]) : '';
     return {
       name: pick('name'),
       tag: pick('tag'),
@@ -72,7 +73,7 @@ export function useTranslation(currentLang) {
     pois.forEach(p => {
       ['name','tag','desc','addr'].forEach(f => {
         const cacheKey = `${target}::${p[f]}`;
-        if (!transCache[cacheKey]) texts.push(p[f]);
+        if (p[f] && !transCache[cacheKey]) texts.push(p[f]);
       });
     });
 

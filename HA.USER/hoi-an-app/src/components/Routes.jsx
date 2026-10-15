@@ -1,8 +1,7 @@
 import React from 'react';
 import { ROUTES } from '../data/routes';
-import { POIS } from '../data/pois';
 
-export default function Routes({ t, getPoiText, onOpenPoi }) {
+export default function Routes({ t, pois = [], loading = false, error = null, getPoiText, onOpenPoi }) {
   return (
     <section className="routes" id="lo-trinh">
       <div className="wrap">
@@ -19,7 +18,8 @@ export default function Routes({ t, getPoiText, onOpenPoi }) {
               </div>
               <ol className="route__stops">
                 {r.stops.map((id, i) => {
-                  const p = POIS.find(x => x.id === id);
+                  const p = pois.find(x => Number(x.id) === Number(id));
+                  if (!p) return null;
                   return (
                     <li key={id}>
                       <button
@@ -38,6 +38,8 @@ export default function Routes({ t, getPoiText, onOpenPoi }) {
           ))}
         </div>
       </div>
+      {error && <p role="alert">Không thể tải POI cho lộ trình: {error}</p>}
+      {loading && <p>Đang tải dữ liệu lộ trình…</p>}
     </section>
   );
 }
