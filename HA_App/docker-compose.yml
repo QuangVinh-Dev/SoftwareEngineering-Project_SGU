@@ -12,6 +12,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./version_1.0.sql:/docker-entrypoint-initdb.d/01-version_1.0.sql:ro
+      - ./version_2_poi_approval.sql:/docker-entrypoint-initdb.d/02-version_2_poi_approval.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U hoian -d hoian_db"]
       interval: 5s
@@ -116,6 +117,7 @@ services:
       LIBRETRANSLATE_URL: http://libretranslate:5000
       PIPER_TTS_URL: http://piper-tts:5001
       AUDIO_STORAGE_PATH: /app/uploads/audio
+      POI_IMAGE_STORAGE_PATH: /app/uploads/audio/poi-images
 
       JWT_SECRET: ${JWT_SECRET:-dev-only-secret-change-me-please-0123456789abcdef}
       JWT_EXPIRATION_MINUTES: ${JWT_EXPIRATION_MINUTES:-60}

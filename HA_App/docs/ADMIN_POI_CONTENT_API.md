@@ -45,7 +45,15 @@ POST /api/admin/pois
 PUT /api/admin/pois/1
 ```
 
-`POST`/`PUT` nhận các trường schema hiện có: `name`, `latitude`, `longitude`, `radius`, `priorityLevel`, `originalDescription`, `directionLink`, `status`. Không có mã POI riêng trong bảng hiện tại.
+Admin `POST`/`PUT` nhận multipart form với part `poi` (JSON gồm `name`, `latitude`, `longitude`, `radius`, `priorityLevel`, `originalDescription`, `directionLink`, `status`) và các part `images` (tùy chọn, tối đa 5 ảnh mỗi POI). Admin tạo POI ở trạng thái đã duyệt.
+
+Chủ gian hàng đã duyệt dùng `GET /api/merchant/pois` để xem POI của mình và `POST /api/merchant/pois` để gửi multipart form cùng cấu trúc. POI chủ gian hàng tạo luôn ở trạng thái `PENDING`; API công khai chỉ trả POI `ACTIVE` và `APPROVED`.
+
+Admin duyệt hoặc từ chối POI bằng `POST /api/admin/pois/{id}/approval` với JSON `{"approvalStatus":"APPROVED"}` hoặc `{"approvalStatus":"REJECTED","rejectionReason":"..."}`. Danh sách admin bao gồm POI chờ duyệt và trả `approvalStatus`, `rejectionReason`, `images`.
+
+Ảnh tải lên tối đa 10 MB mỗi file, định dạng JPG/PNG/GIF/BMP, lưu dưới `Data_Storage/poi-images` và được phục vụ tại `/uploads/poi-images/...`. Database đã có bảng `poi_image`; schema cần thêm `approval_status` và `rejection_reason`.
+
+`version_2_poi_approval.sql` là migration cho database đã khởi tạo. Không chạy lại `version_1.0.sql` trên database hiện có vì script init có xóa bảng. Compose tự chạy migration version 2 chỉ với data directory PostgreSQL mới; database đang tồn tại cần được nâng cấp bằng cách chạy riêng `version_2_poi_approval.sql` từ thư mục `HA_App`.
 
 ## Tạo audio và xem trạng thái
 

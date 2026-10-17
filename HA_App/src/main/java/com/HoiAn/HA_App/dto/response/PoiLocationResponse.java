@@ -3,6 +3,7 @@ package com.HoiAn.HA_App.dto.response;
 
 
 import java.math.BigDecimal;
+import java.util.List;
 
 public record PoiLocationResponse(
         Integer id,
@@ -12,6 +13,7 @@ public record PoiLocationResponse(
         Integer radius,
         String status,
         String originalDescription,
-        String directionLink
+        String directionLink,
+        List<String> images
 ) {
 }

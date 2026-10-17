@@ -46,9 +46,10 @@ public class SecurityConfig {
                                         "Bạn không có quyền thực hiện thao tác này")))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/error", "/uploads/audio/**").permitAll()
+                        .requestMatchers("/error", "/uploads/audio/**", "/uploads/poi-images/**", "/poi-images/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register/merchant").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/poi/**").permitAll()
+                        .requestMatchers("/api/merchant/pois", "/api/merchant/pois/**").hasRole("MERCHANT")
                         .requestMatchers("/api/auth/register/admin").hasRole("SUPER_ADMIN")
                         .requestMatchers("/api/admin/pois", "/api/admin/pois/**").hasRole("POI_ADMIN")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")

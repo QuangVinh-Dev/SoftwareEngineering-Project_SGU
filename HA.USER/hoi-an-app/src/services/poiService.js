@@ -35,7 +35,9 @@ export function normalizePoi(poi) {
     addr: '',
     directionLink: poi.directionLink || '',
     dist: '', hours: '', price: '', video: null,
-    imgs: [FALLBACK],
+    imgs: Array.isArray(poi.images) && poi.images.length
+      ? poi.images.map(image => new URL(image, `${API_BASE_URL || window.location.origin}/`).toString())
+      : [FALLBACK],
     cat: null,
   };
 }

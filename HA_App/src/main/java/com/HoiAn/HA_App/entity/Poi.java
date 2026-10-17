@@ -16,6 +16,12 @@ public class Poi {
     @Column(name = "merchant_id")
     private Integer merchantId;
 
+    @Column(name = "approval_status", nullable = false)
+    private String approvalStatus;
+
+    @Column(name = "rejection_reason")
+    private String rejectionReason;
+
     @Column(nullable = false)
     private String name;
 
@@ -53,6 +59,9 @@ public class Poi {
     public Integer getMerchantId() {
         return merchantId;
     }
+
+    public String getApprovalStatus() { return approvalStatus; }
+    public String getRejectionReason() { return rejectionReason; }
 
     public String getName() {
         return name;
@@ -95,6 +104,8 @@ public class Poi {
     }
 
     public void setMerchantId(Integer merchantId) { this.merchantId = merchantId; }
+    public void setApprovalStatus(String approvalStatus) { this.approvalStatus = approvalStatus; }
+    public void setRejectionReason(String rejectionReason) { this.rejectionReason = rejectionReason; }
     public void setName(String name) { this.name = name; }
     public void setLatitude(BigDecimal latitude) { this.latitude = latitude; }
     public void setLongitude(BigDecimal longitude) { this.longitude = longitude; }

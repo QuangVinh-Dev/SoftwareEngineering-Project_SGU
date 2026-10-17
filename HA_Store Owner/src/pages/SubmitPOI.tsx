@@ -1,243 +1,128 @@
 import { useState } from 'react';
-import { MapPin, Send, Image, Phone, Clock, Save } from 'lucide-react';
+import { ImagePlus, MapPin, Send } from 'lucide-react';
 import { Card, Button } from '@/components/ui';
 import { useApp } from '@/hooks/useApp';
 import { useToast } from '@/components/toast/ToastProvider';
-import { poiCategories } from '@/data/mockData';
 import ConfirmDialog from '@/components/modals/ConfirmDialog';
+import { ApiError } from '@/services/authApi';
+import { createMerchantPoi, type MerchantPoiInput } from '@/services/poiApi';
+
+const emptyForm = { name: '', description: '', latitude: '', longitude: '', radius: '30', directionLink: '' };
 
 export default function SubmitPOI() {
   const { showToast } = useToast();
   const { setCurrentPage } = useApp();
+  const [form, setForm] = useState(emptyForm);
+  const [images, setImages] = useState<File[]>([]);
+  const [formError, setFormError] = useState('');
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [form, setForm] = useState({
-    name: '',
-    nameEn: '',
-    category: '',
-    description: '',
-    intro: '',
-    address: '',
-    lat: '',
-    lng: '',
-    radius: '50',
-    image: '',
-    phone: '',
-    hours: '',
-  });
-  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const setField = (field: keyof typeof emptyForm, value: string) => {
+    setForm(current => ({ ...current, [field]: value }));
+    setFormError('');
+  };
+
+  const handleImages = (files: FileList | null) => {
+    const selected = Array.from(files ?? []);
+    if (selected.length > 5) {
+      setFormError('Mỗi POI được tải tối đa 5 hình ảnh.');
+      return;
+    }
+    if (selected.some(file => file.size > 10 * 1024 * 1024)) {
+      setFormError('Mỗi hình ảnh có dung lượng tối đa 10 MB.');
+      return;
+    }
+    setImages(selected);
+    setFormError('');
+  };
 
   const validate = () => {
-    const e: Record<string, string> = {};
-    if (!form.name.trim()) e.name = 'Vui lòng nhập tên POI';
-    if (!form.category) e.category = 'Vui lòng chọn danh mục';
-    if (!form.description.trim()) e.description = 'Vui lòng nhập mô tả';
-    if (!form.address.trim()) e.address = 'Vui lòng nhập địa chỉ';
-    if (!form.lat.trim()) e.lat = 'Vui lòng nhập vĩ độ';
-    if (!form.lng.trim()) e.lng = 'Vui lòng nhập kinh độ';
-    if (form.lat && isNaN(Number(form.lat))) e.lat = 'Vĩ độ không hợp lệ';
-    if (form.lng && isNaN(Number(form.lng))) e.lng = 'Kinh độ không hợp lệ';
-    if (form.phone && !/^[+0-9\s-]+$/.test(form.phone)) e.phone = 'Số điện thoại không hợp lệ';
-    setErrors(e);
-    return Object.keys(e).length === 0;
+    const latitude = Number(form.latitude);
+    const longitude = Number(form.longitude);
+    const radius = Number(form.radius);
+    if (!form.name.trim()) return 'Vui lòng nhập tên POI.';
+    if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90) return 'Vĩ độ phải nằm trong khoảng -90 đến 90.';
+    if (!Number.isFinite(longitude) || longitude < -180 || longitude > 180) return 'Kinh độ phải nằm trong khoảng -180 đến 180.';
+    if (!Number.isInteger(radius) || radius < 1 || radius > 10000) return 'Bán kính phải là số nguyên từ 1 đến 10000 mét.';
+    return '';
   };
 
   const handleSubmit = () => {
-    if (!validate()) {
-      showToast('error', 'Vui lòng kiểm tra lại thông tin POI.');
-      return;
-    }
-    setConfirmOpen(true);
+    const error = validate();
+    setFormError(error);
+    if (!error) setConfirmOpen(true);
   };
 
-  const confirmSubmit = () => {
+  const confirmSubmit = async () => {
     setSubmitting(true);
-    setTimeout(() => {
-      setSubmitting(false);
+    setFormError('');
+    const poi: MerchantPoiInput = {
+      name: form.name.trim(),
+      latitude: Number(form.latitude),
+      longitude: Number(form.longitude),
+      radius: Number(form.radius),
+      priorityLevel: 0,
+      originalDescription: form.description.trim(),
+      directionLink: form.directionLink.trim(),
+      status: 'ACTIVE',
+    };
+
+    try {
+      await createMerchantPoi(poi, images);
       setConfirmOpen(false);
-      showToast('success', 'POI đã được gửi duyệt thành công. Vui lòng chờ xét duyệt.');
-      setForm({ name: '', nameEn: '', category: '', description: '', intro: '', address: '', lat: '', lng: '', radius: '50', image: '', phone: '', hours: '' });
+      setForm(emptyForm);
+      setImages([]);
+      showToast('success', 'POI đã được gửi và đang chờ quản trị viên duyệt.');
       setCurrentPage('my-poi');
-    }, 1200);
+    } catch (error) {
+      setFormError(error instanceof ApiError ? error.message : 'Không gửi được POI. Vui lòng thử lại.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const set = (k: string, v: string) => { setForm({ ...form, [k]: v }); if (errors[k]) setErrors({ ...errors, [k]: '' }); };
-
-  const inputCls = 'w-full px-3 py-2 rounded-lg border text-sm outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100 transition-all';
-  const errBorder = 'border-red-300 focus:border-red-400 focus:ring-red-100';
-  const okBorder = 'border-brown-200';
+  const inputClass = 'mt-1 w-full rounded-lg border border-brown-200 px-3 py-2 text-sm outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100';
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-brown-900">Gửi POI mới</h1>
-        <p className="text-sm text-brown-400 mt-1">Điền thông tin điểm tham quan và gửi để quản trị viên xét duyệt.</p>
+        <p className="mt-1 text-sm text-brown-400">POI và hình ảnh sẽ chờ quản trị viên duyệt trước khi hiển thị cho người dùng.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          <Card>
-            <h3 className="text-base font-semibold text-brown-900 mb-4">Thông tin POI</h3>
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-brown-700 mb-1">Tên POI (Tiếng Việt) <span className="text-red-500">*</span></label>
-                  <input type="text" value={form.name} onChange={e => set('name', e.target.value)}
-                    className={`${inputCls} ${errors.name ? errBorder : okBorder}`}
-                    placeholder="VD: Chùa Cầu" />
-                  {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name}</p>}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-brown-700 mb-1">Tên POI (Tiếng Anh)</label>
-                  <input type="text" value={form.nameEn} onChange={e => set('nameEn', e.target.value)}
-                    className={`${inputCls} ${okBorder}`}
-                    placeholder="VD: Japanese Covered Bridge" />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-brown-700 mb-1">Danh mục <span className="text-red-500">*</span></label>
-                <select value={form.category} onChange={e => set('category', e.target.value)}
-                  className={`${inputCls} ${errors.category ? errBorder : okBorder} bg-white`}>
-                  <option value="">Chọn danh mục</option>
-                  {poiCategories.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-                {errors.category && <p className="text-xs text-red-500 mt-1">{errors.category}</p>}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-brown-700 mb-1">Mô tả <span className="text-red-500">*</span></label>
-                <textarea value={form.description} onChange={e => set('description', e.target.value)} rows={3}
-                  className={`${inputCls} ${errors.description ? errBorder : okBorder} resize-none`}
-                  placeholder="Mô tả ngắn gọn về điểm tham quan" />
-                {errors.description && <p className="text-xs text-red-500 mt-1">{errors.description}</p>}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-brown-700 mb-1">Thông tin giới thiệu</label>
-                <textarea value={form.intro} onChange={e => set('intro', e.target.value)} rows={4}
-                  className={`${inputCls} ${okBorder} resize-none`}
-                  placeholder="Thông tin chi tiết, lịch sử, điểm nổi bật..." />
-              </div>
-            </div>
-          </Card>
-
-          <Card>
-            <h3 className="text-base font-semibold text-brown-900 mb-4">Vị trí</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-brown-700 mb-1">Địa chỉ <span className="text-red-500">*</span></label>
-                <input type="text" value={form.address} onChange={e => set('address', e.target.value)}
-                  className={`${inputCls} ${errors.address ? errBorder : okBorder}`}
-                  placeholder="VD: Nguyễn Thị Minh Khai, Cẩm Châu, Hội An" />
-                {errors.address && <p className="text-xs text-red-500 mt-1">{errors.address}</p>}
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-brown-700 mb-1">Vĩ độ <span className="text-red-500">*</span></label>
-                  <input type="text" value={form.lat} onChange={e => set('lat', e.target.value)}
-                    className={`${inputCls} ${errors.lat ? errBorder : okBorder}`}
-                    placeholder="15.8805" />
-                  {errors.lat && <p className="text-xs text-red-500 mt-1">{errors.lat}</p>}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-brown-700 mb-1">Kinh độ <span className="text-red-500">*</span></label>
-                  <input type="text" value={form.lng} onChange={e => set('lng', e.target.value)}
-                    className={`${inputCls} ${errors.lng ? errBorder : okBorder}`}
-                    placeholder="108.3380" />
-                  {errors.lng && <p className="text-xs text-red-500 mt-1">{errors.lng}</p>}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-brown-700 mb-1">Bán kính (m)</label>
-                  <input type="number" value={form.radius} onChange={e => set('radius', e.target.value)}
-                    className={`${inputCls} ${okBorder}`} placeholder="50" />
-                </div>
-              </div>
-
-              <div className="relative h-48 rounded-lg border border-brown-200 bg-brown-50 flex items-center justify-center overflow-hidden">
-                <div className="text-center">
-                  <MapPin className="w-8 h-8 text-primary-400 mx-auto mb-2" />
-                  <p className="text-sm text-brown-400">Bản đồ vị trí POI</p>
-                  <p className="text-xs text-brown-300 mt-1">Nhập tọa độ để hiển thị vị trí trên bản đồ</p>
-                </div>
-                {form.lat && form.lng && !errors.lat && !errors.lng && (
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                    <MapPin className="w-8 h-8 text-primary-600 fill-primary-100" />
-                  </div>
-                )}
-              </div>
-            </div>
-          </Card>
-
-          <Card>
-            <h3 className="text-base font-semibold text-brown-900 mb-4">Thông tin bổ sung</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-brown-700 mb-1">URL hình ảnh</label>
-                <div className="relative">
-                  <Image className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brown-400" />
-                  <input type="text" value={form.image} onChange={e => set('image', e.target.value)}
-                    className={`${inputCls} ${okBorder} pl-10`}
-                    placeholder="https://..." />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-brown-700 mb-1">Thông tin liên hệ</label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brown-400" />
-                    <input type="text" value={form.phone} onChange={e => set('phone', e.target.value)}
-                      className={`${inputCls} ${errors.phone ? errBorder : okBorder} pl-10`}
-                      placeholder="Số điện thoại" />
-                  </div>
-                  {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone}</p>}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-brown-700 mb-1">Thời gian hoạt động</label>
-                  <div className="relative">
-                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brown-400" />
-                    <input type="text" value={form.hours} onChange={e => set('hours', e.target.value)}
-                      className={`${inputCls} ${okBorder} pl-10`}
-                      placeholder="VD: 8:00 - 17:00" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </Card>
+      <Card className="max-w-3xl space-y-5">
+        {formError && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{formError}</p>}
+        <label className="block text-sm font-medium text-brown-700">Tên POI *
+          <input required maxLength={200} value={form.name} onChange={event => setField('name', event.target.value)} className={inputClass} placeholder="Ví dụ: Chùa Cầu" />
+        </label>
+        <label className="block text-sm font-medium text-brown-700">Nội dung giới thiệu
+          <textarea maxLength={10000} rows={4} value={form.description} onChange={event => setField('description', event.target.value)} className={`${inputClass} resize-y`} placeholder="Mô tả điểm đến để hiển thị cho người dùng" />
+        </label>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="block text-sm font-medium text-brown-700">Vĩ độ *<input type="number" min={-90} max={90} step="0.000001" value={form.latitude} onChange={event => setField('latitude', event.target.value)} className={inputClass} /></label>
+          <label className="block text-sm font-medium text-brown-700">Kinh độ *<input type="number" min={-180} max={180} step="0.000001" value={form.longitude} onChange={event => setField('longitude', event.target.value)} className={inputClass} /></label>
+          <label className="block text-sm font-medium text-brown-700">Bán kính (m) *<input type="number" min={1} max={10000} step={1} value={form.radius} onChange={event => setField('radius', event.target.value)} className={inputClass} /></label>
+          <label className="block text-sm font-medium text-brown-700">Liên kết chỉ đường
+            <input maxLength={500} value={form.directionLink} onChange={event => setField('directionLink', event.target.value)} className={inputClass} placeholder="https://maps.google.com/..." />
+          </label>
         </div>
-
-        <div className="space-y-4">
-          <Card>
-            <h3 className="text-base font-semibold text-brown-900 mb-3">Gửi duyệt</h3>
-            <p className="text-sm text-brown-500 mb-4">Sau khi gửi, POI sẽ chuyển sang trạng thái "Chờ duyệt". Quản trị viên sẽ xem xét và phê duyệt trong vòng 1-3 ngày làm việc.</p>
-            <Button onClick={handleSubmit} className="w-full justify-center" icon={<Send className="w-4 h-4" />}>Gửi duyệt</Button>
-            <Button variant="ghost" onClick={() => { setForm({ name: '', nameEn: '', category: '', description: '', intro: '', address: '', lat: '', lng: '', radius: '50', image: '', phone: '', hours: '' }); setErrors({}); showToast('info', 'Đã đặt lại form.'); }}
-              className="w-full justify-center mt-2">Đặt lại form</Button>
-          </Card>
-
-          <Card>
-            <h3 className="text-base font-semibold text-brown-900 mb-3">Lưu ý</h3>
-            <ul className="space-y-2 text-sm text-brown-500">
-              <li className="flex gap-2"><span className="text-primary-500 mt-0.5">•</span> Tên POI không được trùng lặp.</li>
-              <li className="flex gap-2"><span className="text-primary-500 mt-0.5">•</span> Tọa độ GPS phải chính xác.</li>
-              <li className="flex gap-2"><span className="text-primary-500 mt-0.5">•</span> Mô tả nên ngắn gọn, súc tích.</li>
-              <li className="flex gap-2"><span className="text-primary-500 mt-0.5">•</span> POI bị từ chối có thể gửi lại sau khi chỉnh sửa.</li>
-            </ul>
-          </Card>
+        <div>
+          <label className="block text-sm font-medium text-brown-700"><span className="inline-flex items-center gap-2"><ImagePlus className="h-4 w-4" /> Hình ảnh (tối đa 5)</span>
+            <input type="file" accept="image/jpeg,image/png,image/gif,image/bmp" multiple onChange={event => handleImages(event.target.files)} className="mt-2 block w-full text-sm" />
+          </label>
+          <p className="mt-1 text-xs text-brown-400">Chấp nhận JPG, PNG, GIF hoặc BMP; tối đa 10 MB mỗi file.</p>
+          {images.length > 0 && <ul className="mt-2 list-inside list-disc text-xs text-brown-600">{images.map(file => <li key={`${file.name}-${file.lastModified}`}>{file.name}</li>)}</ul>}
         </div>
-      </div>
+        <div className="flex justify-end">
+          <Button onClick={handleSubmit} disabled={submitting} icon={<Send className="h-4 w-4" />}>{submitting ? 'Đang gửi…' : 'Gửi duyệt'}</Button>
+        </div>
+      </Card>
 
-      <ConfirmDialog
-        open={confirmOpen}
-        onClose={() => setConfirmOpen(false)}
-        onConfirm={confirmSubmit}
-        title="Gửi duyệt POI"
-        message="Bạn có chắc chắn muốn gửi POI này để xét duyệt không?"
-        confirmLabel={submitting ? 'Đang gửi...' : 'Gửi duyệt'}
-        cancelLabel="Hủy"
-        variant="info"
-      />
+      <ConfirmDialog open={confirmOpen} onClose={() => setConfirmOpen(false)} onConfirm={() => void confirmSubmit()}
+        title="Gửi duyệt POI" message="POI sẽ chưa xuất hiện công khai cho tới khi quản trị viên duyệt. Bạn muốn gửi POI này không?"
+        confirmLabel={submitting ? 'Đang gửi…' : 'Gửi duyệt'} cancelLabel="Hủy" variant="info" />
+      <div className="flex items-center gap-2 text-xs text-brown-400"><MapPin className="h-4 w-4" /> POI phải có tọa độ hợp lệ để hiển thị trên bản đồ.</div>
     </div>
   );
 }

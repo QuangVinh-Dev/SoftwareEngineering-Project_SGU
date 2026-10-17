@@ -8,6 +8,7 @@ import com.HoiAn.HA_App.entity.Poi;
 import com.HoiAn.HA_App.repository.AudioRepository;
 import com.HoiAn.HA_App.repository.LanguageRepository;
 import com.HoiAn.HA_App.repository.PoiRepository;
+import com.HoiAn.HA_App.repository.PoiImageRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -18,22 +19,26 @@ import java.util.List;
 @Service
 public class PoiService {
     private final PoiRepository poiRepository;
+    private final PoiImageRepository poiImageRepository;
     private final LanguageRepository languageRepository;
     private final AudioRepository audioRepository;
     private final AudioStorageService audioStorageService;
 
     public PoiService(PoiRepository poiRepository,
+                      PoiImageRepository poiImageRepository,
                       LanguageRepository languageRepository,
                       AudioRepository audioRepository,
                       AudioStorageService audioStorageService) {
         this.poiRepository = poiRepository;
+        this.poiImageRepository = poiImageRepository;
         this.languageRepository = languageRepository;
         this.audioRepository = audioRepository;
         this.audioStorageService = audioStorageService;
     }
 
     public List<PoiLocationResponse> getActivePois() {
-        return poiRepository.findByStatus("ACTIVE").stream().map(this::toLocationResponse).toList();
+        return poiRepository.findByStatusAndApprovalStatus("ACTIVE", "APPROVED")
+                .stream().map(this::toLocationResponse).toList();
     }
 
     public List<PoiAudioResponse> getAudios(Integer poiId, String languageCode) {
@@ -137,6 +142,6 @@ public class PoiService {
     private PoiLocationResponse toLocationResponse(Poi poi) {
         return new PoiLocationResponse(poi.getId(), poi.getName(), poi.getLatitude(),
                 poi.getLongitude(), poi.getRadius(), poi.getStatus(),
-                poi.getOriginalDescription(), poi.getDirectionLink());
+                poi.getOriginalDescription(), poi.getDirectionLink(), poiImageRepository.findPaths(poi.getId()));
     }
 }
