@@ -98,6 +98,8 @@ CREATE TABLE poi (
     original_description TEXT,
     direction_link  VARCHAR(500),
     status          VARCHAR(20)  NOT NULL DEFAULT 'ACTIVE',
+    approval_status VARCHAR(20) NOT NULL DEFAULT 'APPROVED',
+    rejection_reason TEXT,
     created_at      TIMESTAMP    NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMP    NOT NULL DEFAULT NOW()
 );
@@ -289,8 +291,7 @@ INSERT INTO menu_item (poi_id, name, price, description) VALUES
 (4,'Banh Mi with Egg',    25000,'Banh mi with fried egg');
 
 INSERT INTO poi_image (poi_id, file_path, order_num) VALUES
-(1,'/uploads/poi/japanese_bridge_1.jpg',1),
-(1,'/uploads/poi/japanese_bridge_2.jpg',2),
+(1,'/poi-images/chua-cau.jpg',1),
 (2,'/uploads/poi/phuc_kien_1.jpg',1),
 (3,'/uploads/poi/cao_lau_1.jpg',1),
 (4,'/uploads/poi/banh_mi_phuong_1.jpg',1);

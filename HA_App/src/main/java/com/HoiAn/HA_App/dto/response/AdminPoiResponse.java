@@ -1,6 +1,7 @@
 package com.HoiAn.HA_App.dto.response;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 public record AdminPoiResponse(
         Integer id,
@@ -11,5 +12,8 @@ public record AdminPoiResponse(
         Integer priorityLevel,
         String originalDescription,
         String directionLink,
-        String status
+        String status,
+        String approvalStatus,
+        String rejectionReason,
+        List<String> images
 ) {}

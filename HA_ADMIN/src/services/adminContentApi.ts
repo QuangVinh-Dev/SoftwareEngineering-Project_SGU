@@ -23,9 +23,12 @@ export interface AdminPoi extends PoiLocation {
   originalDescription: string | null;
   directionLink: string | null;
   status: 'ACTIVE' | 'INACTIVE' | string;
+  approvalStatus: 'APPROVED' | 'PENDING' | 'REJECTED' | string;
+  rejectionReason: string | null;
+  images: string[];
 }
 
-export type PoiMutation = Omit<AdminPoi, 'id'>;
+export type PoiMutation = Omit<AdminPoi, 'id' | 'approvalStatus' | 'rejectionReason' | 'images'>;
 
 export interface PoiLanguageContent {
   code: string;
@@ -87,12 +90,29 @@ export function getAdminPois() {
   return apiRequest<AdminPoi[]>('/api/admin/pois');
 }
 
-export function createPoi(poi: PoiMutation) {
-  return apiRequest<AdminPoi>('/api/admin/pois', { method: 'POST', body: JSON.stringify(poi) });
+export function createPoi(poi: PoiMutation, images: File[] = []) {
+  return apiRequest<AdminPoi>('/api/admin/pois', { method: 'POST', body: poiFormData(poi, images) });
 }
 
-export function updatePoi(id: number, poi: PoiMutation) {
-  return apiRequest<AdminPoi>(`/api/admin/pois/${id}`, { method: 'PUT', body: JSON.stringify(poi) });
+export function updatePoi(id: number, poi: PoiMutation, images: File[] = []) {
+  return apiRequest<AdminPoi>(`/api/admin/pois/${id}`, { method: 'PUT', body: poiFormData(poi, images) });
+}
+
+export function reviewPoi(id: number, approvalStatus: 'APPROVED' | 'REJECTED', rejectionReason?: string) {
+  return apiRequest<AdminPoi>(`/api/admin/pois/${id}/approval`, {
+    method: 'POST', body: JSON.stringify({ approvalStatus, rejectionReason: rejectionReason || null }),
+  });
+}
+
+function poiFormData(poi: PoiMutation, images: File[]) {
+  const formData = new FormData();
+  formData.append('poi', new Blob([JSON.stringify(poi)], { type: 'application/json' }));
+  images.forEach(image => formData.append('images', image));
+  return formData;
+}
+
+export function resolvePoiImageUrl(path: string) {
+  return new URL(path, API_BASE_URL ? `${API_BASE_URL}/` : `${window.location.origin}/`).toString();
 }
 
 export function getPoiContent(poiId: number) {

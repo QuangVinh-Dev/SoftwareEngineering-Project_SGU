@@ -29,7 +29,7 @@ export class ApiError extends Error {
   }
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:9999';
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:9999';
 
 export async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers);

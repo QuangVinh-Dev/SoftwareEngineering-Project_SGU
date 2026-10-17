@@ -17,6 +17,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.util.List;
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/admin/pois")
@@ -35,10 +37,34 @@ public class AdminPoiController {
     @ResponseStatus(HttpStatus.CREATED)
     public AdminPoiResponse create(@Valid @RequestBody PoiRequest request) { return service.create(request.toServiceRequest()); }
 
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseStatus(HttpStatus.CREATED)
+    public AdminPoiResponse createWithImages(@Valid @RequestPart("poi") PoiRequest request,
+                                             @RequestPart(value = "images", required = false) List<MultipartFile> images) {
+        return service.create(request.toServiceRequest(), images);
+    }
+
     @PutMapping("/{poiId}")
     public AdminPoiResponse update(@PathVariable int poiId, @Valid @RequestBody PoiRequest request) {
         return service.update(poiId, request.toServiceRequest());
     }
+
+    @PutMapping(value = "/{poiId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public AdminPoiResponse updateWithImages(@PathVariable int poiId,
+                                             @Valid @RequestPart("poi") PoiRequest request,
+                                             @RequestPart(value = "images", required = false) List<MultipartFile> images) {
+        return service.update(poiId, request.toServiceRequest(), images);
+    }
+
+    @PostMapping("/{poiId}/approval")
+    public AdminPoiResponse review(@PathVariable int poiId, @Valid @RequestBody ReviewRequest request) {
+        return service.review(poiId, request.approvalStatus(), request.rejectionReason());
+    }
+
+    public record ReviewRequest(
+            @NotBlank @Pattern(regexp = "APPROVED|REJECTED") String approvalStatus,
+            @Size(max = 1000) String rejectionReason
+    ) {}
 
     public record PoiRequest(
             @NotBlank @Size(max = 200) String name,

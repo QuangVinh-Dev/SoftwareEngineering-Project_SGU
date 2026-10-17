@@ -7,4 +7,6 @@ import java.util.List;
 
 public interface PoiRepository extends JpaRepository<Poi, Integer> {
     List<Poi> findByStatus(String status);
+    List<Poi> findByStatusAndApprovalStatus(String status, String approvalStatus);
+    List<Poi> findByMerchantIdOrderByCreatedAtDesc(Integer merchantId);
 }
