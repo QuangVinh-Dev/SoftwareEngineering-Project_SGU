@@ -36,3 +36,6 @@ build/
 /Data_Storage/
 /tts-service/models/*.onnx
 /test-en.mp3
+
+### Secrets ###
+.env

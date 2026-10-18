@@ -1,7 +1,9 @@
 package com.HoiAn.HA_App.controller;
 
+import com.HoiAn.HA_App.dto.request.RejectMerchantRequest;
 import com.HoiAn.HA_App.dto.response.MerchantResponse;
 import com.HoiAn.HA_App.service.MerchantAdminService;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -28,7 +30,8 @@ public class AdminMerchantController {
     }
 
     @PatchMapping("/{id}/reject")
-    public MerchantResponse reject(@PathVariable Integer id) {
-        return merchantAdminService.reject(id);
+    public MerchantResponse reject(@PathVariable Integer id,
+                                   @Valid @RequestBody(required = false) RejectMerchantRequest request) {
+        return merchantAdminService.reject(id, request == null ? null : request.reason());
     }
 }

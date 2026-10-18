@@ -18,8 +18,46 @@ export interface AuthResponse {
 export interface MerchantRegistrationResponse {
   accountId: number;
   merchantId: number;
-  status: string;
+  approvalStatus: 'PENDING' | 'APPROVED' | 'REJECTED';
   message: string;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+export interface ChangePasswordResponse {
+  message: string;
+}
+
+export interface TwoFactorStatus {
+  enabled: boolean;
+  secret?: string;
+  qrCodeUrl?: string;
+  backupCodes?: string[];
+}
+
+export interface TwoFactorEnableRequest {
+  code: string;
+  password: string;
+}
+
+export interface TwoFactorDisableRequest {
+  code: string;
+  password: string;
+}
+
+export interface SessionInfo {
+  id: string;
+  device: string;
+  browser: string;
+  operatingSystem: string;
+  country: string;
+  ipAddress: string;
+  lastActive: string;
+  current: boolean;
 }
 
 export class ApiError extends Error {
@@ -53,9 +91,14 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
 
   const payload = response.status === 204 ? null : await response.json().catch(() => null);
   if (!response.ok) {
-    const message = typeof payload?.message === 'string'
+    let message = typeof payload?.message === 'string'
       ? payload.message
       : `Yêu cầu thất bại (HTTP ${response.status})`;
+    // BE trả lỗi validate dạng { message, errors: { field: "..." } } → hiển thị chi tiết lỗi đầu tiên.
+    const fieldErrors = payload?.errors && typeof payload.errors === 'object'
+      ? Object.values(payload.errors as Record<string, unknown>).filter(v => typeof v === 'string')
+      : [];
+    if (fieldErrors.length > 0) message = `${message}: ${fieldErrors[0]}`;
     throw new ApiError(message, response.status);
   }
 
@@ -69,17 +112,65 @@ export function login(username: string, password: string) {
   });
 }
 
-export function registerMerchant(input: {
-  username: string;
+export interface RegisterMerchantInput {
+  username?: string;
   password: string;
   fullName: string;
   email: string;
   merchantName: string;
-  phoneNumber: string;
-  address: string;
-}) {
+  phoneNumber?: string;
+  address?: string;
+  category?: string;
+  description?: string;
+  /** data URI base64, tối đa 5 ảnh */
+  merchantImages?: string[];
+  plan?: { id: string; billing: string; totalPrice?: number };
+}
+
+export function registerMerchant(input: RegisterMerchantInput) {
   return apiRequest<MerchantRegistrationResponse>('/api/auth/register/merchant', {
     method: 'POST',
     body: JSON.stringify(input),
+  });
+}
+
+export function changePassword(input: ChangePasswordRequest) {
+  return apiRequest<ChangePasswordResponse>('/api/auth/change-password', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export function getTwoFactorStatus() {
+  return apiRequest<TwoFactorStatus>('/api/auth/2fa/status');
+}
+
+export function enableTwoFactor(input: TwoFactorEnableRequest) {
+  return apiRequest<TwoFactorStatus>('/api/auth/2fa/enable', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export function disableTwoFactor(input: TwoFactorDisableRequest) {
+  return apiRequest<{ message: string }>('/api/auth/2fa/disable', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export function getSessions() {
+  return apiRequest<SessionInfo[]>('/api/auth/sessions');
+}
+
+export function revokeSession(sessionId: string) {
+  return apiRequest<{ message: string }>(`/api/auth/sessions/${sessionId}`, {
+    method: 'DELETE',
+  });
+}
+
+export function revokeAllOtherSessions() {
+  return apiRequest<{ message: string; revokedCount: number }>('/api/auth/sessions/revoke-others', {
+    method: 'POST',
   });
 }

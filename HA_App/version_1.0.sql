@@ -7,7 +7,7 @@
 -- ---------- DROP (can be run multiple times) ----------
 DROP TABLE IF EXISTS
     users_online, access_session, listen_log, audio, voice,
-    translation, poi_image, menu_item, poi, guest_session, qr_code, language,
+    translation, poi_image, menu_item, poi, merchant_image, guest_session, qr_code, language,
     action_log, notification, merchant, account,
     role_permission, role, config, daily_statistic
 CASCADE;
@@ -33,7 +33,7 @@ CREATE TABLE role_permission (
 CREATE TABLE account (
     id              INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     role_id         INT          NOT NULL REFERENCES role(id),
-    username        VARCHAR(50)  NOT NULL UNIQUE,
+    username        VARCHAR(150) NOT NULL UNIQUE,   -- chủ gian hàng đăng nhập bằng email nên cần dài bằng email
     password_hash   VARCHAR(255) NOT NULL,
     full_name       VARCHAR(100),
     email           VARCHAR(150) UNIQUE,
@@ -48,9 +48,22 @@ CREATE TABLE merchant (
     name            VARCHAR(150) NOT NULL,
     phone_number    VARCHAR(20),
     address         VARCHAR(255),
+    category        VARCHAR(100),                            -- loại hình: Ẩm thực & Đồ uống, Lưu niệm...
+    description     VARCHAR(500),                            -- mô tả gian hàng
+    plan_id         VARCHAR(20)  NOT NULL DEFAULT 'free',    -- free / standard / premium
+    billing_cycle   VARCHAR(10)  NOT NULL DEFAULT 'monthly', -- monthly / yearly
     approval_status VARCHAR(20)  NOT NULL DEFAULT 'PENDING', -- PENDING / APPROVED / REJECTED
+    reject_reason   VARCHAR(500),                            -- lý do admin từ chối
     registered_at   TIMESTAMP    NOT NULL DEFAULT NOW(),
     approved_at     TIMESTAMP
+);
+
+-- Ảnh gian hàng khi đăng ký (FE yêu cầu đủ 5 ảnh)
+CREATE TABLE merchant_image (
+    id          INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    merchant_id INT          NOT NULL REFERENCES merchant(id) ON DELETE CASCADE,
+    file_path   VARCHAR(500) NOT NULL,
+    order_num   INT          NOT NULL DEFAULT 1
 );
 
 CREATE TABLE notification (
@@ -210,6 +223,7 @@ CREATE TABLE daily_statistic (
 
 -- ----- Index suggestions -----
 CREATE INDEX idx_poi_coordinates        ON poi(latitude, longitude);
+CREATE INDEX idx_merchant_image_merchant ON merchant_image(merchant_id, order_num);
 CREATE INDEX idx_audio_translation_id   ON audio(translation_id);
 CREATE INDEX idx_translation_poi_language_status
                                         ON translation(poi_id, language_code, status);
@@ -239,9 +253,9 @@ INSERT INTO account (role_id, username, password_hash, full_name, email, account
 (3,'caolau_bamy','$2b$10$abcdefghijklmnopqrstuvABCDEFGHIJKLMNOPQRSTUVWXYZ01234','Tran Thi My',    'my.tt@gmail.com',    'MERCHANT', 'ACTIVE'),
 (3,'banhmi_phuong','$2b$10$abcdefghijklmnopqrstuvABCDEFGHIJKLMNOPQRSTUVWXYZ01234','Le Thi Phuong','phuong.lt@gmail.com', 'MERCHANT', 'ACTIVE');
 
-INSERT INTO merchant (account_id, name, phone_number, address, approval_status, registered_at, approved_at) VALUES
-(3,'Cao Lau Ba My',   '0905123456','26 Thai Phien, Hoi An','APPROVED', NOW() - INTERVAL '30 days', NOW() - INTERVAL '29 days'),
-(4,'Banh Mi Phuong',  '0905654321','2 Phan Chau Trinh, Hoi An','APPROVED', NOW() - INTERVAL '20 days', NOW() - INTERVAL '19 days');
+INSERT INTO merchant (account_id, name, phone_number, address, category, description, plan_id, billing_cycle, approval_status, registered_at, approved_at) VALUES
+(3,'Cao Lau Ba My',   '0905123456','26 Thai Phien, Hoi An','Ẩm thực & Đồ uống','Quán cao lầu lâu năm tại Hội An.','standard','monthly','APPROVED', NOW() - INTERVAL '30 days', NOW() - INTERVAL '29 days'),
+(4,'Banh Mi Phuong',  '0905654321','2 Phan Chau Trinh, Hoi An','Ẩm thực & Đồ uống','Tiệm bánh mì nổi tiếng với du khách.','free','monthly','APPROVED', NOW() - INTERVAL '20 days', NOW() - INTERVAL '19 days');
 
 INSERT INTO notification (account_id, title, content, is_read) VALUES
 (3,'Merchant approved','Your shop Cao Lau Ba My has been approved.', TRUE),
