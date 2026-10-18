@@ -2,7 +2,9 @@ package com.HoiAn.HA_App.service;
 
 import com.HoiAn.HA_App.dto.response.MerchantResponse;
 import com.HoiAn.HA_App.entity.Merchant;
+import com.HoiAn.HA_App.entity.MerchantImage;
 import com.HoiAn.HA_App.exception.ApiException;
+import com.HoiAn.HA_App.repository.MerchantImageRepository;
 import com.HoiAn.HA_App.repository.MerchantRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -21,9 +23,12 @@ public class MerchantAdminService {
     private static final Set<String> STATUSES = Set.of("PENDING", "APPROVED", "REJECTED");
 
     private final MerchantRepository merchantRepository;
+    private final MerchantImageRepository merchantImageRepository;
 
-    public MerchantAdminService(MerchantRepository merchantRepository) {
+    public MerchantAdminService(MerchantRepository merchantRepository,
+                                MerchantImageRepository merchantImageRepository) {
         this.merchantRepository = merchantRepository;
+        this.merchantImageRepository = merchantImageRepository;
     }
 
     @Transactional(readOnly = true)
@@ -48,14 +53,16 @@ public class MerchantAdminService {
         Merchant merchant = find(id);
         merchant.setApprovalStatus("APPROVED");
         merchant.setApprovedAt(LocalDateTime.now());
+        merchant.setRejectReason(null);
         return toResponse(merchantRepository.save(merchant));
     }
 
     @Transactional
-    public MerchantResponse reject(Integer id) {
+    public MerchantResponse reject(Integer id, String reason) {
         Merchant merchant = find(id);
         merchant.setApprovalStatus("REJECTED");
         merchant.setApprovedAt(null);
+        merchant.setRejectReason(reason == null || reason.isBlank() ? null : reason.trim());
         return toResponse(merchantRepository.save(merchant));
     }
 
@@ -73,7 +80,14 @@ public class MerchantAdminService {
                 m.getName(),
                 m.getPhoneNumber(),
                 m.getAddress(),
+                m.getCategory(),
+                m.getDescription(),
+                m.getPlanId(),
+                m.getBillingCycle(),
+                merchantImageRepository.findByMerchantIdOrderByOrderNumAsc(m.getId())
+                        .stream().map(MerchantImage::getFilePath).toList(),
                 m.getApprovalStatus(),
+                m.getRejectReason(),
                 m.getRegisteredAt(),
                 m.getApprovedAt()
         );

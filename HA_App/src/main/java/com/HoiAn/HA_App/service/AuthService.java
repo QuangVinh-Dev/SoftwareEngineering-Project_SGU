@@ -8,9 +8,11 @@ import com.HoiAn.HA_App.dto.response.MerchantRegistrationResponse;
 import com.HoiAn.HA_App.dto.response.UserResponse;
 import com.HoiAn.HA_App.entity.Account;
 import com.HoiAn.HA_App.entity.Merchant;
+import com.HoiAn.HA_App.entity.MerchantImage;
 import com.HoiAn.HA_App.entity.Role;
 import com.HoiAn.HA_App.exception.ApiException;
 import com.HoiAn.HA_App.repository.AccountRepository;
+import com.HoiAn.HA_App.repository.MerchantImageRepository;
 import com.HoiAn.HA_App.repository.MerchantRepository;
 import com.HoiAn.HA_App.repository.RoleRepository;
 import com.HoiAn.HA_App.security.AuthUser;
@@ -22,7 +24,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 @Service
 public class AuthService {
@@ -31,6 +35,8 @@ public class AuthService {
 
     private final AccountRepository accountRepository;
     private final MerchantRepository merchantRepository;
+    private final MerchantImageRepository merchantImageRepository;
+    private final MerchantImageStorageService imageStorage;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
@@ -38,13 +44,20 @@ public class AuthService {
     /** Hash giả để so sánh khi username không tồn tại, tránh lộ thông tin qua thời gian phản hồi. */
     private final String dummyHash;
 
+    private static final Set<String> PLAN_IDS = Set.of("free", "standard", "premium");
+    private static final Set<String> BILLING_CYCLES = Set.of("monthly", "yearly");
+
     public AuthService(AccountRepository accountRepository,
                        MerchantRepository merchantRepository,
+                       MerchantImageRepository merchantImageRepository,
+                       MerchantImageStorageService imageStorage,
                        RoleRepository roleRepository,
                        PasswordEncoder passwordEncoder,
                        JwtService jwtService) {
         this.accountRepository = accountRepository;
         this.merchantRepository = merchantRepository;
+        this.merchantImageRepository = merchantImageRepository;
+        this.imageStorage = imageStorage;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
@@ -58,7 +71,10 @@ public class AuthService {
     public AuthResponse login(LoginRequest request) {
         String username = normalize(request.username());
 
-        Account account = accountRepository.findByUsername(username).orElse(null);
+        // FE cho phép nhập "email hoặc tên đăng nhập".
+        Account account = accountRepository.findByUsername(username)
+                .or(() -> accountRepository.findByEmailIgnoreCase(username))
+                .orElse(null);
 
         String hash = account != null ? account.getPasswordHash() : dummyHash;
         boolean passwordOk = passwordEncoder.matches(request.password(), hash);
@@ -82,7 +98,9 @@ public class AuthService {
                 case "PENDING" -> throw new ApiException(HttpStatus.FORBIDDEN,
                         "Gian hàng đang chờ quản trị viên duyệt");
                 default -> throw new ApiException(HttpStatus.FORBIDDEN,
-                        "Đăng ký gian hàng đã bị từ chối");
+                        merchant.getRejectReason() == null || merchant.getRejectReason().isBlank()
+                                ? "Đăng ký gian hàng đã bị từ chối"
+                                : "Đăng ký gian hàng đã bị từ chối: " + merchant.getRejectReason());
             }
         }
 
@@ -97,11 +115,22 @@ public class AuthService {
     // ------------------------------------------------------------------
     @Transactional
     public MerchantRegistrationResponse registerMerchant(RegisterMerchantRequest request) {
-        String username = normalize(request.username());
         String email = normalize(request.email());
+        // FE đăng nhập bằng email: không gửi username thì dùng luôn email.
+        String username = request.username() == null || request.username().isBlank()
+                ? email : normalize(request.username());
 
         checkPasswordLength(request.password());
         checkUnique(username, email);
+
+        List<String> images = request.merchantImages() == null ? List.of() : request.merchantImages();
+        String planId = request.plan() == null || request.plan().id() == null
+                ? "free" : request.plan().id().trim().toLowerCase(Locale.ROOT);
+        String billing = request.plan() == null || request.plan().billing() == null
+                ? "monthly" : request.plan().billing().trim().toLowerCase(Locale.ROOT);
+        if (!PLAN_IDS.contains(planId) || !BILLING_CYCLES.contains(billing)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Gói dịch vụ không hợp lệ");
+        }
 
         Role role = findRole("MERCHANT");
 
@@ -121,9 +150,22 @@ public class AuthService {
         merchant.setName(request.merchantName().trim());
         merchant.setPhoneNumber(blankToNull(request.phoneNumber()));
         merchant.setAddress(blankToNull(request.address()));
+        merchant.setCategory(blankToNull(request.category()));
+        merchant.setDescription(blankToNull(request.description()));
+        merchant.setPlanId(planId);
+        merchant.setBillingCycle(billing);
         merchant.setApprovalStatus("PENDING");
         merchant.setRegisteredAt(LocalDateTime.now());
         merchant = merchantRepository.save(merchant);
+
+        int order = 1;
+        for (String dataUri : images) {
+            MerchantImage image = new MerchantImage();
+            image.setMerchantId(merchant.getId());
+            image.setFilePath(imageStorage.save(dataUri));
+            image.setOrderNum(order++);
+            merchantImageRepository.save(image);
+        }
 
         return new MerchantRegistrationResponse(
                 account.getId(),
