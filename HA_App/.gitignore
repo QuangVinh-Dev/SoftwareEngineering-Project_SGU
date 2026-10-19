@@ -33,9 +33,9 @@ build/
 .vscode/
 
 # Runtime-generated audio and large, separately provisioned Piper weights.
-/Data_Storage/
-/tts-service/models/*.onnx
-/test-en.mp3
+# /Data_Storage/
+# /tts-service/models/*.onnx
+# /test-en.mp3
 
 ### Secrets ###
 .env
