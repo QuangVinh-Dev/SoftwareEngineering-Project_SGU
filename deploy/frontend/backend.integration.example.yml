@@ -1,0 +1,18 @@
+# REVIEW ONLY. Merge with HA_App/docker-compose.yml during a separately approved deployment.
+# Existing backend network membership is preserved; frontends never join it.
+services:
+  app:
+    networks:
+      backend: {}
+      api_edge: {}
+  cloudflared:
+    networks:
+      backend: {}
+      ingress: {}
+networks:
+  api_edge:
+    external: true
+    name: hoian_api_edge
+  ingress:
+    external: true
+    name: hoian_ingress

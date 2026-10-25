@@ -1,0 +1,45 @@
+# Standalone isolated test stack. Run only with tests/run.py; never merge with backend.
+services:
+  hoian-frontend-user:
+    extends:
+      file: compose.yml
+      service: hoian-frontend-user
+  hoian-frontend-admin:
+    extends:
+      file: compose.yml
+      service: hoian-frontend-admin
+  hoian-frontend-owner:
+    extends:
+      file: compose.yml
+      service: hoian-frontend-owner
+  hoian-edge:
+    extends:
+      file: compose.yml
+      service: hoian-edge
+  hoian-api-fixture:
+    image: hoian-api-fixture:${FRONTEND_TAG:?Set test tag}
+    build:
+      context: .
+      dockerfile: tests/Dockerfile.fixture
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    networks:
+      api_edge:
+        aliases: [app]
+  client-a:
+    image: python:3.12-alpine
+    command: [sleep, infinity]
+    networks: [ingress]
+  client-b:
+    image: python:3.12-alpine
+    command: [sleep, infinity]
+    networks: [ingress]
+networks:
+  frontend:
+    internal: true
+  ingress:
+    internal: true
+  api_edge:
+    internal: true

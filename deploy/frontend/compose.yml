@@ -1,0 +1,70 @@
+# No host ports in production. Attach the EXISTING Tunnel and app via integration override.
+services:
+  hoian-frontend-user:
+    image: hoian-frontend-user:${FRONTEND_TAG:?Set an explicit release or test tag}
+    build:
+      context: "${HOIAN_BUILD_ROOT:?Run prepare_source.py}/HA.USER/hoi-an-app"
+      args:
+        VITE_API_BASE_URL: https://api.buivietquangvinh.xyz
+    restart: unless-stopped
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    sysctls:
+      net.ipv4.ip_unprivileged_port_start: 0
+    networks: [frontend]
+  hoian-frontend-admin:
+    image: hoian-frontend-admin:${FRONTEND_TAG:?Set an explicit release or test tag}
+    build:
+      context: "${HOIAN_BUILD_ROOT:?Run prepare_source.py}/HA_ADMIN"
+      args:
+        VITE_API_BASE_URL: https://api.buivietquangvinh.xyz
+    restart: unless-stopped
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    sysctls:
+      net.ipv4.ip_unprivileged_port_start: 0
+    networks: [frontend]
+  hoian-frontend-owner:
+    image: hoian-frontend-owner:${FRONTEND_TAG:?Set an explicit release or test tag}
+    build:
+      context: "${HOIAN_BUILD_ROOT:?Run prepare_source.py}/HA_Store Owner"
+      args:
+        VITE_API_BASE_URL: https://api.buivietquangvinh.xyz
+    restart: unless-stopped
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    sysctls:
+      net.ipv4.ip_unprivileged_port_start: 0
+    networks: [frontend]
+  hoian-edge:
+    image: hoian-edge:${FRONTEND_TAG:?Set an explicit release or test tag}
+    build:
+      context: .
+      dockerfile: Dockerfile.proxy
+    restart: unless-stopped
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    sysctls:
+      net.ipv4.ip_unprivileged_port_start: 0
+    depends_on:
+      hoian-frontend-user: {condition: service_healthy}
+      hoian-frontend-admin: {condition: service_healthy}
+      hoian-frontend-owner: {condition: service_healthy}
+    networks: [frontend, ingress, api_edge]
+networks:
+  frontend:
+    internal: true
+  ingress:
+    external: true
+    name: hoian_ingress
+  api_edge:
+    external: true
+    name: hoian_api_edge

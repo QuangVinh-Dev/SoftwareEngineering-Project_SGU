@@ -1,0 +1,5 @@
+# Config-only override; separately approve recreating the existing app before applying.
+services:
+  app:
+    environment:
+      CORS_ALLOWED_ORIGINS: "https://ha-user.buivietquangvinh.xyz,https://ha-admin.buivietquangvinh.xyz,https://ha-owner.buivietquangvinh.xyz"

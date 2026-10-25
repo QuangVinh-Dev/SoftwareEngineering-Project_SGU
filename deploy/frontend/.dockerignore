@@ -1,0 +1,7 @@
+*
+!Dockerfile.proxy
+!nginx/
+!nginx/**
+!tests/
+!tests/mock.conf
+!tests/Dockerfile.fixture
