@@ -6,7 +6,7 @@ import com.HoiAn.HA_App.dto.request.RegisterMerchantRequest;
 import com.HoiAn.HA_App.dto.response.AuthResponse;
 import com.HoiAn.HA_App.dto.response.MerchantRegistrationResponse;
 import com.HoiAn.HA_App.dto.response.UserResponse;
-import com.HoiAn.HA_App.security.AuthUser;
+import com.HoiAn.HA_App.sercurity.AuthUser;
 import com.HoiAn.HA_App.service.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;

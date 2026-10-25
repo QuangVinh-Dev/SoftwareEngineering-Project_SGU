@@ -15,8 +15,9 @@ import com.HoiAn.HA_App.repository.AccountRepository;
 import com.HoiAn.HA_App.repository.MerchantImageRepository;
 import com.HoiAn.HA_App.repository.MerchantRepository;
 import com.HoiAn.HA_App.repository.RoleRepository;
-import com.HoiAn.HA_App.security.AuthUser;
-import com.HoiAn.HA_App.security.JwtService;
+import com.HoiAn.HA_App.sercurity.AuthUser;
+import com.HoiAn.HA_App.sercurity.JwtService;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;

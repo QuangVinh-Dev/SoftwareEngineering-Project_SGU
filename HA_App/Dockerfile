@@ -23,9 +23,17 @@ RUN ./mvnw clean package -DskipTests
 # =========================
 FROM eclipse-temurin:21-jre
 
+ARG APP_UID=1000
+ARG APP_GID=1000
+
 WORKDIR /app
 
 COPY --from=builder /app/target/*.jar app.jar
+
+RUN mkdir -p /app/uploads/audio \
+    && chown -R "${APP_UID}:${APP_GID}" /app
+
+USER ${APP_UID}:${APP_GID}
 
 EXPOSE 8080
 

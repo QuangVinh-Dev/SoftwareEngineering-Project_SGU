@@ -1,4 +1,4 @@
-package com.HoiAn.HA_App.security;
+package com.HoiAn.HA_App.sercurity;
 
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;

@@ -3,3 +3,10 @@ Data_Storage/
 tts-service/models/*.onnx
 test-en.mp3
 .git/
+.env
+.env.*
+!.env.example
+*.dump
+*.backup
+**/__pycache__/
+**/*.pyc
