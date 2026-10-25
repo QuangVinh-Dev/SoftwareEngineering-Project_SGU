@@ -4,21 +4,21 @@ services:
     container_name: hoian-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: hoian_db
-      POSTGRES_USER: hoian
-      POSTGRES_PASSWORD: hoian123
+      POSTGRES_DB: ${POSTGRES_DB:-hoian_db}
+      POSTGRES_USER: ${POSTGRES_USER:-hoian}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     ports:
-      - "5433:5432"
+      - "127.0.0.1:5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./version_1.0.sql:/docker-entrypoint-initdb.d/01-version_1.0.sql:ro
-      - ./version_2_poi_approval.sql:/docker-entrypoint-initdb.d/02-version_2_poi_approval.sql:ro
+      - ./hoian_database.sql:/docker-entrypoint-initdb.d/01-hoian_database.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U hoian -d hoian_db"]
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
       interval: 5s
       timeout: 5s
       retries: 10
-
+    networks:
+      - backend
 
   redis:
     image: redis:7-alpine
@@ -33,7 +33,7 @@ services:
       - --requirepass
       - "${REDIS_PASSWORD}"
     ports:
-      - "6380:6380"
+      - "127.0.0.1:6380:6380"
     volumes:
       - redis_data:/data
     environment:
@@ -45,8 +45,8 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
-
-
+    networks:
+      - backend
 
   libretranslate:
     image: libretranslate/libretranslate:latest
@@ -56,12 +56,10 @@ services:
       LT_LOAD_ONLY: "en,vi,ja,ko,zh"
     expose:
       - "5000"
-    # Chỉ mở cổng trên máy local để tiện kiểm thử khi phát triển.
-    # Có thể xóa ports khi triển khai thật.
-    ports:
-      - "127.0.0.1:5000:5000"
     volumes:
       - libretranslate_models:/home/libretranslate/.local
+    networks:
+      - backend
 
   piper-tts:
     build:
@@ -78,9 +76,6 @@ services:
       PIPER_MODEL_ZH: "zh_CN-huayan-medium.onnx"
     expose:
       - "5001"
-    # Chỉ mở cổng trên máy local để tiện kiểm thử khi phát triển.
-    ports:
-      - "127.0.0.1:5001:5001"
     volumes:
       - ./tts-service/models:/models:ro
     healthcheck:
@@ -95,22 +90,31 @@ services:
       timeout: 5s
       retries: 10
       start_period: 20s
+    networks:
+      - backend
 
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
     container_name: hoian-app
     restart: unless-stopped
     ports:
-      - "9999:8080"
+      - "127.0.0.1:9999:8080"
+    user: "${APP_UID:-1000}:${APP_GID:-1000}"
+    init: true
+    stop_grace_period: 30s
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        APP_UID: ${APP_UID:-1000}
+        APP_GID: ${APP_GID:-1000}
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/hoian_db
-      SPRING_DATASOURCE_USERNAME: hoian
-      SPRING_DATASOURCE_PASSWORD: hoian123
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-hoian_db}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-hoian}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
 
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6380
+      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env}
 
       SPRING_JPA_HIBERNATE_DDL_AUTO: validate
 
@@ -126,12 +130,25 @@ services:
       JWT_EXPIRATION_MINUTES: ${JWT_EXPIRATION_MINUTES:-60}
 
       APP_ADMIN_PASSWORD: ${APP_ADMIN_PASSWORD:-}
-      APP_SUPER_ADMIN_PASSWORD: ${APP_SUPER_ADMIN_PASSWORD:-123456}
-      APP_SEED_MERCHANT_PASSWORD: ${APP_SEED_MERCHANT_PASSWORD:-123456}
+      APP_SUPER_ADMIN_PASSWORD: ${APP_SUPER_ADMIN_PASSWORD:?Set APP_SUPER_ADMIN_PASSWORD in .env}
+      APP_SEED_MERCHANT_PASSWORD: ${APP_SEED_MERCHANT_PASSWORD:?Set APP_SEED_MERCHANT_PASSWORD in .env}
+      APP_PROXY_TRUSTED_PROXIES: ${APP_PROXY_TRUSTED_PROXIES:-}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:5174,http://localhost:5175}
+
+      VNPAY_TMN_CODE: ${VNPAY_TMN_CODE:-}
+      VNPAY_HASH_SECRET: ${VNPAY_HASH_SECRET:-}
+
+      VNPAY_PAYMENT_URL: ${VNPAY_PAYMENT_URL:-https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
+      # VnPayProperties currently names this record component payUrl; provide its relaxed-binding key
+      # from the existing VNPAY_PAYMENT_URL input without changing the application configuration.
+      VNPAY_PAY_URL: ${VNPAY_PAYMENT_URL:-https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
+      VNPAY_RETURN_URL: ${VNPAY_RETURN_URL:-}
+      VNPAY_IPN_URL: ${VNPAY_IPN_URL:-}
 
     volumes:
       - ./Data_Storage:/app/uploads/audio
+    networks:
+      - backend
 
     depends_on:
       postgres:
@@ -142,6 +159,30 @@ services:
         condition: service_started
       piper-tts:
         condition: service_healthy
+    # No application healthcheck is configured: the Spring app has no health endpoint/dependency.
+
+  # Chỉ sửa phần Cloudflare Tunnel
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: hoian-cloudflared
+    restart: unless-stopped
+    command:
+      - tunnel
+      - --no-autoupdate
+      - --protocol
+      - http2
+      - run
+      - --token
+      - ${CLOUDFLARE_TUNNEL_TOKEN:?Set CLOUDFLARE_TUNNEL_TOKEN in .env}
+    depends_on:
+      app:
+        condition: service_started
+    networks:
+      - backend
+
+networks:
+  backend:
+    driver: bridge
 
 volumes:
   postgres_data:

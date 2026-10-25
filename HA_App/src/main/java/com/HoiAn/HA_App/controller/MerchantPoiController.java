@@ -1,7 +1,7 @@
 package com.HoiAn.HA_App.controller;
 
 import com.HoiAn.HA_App.dto.response.AdminPoiResponse;
-import com.HoiAn.HA_App.security.AuthUser;
+import com.HoiAn.HA_App.sercurity.AuthUser;
 import com.HoiAn.HA_App.service.AdminPoiService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;

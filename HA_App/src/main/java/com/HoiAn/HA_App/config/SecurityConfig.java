@@ -1,7 +1,5 @@
 package com.HoiAn.HA_App.config;
 
-import com.HoiAn.HA_App.security.JwtAuthenticationFilter;
-import com.HoiAn.HA_App.security.JwtService;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -21,6 +19,10 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import com.HoiAn.HA_App.sercurity.JwtAuthenticationFilter;
+import com.HoiAn.HA_App.sercurity.JwtService;
+import com.HoiAn.HA_App.service.AccessTokenService;
+
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
@@ -30,7 +32,8 @@ import java.util.List;
 public class SecurityConfig {
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http, JwtService jwtService) throws Exception {
+    SecurityFilterChain securityFilterChain(HttpSecurity http, JwtService jwtService,
+                                            AccessTokenService accessTokenService) throws Exception {
         return http
                 .csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
@@ -46,16 +49,23 @@ public class SecurityConfig {
                                         "Bạn không có quyền thực hiện thao tác này")))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/error", "/uploads/audio/**", "/uploads/poi-images/**", "/poi-images/**").permitAll()
+                        .requestMatchers("/error", "/uploads/poi-images/**", "/poi-images/**").permitAll()
+                        .requestMatchers("/uploads/audio/merchant-images/**").permitAll()
+                        .requestMatchers("/uploads/audio/**")
+                            .hasAnyAuthority("SERVICE_ACCESS", "ROLE_POI_ADMIN", "ROLE_ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register/merchant").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/poi/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/payments", "/api/payments/claim").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/payments/vnpay/ipn").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/payments/*/status").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/poi/locations", "/api/poi/*/audio")
+                            .hasAnyAuthority("SERVICE_ACCESS", "ROLE_POI_ADMIN", "ROLE_ADMIN")
                         .requestMatchers("/api/merchant/pois", "/api/merchant/pois/**").hasRole("MERCHANT")
                         .requestMatchers("/api/auth/register/admin").hasRole("SUPER_ADMIN")
                         .requestMatchers("/api/admin/pois", "/api/admin/pois/**").hasRole("POI_ADMIN")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/poi/**").hasRole("POI_ADMIN")
                         .anyRequest().authenticated())
-                .addFilterBefore(new JwtAuthenticationFilter(jwtService),
+                .addFilterBefore(new JwtAuthenticationFilter(jwtService, accessTokenService),
                         UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
@@ -84,6 +94,7 @@ public class SecurityConfig {
         config.setAllowedOrigins(origins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
+        config.setAllowCredentials(true);
         config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
