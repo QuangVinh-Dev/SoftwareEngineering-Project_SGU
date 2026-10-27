@@ -4,10 +4,10 @@
 
 1. Frontend gọi `POST /api/payments` với `credentials: include`. Backend tạo/khôi phục cookie guest và liên kết payment với `guest_session`; giá lấy từ database.
 2. `PaymentService` tạo URL VNPay 2.1.0, nhân số tiền VND với 100, sắp xếp/encode tham số và ký HMAC-SHA512. `vnp_ReturnUrl` lấy từ `VNPAY_RETURN_URL`.
-3. VNPay chuyển **trình duyệt** về Frontend. `PaymentGate` đọc mã giao dịch/kết quả để hiển thị thông báo, sau đó bỏ query khỏi thanh địa chỉ. Query không được dùng để chuyển payment sang PAID hoặc cấp token.
-4. Frontend polling `GET /api/payments/{txnRef}/status` với `X-Payment-Claim-Secret`. Backend trả trạng thái trong PostgreSQL, không suy ra thành công từ Return URL.
+3. VNPay chuyển **trình duyệt** về Frontend. `PaymentGate` chuyển tiếp toàn bộ tham số `vnp_*` tới `POST /api/payments/vnpay/return`, rồi bỏ query khỏi thanh địa chỉ.
+4. Backend Return tự xác minh chữ ký, merchant, đơn, số tiền và kết quả bằng cùng quy tắc với IPN. Frontend không tự chuyển payment sang PAID từ `vnp_ResponseCode`; sau đó polling `GET /api/payments/{txnRef}/status` với `X-Payment-Claim-Secret`.
 5. **Máy chủ VNPay** gọi `GET /api/payments/vnpay/ipn`. Backend xác minh chữ ký, merchant, mã giao dịch, số tiền và kết quả; khóa dòng payment trước khi cập nhật.
-6. Chỉ IPN hợp lệ mới chuyển PENDING sang PAID/FAILED. Sau commit PAID, listener tạo token trong Redis; Frontend gọi `/api/payments/claim` bằng claim secret để nhận token đã cấp.
+6. Return hoặc IPN hợp lệ có thể chuyển PENDING sang PAID/FAILED theo cách idempotent. IPN vẫn là callback server-to-server độc lập và trả response `RspCode/Message` riêng. Sau commit PAID, listener tạo token trong Redis; Frontend gọi `/api/payments/claim` bằng claim secret để nhận token đã cấp.
 
 Trạng thái hiện có: PENDING, PAID, FAILED. IPN hủy/thất bại có chữ ký hợp lệ được ánh xạ sang FAILED; không có enum CANCELLED riêng. IPN lặp không phát thêm sự kiện cấp quyền.
 
@@ -69,5 +69,5 @@ Theo hướng dẫn VNPay, RspCode 00/02 kết thúc callback; 01/04/97/99 yêu 
 
 - Polling tiếp tục khi DB còn PENDING. Frontend chưa có giới hạn chờ; đây không phải bằng chứng thanh toán thành công/thất bại và không được tự chuyển payment dựa trên timeout trình duyệt.
 - Listener cấp token chạy AFTER_COMMIT. Nếu Redis lỗi đúng thời điểm đó, payment có thể đã PAID nhưng handoff chưa được lưu. Hiện chưa có hàng đợi retry bền vững; IPN lặp không tạo lại token. Không tự mint token hoặc kéo dài hạn để khắc phục. Cần thiết kế phục hồi với dấu mốc cấp quyền/hạn dùng bền vững được phê duyệt riêng nếu tình huống này xảy ra.
-- Không có API Backend xử lý Return URL; đường hiện tại là Frontend nhận Return rồi đọc trạng thái đã được Backend xác minh qua IPN.
+- Return endpoint là fallback có xác minh để tránh treo PENDING khi IPN đến chậm/không đến; nó không thay thế việc đăng ký IPN HTTPS công khai với VNPay.
 - Cần xác minh callback thật, khóa JPA trên PostgreSQL và cấp quyền Redis ở môi trường tích hợp. Unit/MockMvc không thay thế các kiểm tra này.

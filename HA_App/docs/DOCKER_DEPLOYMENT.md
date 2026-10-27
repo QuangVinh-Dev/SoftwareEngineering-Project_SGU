@@ -36,7 +36,7 @@ stat -c '%u %g' Data_Storage
 
 The Backend image runs as this non-root numeric user. Ensure that user can write to `Data_Storage/` on the host before starting the service. Do not change directory ownership blindly on an existing data directory.
 
-For VNPAY Sandbox, put credentials issued by the Sandbox account in `VNPAY_TMN_CODE` and `VNPAY_HASH_SECRET`. Configure `VNPAY_RETURN_URL` as the existing application flow expects. The externally registered IPN URL must resolve publicly over HTTPS to `/api/payments/vnpay/ipn`; also register it in the VNPAY merchant configuration. The Compose file maps the existing `VNPAY_PAYMENT_URL` value to the record's `payUrl` binding key as a compatibility bridge; no payment endpoint or signing behavior is changed.
+For VNPAY Sandbox, put credentials issued by the Sandbox account in `VNPAY_TMN_CODE` and `VNPAY_HASH_SECRET`. Configure `VNPAY_RETURN_URL` as the existing application flow expects. The externally registered IPN URL must resolve publicly over HTTPS to `/api/payments/vnpay/ipn`; also register it in the VNPAY merchant configuration. `application.properties` maps the external `VNPAY_PAYMENT_URL` variable to the canonical `vnpay.pay-url` key used by `VnPayProperties.payUrl`.
 
 When using a reverse proxy, set `APP_PROXY_TRUSTED_PROXIES` to the IP/CIDR of the peer address the Backend actually sees for that proxy connection. Prefer a single exact IP (`/32` for IPv4 or `/128` for IPv6). Do not use `0.0.0.0/0` or `::/0`. With this setting empty, forwarded headers are ignored and the app uses the socket peer IP. The configured proxy must set/append `X-Forwarded-For`; the app walks that chain from right to left and stops at the first untrusted address.
 
