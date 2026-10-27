@@ -27,9 +27,7 @@ function AppContent() {
     </div>
   );
 
-  if (authUser?.role === 'POI_ADMIN' && currentPage !== 'poi' && currentPage !== 'audio') {
-    return <Layout><POIManagement /></Layout>;
-  }
+
 
   const pages: Record<string, React.ReactNode> = {
     dashboard: <Dashboard />,

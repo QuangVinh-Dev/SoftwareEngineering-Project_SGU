@@ -35,7 +35,7 @@ export function useApp() {
 }
 
 function isAdmin(user: AuthUser) {
-  return user.accountType === 'ADMIN' && ['ADMIN', 'SUPER_ADMIN', 'POI_ADMIN'].includes(user.role);
+  return user.accountType === 'ADMIN' && user.role === 'ADMIN';
 }
 
 export function AppProvider({ children }: { children: ReactNode }) {

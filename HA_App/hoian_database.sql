@@ -1,4 +1,4 @@
-﻿-- =====================================================================
+-- =====================================================================
 -- hoian_database.sql  (BẢN VIẾT LẠI)
 -- HỆ THỐNG THUYẾT MINH TỰ ĐỘNG ĐA NGÔN NGỮ - PHỐ CỔ HỘI AN
 -- PostgreSQL 16 | 19 bảng | khớp ERD (đã gồm 5 cột hiển thị của poi/poi_revision)
@@ -342,18 +342,14 @@ CREATE UNIQUE INDEX uq_language_one_default ON language(is_default) WHERE is_def
 -- POI_ADMIN: code (SecurityConfig, PoiAdminRoleSeeder) dùng role này cho /api/admin/pois.
 -- Seed sẵn để DB tự đầy đủ; seeder dùng findByName nên không tạo trùng.
 INSERT INTO role (name, description, priority) VALUES
-('SUPER_ADMIN', 'System administrator',                    100),
-('ADMIN',       'Content administrator',                   50),
-('POI_ADMIN',   'Administrator for POI content and audio', 60),
-('MERCHANT',    'Merchant / Shop owner in ancient town',   10);
+('ADMIN',       'Quản trị viên hệ thống',                  100),
+('MERCHANT',    'Chủ gian hàng',                           10);
 
 INSERT INTO role_permission (role_id, permission_code)
 SELECT r.id, p.code
 FROM (VALUES
-    ('SUPER_ADMIN', 'POI_EDIT'), ('SUPER_ADMIN', 'USER_MANAGE'),
-    ('SUPER_ADMIN', 'CONFIG_EDIT'), ('SUPER_ADMIN', 'REPORT_VIEW'),
-    ('ADMIN',       'POI_EDIT'), ('ADMIN',       'REPORT_VIEW'),
-    ('POI_ADMIN',   'POI_EDIT'),
+    ('ADMIN',       'POI_EDIT'), ('ADMIN',       'USER_MANAGE'),
+    ('ADMIN',       'CONFIG_EDIT'), ('ADMIN',    'REPORT_VIEW'),
     ('MERCHANT',    'POI_EDIT_OWN')
 ) AS p(role_name, code)
 JOIN role r ON r.name = p.role_name;
@@ -365,7 +361,7 @@ JOIN role r ON r.name = p.role_name;
 INSERT INTO account (role_id, username, password_hash, full_name, email, account_type, status)
 SELECT r.id, a.username, a.password_hash, a.full_name, a.email, a.account_type, 'ACTIVE'
 FROM (VALUES
-    ('SUPER_ADMIN', 'admin',         '$2b$10$abcdefghijklmnopqrstuvABCDEFGHIJKLMNOPQRSTUVWXYZ01234', 'Administrator', 'admin@hoian.vn',     'ADMIN'),
+    ('ADMIN',       'admin',         '$2b$10$abcdefghijklmnopqrstuvABCDEFGHIJKLMNOPQRSTUVWXYZ01234', 'Administrator', 'admin@hoian.vn',     'ADMIN'),
     ('ADMIN',       'editor01',      '$2b$10$abcdefghijklmnopqrstuvABCDEFGHIJKLMNOPQRSTUVWXYZ01234', 'Nguyen Van An', 'an.nv@hoian.vn',     'ADMIN'),
     ('MERCHANT',    'caolau_bamy',   '$2b$10$abcdefghijklmnopqrstuvABCDEFGHIJKLMNOPQRSTUVWXYZ01234', 'Tran Thi My',   'my.tt@gmail.com',    'MERCHANT'),
     ('MERCHANT',    'banhmi_phuong', '$2b$10$abcdefghijklmnopqrstuvABCDEFGHIJKLMNOPQRSTUVWXYZ01234', 'Le Thi Phuong', 'phuong.lt@gmail.com', 'MERCHANT')

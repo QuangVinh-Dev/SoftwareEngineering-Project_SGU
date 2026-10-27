@@ -26,8 +26,8 @@ public record RegisterAdminRequest(
         @Size(max = 150, message = "Email tối đa 150 ký tự")
         String email,
 
-        /** ADMIN (mặc định), POI_ADMIN hoặc SUPER_ADMIN */
-        @Pattern(regexp = "^(ADMIN|POI_ADMIN|SUPER_ADMIN)$", message = "roleName phải là ADMIN, POI_ADMIN hoặc SUPER_ADMIN")
+        /** ADMIN (mặc định) */
+        @Pattern(regexp = "^(ADMIN)$", message = "roleName phải là ADMIN")
         String roleName
 ) {
 }

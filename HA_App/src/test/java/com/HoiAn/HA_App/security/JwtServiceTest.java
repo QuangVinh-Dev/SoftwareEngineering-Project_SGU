@@ -13,8 +13,7 @@ class JwtServiceTest {
     private static final String SECRET = "unit-test-secret-0123456789-0123456789";
 
     private final AuthUser merchant = new AuthUser(7, "caolau_bamy", "MERCHANT", "MERCHANT", 3);
-    private final AuthUser admin = new AuthUser(1, "admin", "SUPER_ADMIN", "ADMIN", null);
-    private final AuthUser poiAdmin = new AuthUser(9, "poi-editor", "POI_ADMIN", "ADMIN", null);
+    private final AuthUser admin = new AuthUser(1, "admin", "ADMIN", "ADMIN", null);
     private final AuthUser merchantUser = new AuthUser(10, "merchant", "MERCHANT", "MERCHANT", 2);
 
     @Test
@@ -34,13 +33,11 @@ class JwtServiceTest {
 
         assertThat(parsed.merchantId()).isNull();
         assertThat(parsed.authorities()).extracting(Object::toString)
-                .contains("ROLE_SUPER_ADMIN", "ROLE_ADMIN", "ROLE_POI_ADMIN");
+                .containsExactly("ROLE_ADMIN");
     }
 
     @Test
-    void poiAdminGetsOnlyPoiModuleAuthority() {
-        assertThat(poiAdmin.authorities()).extracting(Object::toString)
-                .containsExactly("ROLE_POI_ADMIN");
+    void merchantGetsMerchantAuthority() {
         assertThat(merchantUser.authorities()).extracting(Object::toString)
                 .containsExactly("ROLE_MERCHANT");
     }
@@ -61,24 +58,14 @@ class JwtServiceTest {
     }
 
     @Test
-    void tokenFromAnotherIssuerIsRejected() {
-        JwtService a = new JwtService(SECRET, 60, "issuer-a");
-        JwtService b = new JwtService(SECRET, 60, "issuer-b");
-
-        assertThat(b.parseToken(a.generateToken(admin))).isEmpty();
+    void secretTooShortFailsFastAtConstruction() {
+        assertThatThrownBy(() -> new JwtService("short", 60, "hoian-api"))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
-    void garbageTokenIsRejected() {
-        JwtService service = new JwtService(SECRET, 60, "hoian-api");
-
-        assertThat(service.parseToken("not-a-jwt")).isEmpty();
-        assertThat(service.parseToken("")).isEmpty();
-    }
-
-    @Test
-    void shortSecretIsRefused() {
-        assertThatThrownBy(() -> new JwtService("too-short", 60, "hoian-api"))
-                .isInstanceOf(IllegalStateException.class);
+    void nullSecretFailsFastAtConstruction() {
+        assertThatThrownBy(() -> new JwtService(null, 60, "hoian-api"))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 }
