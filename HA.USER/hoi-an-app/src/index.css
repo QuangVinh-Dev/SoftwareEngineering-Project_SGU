@@ -9991,43 +9991,236 @@ html[data-reduce-motion="true"] .pg__btn {
 
 .pg__error { margin: .75rem 0; font: .75rem/1.5 'Be Vietnam Pro', sans-serif; }
 
-.service-access__bar {
+/* ============================================================
+   HERITAGE CLOCK WIDGET — Đồng hồ thời gian phong cách Hội An
+   ============================================================ */
+
+.heritage-clock-widget {
+  position: fixed;
+  top: 5.25rem;
+  right: 1.5rem;
+  z-index: 90;
+  width: 235px;
+  background: linear-gradient(145deg, rgba(30, 20, 14, 0.95) 0%, rgba(45, 30, 20, 0.97) 100%);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(212, 175, 55, 0.5);
+  border-radius: 16px;
+  padding: 0.85rem 1rem 0.75rem;
+  box-shadow: 0 12px 36px rgba(15, 10, 7, 0.35), 0 2px 8px rgba(0, 0, 0, 0.25);
+  color: #fff;
+  font-family: 'Be Vietnam Pro', sans-serif;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: hcw-slide-in 0.4s ease;
+  user-select: none;
+}
+
+@keyframes hcw-slide-in {
+  from { opacity: 0; transform: translateY(-12px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.heritage-clock-widget:hover {
+  border-color: rgba(212, 175, 55, 0.85);
+  box-shadow: 0 16px 44px rgba(15, 10, 7, 0.48);
+}
+
+.hcw__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  padding: .75rem max(1rem, calc((100vw - 1200px) / 2));
-  border-bottom: 1px solid rgba(43, 29, 18, .12);
-  background: #f5ede2;
-  color: #2b1d12;
-  font-family: 'Be Vietnam Pro', sans-serif;
+  margin-bottom: 0.65rem;
 }
 
-.service-access__bar > div { display: grid; gap: .15rem; }
-.service-access__bar strong { font-size: .75rem; }
-.service-access__bar span { color: rgba(43, 29, 18, .65); font-size: .6875rem; }
-.service-access__countdown { white-space: nowrap; color: #7a3e2a; font-variant-numeric: tabular-nums; }
+.hcw__badge {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.hcw__live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+  animation: hcw-pulse 2s infinite;
+}
+
+@keyframes hcw-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.2); }
+}
+
+.hcw__title {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #d4af37;
+  text-transform: uppercase;
+}
+
+.hcw__toggle-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.7);
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.75rem;
+  line-height: 1;
+  transition: all 0.2s ease;
+}
+
+.hcw__toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.hcw__timer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: rgba(0, 0, 0, 0.38);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 0.65rem 0.5rem;
+  margin-bottom: 0.65rem;
+}
+
+.hcw__unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 46px;
+}
+
+.hcw__num {
+  font-family: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 1.4rem;
+  font-weight: 800;
+  line-height: 1;
+  color: #fcedcf;
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+  letter-spacing: -0.01em;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+.hcw__label {
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 0.08em;
+  margin-top: 5px;
+  text-transform: uppercase;
+}
+
+.hcw__sep {
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #d4af37;
+  opacity: 0.75;
+  line-height: 1;
+  align-self: flex-start;
+  margin-top: 3px;
+  animation: hcw-blink 1s ease infinite;
+}
+
+@keyframes hcw-blink {
+  0%, 100% { opacity: 0.85; }
+  50% { opacity: 0.25; }
+}
+
+.hcw__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.6875rem;
+  padding-top: 0.45rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.hcw__expiry-label {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.hcw__expiry-val {
+  color: #d4af37;
+  font-weight: 600;
+}
+
+/* Minimized Floating Pill */
+.hcw-minimized {
+  position: fixed;
+  top: 5.25rem;
+  right: 1.5rem;
+  z-index: 90;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 9999px;
+  background: linear-gradient(145deg, rgba(30, 20, 14, 0.95) 0%, rgba(45, 30, 20, 0.97) 100%);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(212, 175, 55, 0.55);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  color: #fcedcf;
+  font-family: 'Be Vietnam Pro', sans-serif;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.hcw-minimized:hover {
+  transform: translateY(-2px);
+  border-color: #d4af37;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
+}
+
+.hcw-minimized__icon {
+  font-size: 0.85rem;
+}
+
+.hcw-minimized__time {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  color: #fcedcf;
+}
 
 .service-access__notice {
-  margin: .75rem auto;
-  width: min(100% - 2rem, 1200px);
-  padding: .75rem 1rem;
+  position: fixed;
+  top: 5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 95;
+  width: min(90vw, 440px);
+  padding: 0.55rem 1rem;
+  border-radius: 9999px;
   background: #e9f1e5;
-  color: #345a31;
-  font: .8125rem/1.5 'Be Vietnam Pro', sans-serif;
+  border: 1px solid #c2dbbc;
+  color: #274825;
+  font: 500 0.8125rem/1.4 'Be Vietnam Pro', sans-serif;
+  text-align: center;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  animation: hcw-slide-in 0.3s ease;
 }
 
-@media (max-width: 520px) {
-  .pg__section-title { font-size: 1.35rem; }
-  .service-access__bar { align-items: flex-start; flex-direction: column; gap: .35rem; }
-  .service-access__countdown { font-size: .8125rem !important; }
+@media (max-width: 640px) {
+  .heritage-clock-widget,
+  .hcw-minimized {
+    top: auto;
+    bottom: 5.5rem;
+    right: 1rem;
+  }
 }
-
-@media (prefers-reduced-motion: reduce) {
-  .pg__spinner { animation: none; }
-}
-
-html[data-reduce-motion="true"] .pg__spinner { animation: none; }
 /* ============================================================
    PLAYER — Queue indicator
    ============================================================ */

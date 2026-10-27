@@ -163,7 +163,7 @@ public class PaymentService {
                 .longValueExact();
 
         LocalDateTime now = LocalDateTime.now(VN_ZONE);
-        LocalDateTime expireAt = now.plusMinutes(15);
+        LocalDateTime expireAt = now.plusDays(2);
 
         Map<String, String> params = new HashMap<>();
 

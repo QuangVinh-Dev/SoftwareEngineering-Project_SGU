@@ -1,5 +1,5 @@
-﻿// src/App.jsx
-import { useState, useEffect, useCallback, useRef } from 'react';
+// src/App.jsx
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useI18n } from './hooks/useI18n';
 import { useTranslation } from './hooks/useTranslation';
 import { usePlayer } from './hooks/usePlayer';
@@ -29,6 +29,76 @@ function formatRemainingTime(seconds) {
   const minutes = Math.floor((total % 3600) / 60);
   const remainingSeconds = total % 60;
   return `${String(hours).padStart(2, '0')} giờ ${String(minutes).padStart(2, '0')} phút ${String(remainingSeconds).padStart(2, '0')} giây`;
+}
+
+function HeritageClockWidget({ access }) {
+  const [minimized, setMinimized] = useState(false);
+  const total = Math.max(0, Math.ceil(Number(access.secondsRemaining) || 0));
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const seconds = total % 60;
+
+  const expiryFormatted = access.expiresAt ? new Intl.DateTimeFormat('vi-VN', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  }).format(new Date(access.expiresAt)) : '';
+
+  if (minimized) {
+    return (
+      <button
+        type="button"
+        className="hcw-minimized"
+        onClick={() => setMinimized(false)}
+        title="Bấm để xem chi tiết thời gian sử dụng"
+      >
+        <span className="hcw__live-dot" />
+        
+        <span className="hcw-minimized__time">{String(hours).padStart(2, '0')}:{String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}</span>
+      </button>
+    );
+  }
+
+  return (
+    <aside className="heritage-clock-widget" aria-label="Thời gian sử dụng dịch vụ">
+      <div className="hcw__header">
+        <div className="hcw__badge">
+          <span className="hcw__live-dot" />
+          <span className="hcw__title">HỘI AN TOUR PASS</span>
+        </div>
+        <button
+          type="button"
+          className="hcw__toggle-btn"
+          onClick={() => setMinimized(true)}
+          title="Thu nhỏ"
+          aria-label="Thu nhỏ đồng hồ"
+        >
+          ─
+        </button>
+      </div>
+
+      <div className="hcw__timer">
+        <div className="hcw__unit">
+          <span className="hcw__num">{String(hours).padStart(2, '0')}</span>
+          <span className="hcw__label">GIỜ</span>
+        </div>
+        <span className="hcw__sep">:</span>
+        <div className="hcw__unit">
+          <span className="hcw__num">{String(minutes).padStart(2, '0')}</span>
+          <span className="hcw__label">PHÚT</span>
+        </div>
+        <span className="hcw__sep">:</span>
+        <div className="hcw__unit">
+          <span className="hcw__num">{String(seconds).padStart(2, '0')}</span>
+          <span className="hcw__label">GIÂY</span>
+        </div>
+      </div>
+
+      <div className="hcw__footer">
+        <span className="hcw__expiry-label">Hết hạn:</span>
+        <strong className="hcw__expiry-val">{expiryFormatted}</strong>
+      </div>
+    </aside>
+  );
 }
 
 export default function App() {
@@ -196,15 +266,7 @@ export default function App() {
   return (
     <>
       <Topbar t={t} />
-      <aside className="service-access__bar" aria-label="Quyền sử dụng dịch vụ">
-        <div>
-          <strong>Thời gian sử dụng còn lại</strong>
-          <span>Hết hạn: {new Intl.DateTimeFormat('vi-VN', {
-            dateStyle: 'medium', timeStyle: 'short',
-          }).format(new Date(access.expiresAt))}</span>
-        </div>
-        <strong className="service-access__countdown">{formatRemainingTime(access.secondsRemaining)}</strong>
-      </aside>
+      <HeritageClockWidget access={access} />
       {access.justActivated && (
         <p className="service-access__notice" role="status">
           Thanh toán đã được Backend xác nhận. Quyền sử dụng đã kích hoạt.
