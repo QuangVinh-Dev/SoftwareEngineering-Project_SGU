@@ -191,7 +191,7 @@ class PaymentServiceSecurityTest {
                 .containsEntry("vnp_TxnRef", created.txnRef()).containsEntry("vnp_IpAddr", "127.0.0.1");
         DateTimeFormatter format = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
         assertThat(Duration.between(LocalDateTime.parse(fields.get("vnp_CreateDate"), format),
-                LocalDateTime.parse(fields.get("vnp_ExpireDate"), format))).isEqualTo(Duration.ofMinutes(15));
+                LocalDateTime.parse(fields.get("vnp_ExpireDate"), format))).isEqualTo(Duration.ofDays(2));
 
         Mac mac = Mac.getInstance("HmacSHA512");
         mac.init(new SecretKeySpec(HASH_SECRET.getBytes(StandardCharsets.UTF_8), "HmacSHA512"));
