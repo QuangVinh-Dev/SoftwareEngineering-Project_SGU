@@ -1,4 +1,4 @@
-// src/App.jsx
+﻿// src/App.jsx
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useI18n } from './hooks/useI18n';
 import { useTranslation } from './hooks/useTranslation';
@@ -7,6 +7,7 @@ import { usePoiLocation } from './hooks/useGeofence';
 import { useServiceAccess } from './hooks/useServiceAccess';
 import { playPoiAudio } from './services/audioService';
 import { getPoiLocations } from './services/poiService';
+import { POIS } from './data/pois';
 
 import Topbar from './components/Topbar';
 import Header from './components/Header';
@@ -39,7 +40,7 @@ export default function App() {
   const previousLanguageRef = useRef(currentLang);
   const [playerPoi, setPlayerPoi] = useState(null);
   const [playerLang, setPlayerLang] = useState(currentLang);
-  const [pois, setPois] = useState([]);
+  const [pois, setPois] = useState(() => POIS);
   const [poiLoading, setPoiLoading] = useState(false);
   const [poiError, setPoiError] = useState(null);
 

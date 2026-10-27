@@ -1,212 +1,403 @@
 import { useState } from 'react';
-import { FileSpreadsheet, FileText, Download, Loader2, CheckCircle2, Calendar } from 'lucide-react';
-import { Card, CardHeader, Button } from '@/components/ui';
+import {
+  BarChart3, FileSpreadsheet, FileText, Download, Calendar,
+  TrendingUp, Clock, Globe2, Smartphone, Users, Award, CheckCircle2,
+  PieChart as PieIcon, Monitor, Tablet
+} from 'lucide-react';
+import {
+  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend
+} from 'recharts';
+import { Card, CardHeader, Button, Badge } from '@/components/ui';
 import { useToast } from '@/components/toast/ToastProvider';
-import { classNames } from '@/utils/helpers';
+import {
+  top10Pois, avgTimeByPoi, avgTimeByLanguage, languageDistribution
+} from '@/data/mockData';
+import { classNames, formatNumber } from '@/utils/helpers';
 
-const reportTypes = [
-  { id: 'listening', label: 'Listening Report', desc: 'Detailed listening session statistics', icon: FileText },
-  { id: 'poi', label: 'POI Report', desc: 'Performance breakdown by point of interest', icon: FileText },
-  { id: 'language', label: 'Language Report', desc: 'Usage distribution by language', icon: FileText },
-  { id: 'avgtime', label: 'Average Listening Time', desc: 'Time analysis across POIs and languages', icon: FileText },
-  { id: 'full', label: 'Full System Report', desc: 'Comprehensive system-wide analytics', icon: FileText },
+const barColors = ['#a85f31', '#c07a3e', '#d99d2b', '#9a6d54', '#7e5742', '#cc9259', '#bd7a20', '#654536', '#b08870', '#cab09c'];
+
+const deviceData = [
+  { name: 'Điện thoại (Mobile)', value: 68, count: 8557, icon: Smartphone, color: '#a85f31' },
+  { name: 'Máy tính bảng (Tablet)', value: 22, count: 2768, icon: Tablet, color: '#d99d2b' },
+  { name: 'Máy tính (Desktop)', value: 10, count: 1259, icon: Monitor, color: '#9a6d54' },
+];
+
+const countryData = [
+  { country: 'Việt Nam', flag: '🇻🇳', code: 'VN', sessions: 5420, percent: '43.1%' },
+  { country: 'Hàn Quốc', flag: '🇰🇷', code: 'KR', sessions: 2350, percent: '18.7%' },
+  { country: 'Nhật Bản', flag: '🇯🇵', code: 'JP', sessions: 1820, percent: '14.5%' },
+  { country: 'Đài Loan / Trung Quốc', flag: '🇨🇳', code: 'TW/CN', sessions: 1450, percent: '11.5%' },
+  { country: 'Châu Âu & Mỹ', flag: '🌍', code: 'EU/US', sessions: 1120, percent: '8.9%' },
+  { country: 'Khác', flag: '🌐', code: 'OTHER', sessions: 424, percent: '3.3%' },
+];
+
+const reportTemplates = [
+  { id: 'top_poi', label: 'Báo cáo POI được nghe nhiều nhất', desc: 'Thống kê xếp hạng chi tiết và tỷ trọng lượt nghe từng điểm di tích', format: 'Excel & PDF' },
+  { id: 'avg_time', label: 'Báo cáo thời gian nghe trung bình', desc: 'Phân tích thời lượng nghe theo từng điểm POI và từng ngôn ngữ thuyết minh', format: 'Excel & PDF' },
+  { id: 'access', label: 'Báo cáo thống kê truy cập & thiết bị', desc: 'Tổng hợp tỷ lệ thiết bị sử dụng, quốc gia và xu hướng giờ cao điểm', format: 'Excel & PDF' },
+  { id: 'full_system', label: 'Báo cáo tổng hợp toàn hệ thống', desc: 'Toàn bộ số liệu lượt nghe, di sản, chủ gian hàng và nhật ký sử dụng', format: 'Excel & PDF' },
 ];
 
 export default function Reports() {
   const { showToast } = useToast();
-  const [selectedType, setSelectedType] = useState('listening');
-  const [startDate, setStartDate] = useState('2026-09-07');
-  const [endDate, setEndDate] = useState('2026-10-07');
-  const [generating, setGenerating] = useState(false);
-  const [generated, setGenerated] = useState(false);
+  const [activeTab, setActiveTab] = useState<'top_poi' | 'avg_time' | 'access' | 'export'>('top_poi');
 
-  const handleExport = (format: 'excel' | 'pdf') => {
+  // Export report states
+  const [selectedReport, setSelectedReport] = useState('top_poi');
+  const [startDate, setStartDate] = useState('2026-10-01');
+  const [endDate, setEndDate] = useState('2026-10-27');
+  const [exporting, setExporting] = useState(false);
+
+  // Xử lý xuất báo cáo (7.3)
+  const handleExport = (format: 'Excel' | 'PDF') => {
     if (!startDate || !endDate) {
-      showToast('warning', 'Please select a date range.');
+      showToast('warning', 'Vui lòng chọn khoảng thời gian xuất báo cáo.');
       return;
     }
-    setGenerating(true);
-    setGenerated(false);
+    setExporting(true);
     setTimeout(() => {
-      setGenerating(false);
-      setGenerated(true);
-      showToast('success', `Report exported successfully. (${format.toUpperCase()})`);
-      setTimeout(() => setGenerated(false), 3000);
-    }, 2200);
+      setExporting(false);
+      showToast('success', `Đã xuất ${format} báo cáo thành công! Tệp tin đã được tải xuống.`);
+    }, 1500);
   };
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-brown-900">Reports</h1>
-        <p className="text-sm text-brown-400 mt-1">Generate and export system reports.</p>
+        <h1 className="text-2xl font-bold text-brown-900 flex items-center gap-2">
+          <BarChart3 className="w-7 h-7 text-primary-600" />
+          Báo cáo & Thống kê hệ thống
+        </h1>
+        <p className="text-sm text-brown-500 mt-1">
+          Theo dõi POI nghe nhiều nhất, thời gian nghe trung bình, dữ liệu truy cập thiết bị & xuất báo cáo PDF/Excel.
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          <Card>
-            <CardHeader title="Report Type" subtitle="Select the type of report to generate" />
-            <div className="space-y-2">
-              {reportTypes.map(rt => {
-                const Icon = rt.icon;
-                return (
-                  <button
-                    key={rt.id}
-                    onClick={() => setSelectedType(rt.id)}
-                    className={classNames(
-                      'w-full flex items-center gap-3 p-3 rounded-lg border transition-all text-left',
-                      selectedType === rt.id
-                        ? 'border-primary-400 bg-primary-50 ring-1 ring-primary-200'
-                        : 'border-brown-100 hover:border-brown-200 hover:bg-brown-50/50'
-                    )}
-                  >
-                    <div className={classNames(
-                      'w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0',
-                      selectedType === rt.id ? 'bg-primary-600 text-white' : 'bg-brown-50 text-brown-400'
-                    )}>
-                      <Icon className="w-5 h-5" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className={classNames('text-sm font-semibold', selectedType === rt.id ? 'text-primary-700' : 'text-brown-800')}>{rt.label}</p>
-                      <p className="text-xs text-brown-400">{rt.desc}</p>
-                    </div>
-                    <div className={classNames(
-                      'w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center',
-                      selectedType === rt.id ? 'border-primary-600 bg-primary-600' : 'border-brown-200'
-                    )}>
-                      {selectedType === rt.id && <CheckCircle2 className="w-3 h-3 text-white" />}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </Card>
+      {/* Main Tabs Card */}
+      <Card noPadding>
+        {/* Navigation Tabs */}
+        <div className="flex border-b border-brown-100 bg-brown-50/40 px-4 pt-3 overflow-x-auto scrollbar-thin">
+          <button
+            onClick={() => setActiveTab('top_poi')}
+            className={`pb-3 px-4 text-sm font-semibold border-b-2 whitespace-nowrap transition-all flex items-center gap-2 ${
+              activeTab === 'top_poi'
+                ? 'border-primary-600 text-primary-700'
+                : 'border-transparent text-brown-500 hover:text-brown-800'
+            }`}
+          >
+            <Award className="w-4 h-4" />
+            Điểm di tích nghe nhiều nhất
+          </button>
 
-          <Card>
-            <CardHeader title="Date Range" subtitle="Select the period for the report" />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <button
+            onClick={() => setActiveTab('avg_time')}
+            className={`pb-3 px-4 text-sm font-semibold border-b-2 whitespace-nowrap transition-all flex items-center gap-2 ${
+              activeTab === 'avg_time'
+                ? 'border-primary-600 text-primary-700'
+                : 'border-transparent text-brown-500 hover:text-brown-800'
+            }`}
+          >
+            <Clock className="w-4 h-4" />
+            Thời lượng nghe trung bình
+          </button>
+
+          <button
+            onClick={() => setActiveTab('access')}
+            className={`pb-3 px-4 text-sm font-semibold border-b-2 whitespace-nowrap transition-all flex items-center gap-2 ${
+              activeTab === 'access'
+                ? 'border-primary-600 text-primary-700'
+                : 'border-transparent text-brown-500 hover:text-brown-800'
+            }`}
+          >
+            <Globe2 className="w-4 h-4" />
+            Lưu lượng truy cập & Thiết bị
+          </button>
+
+          <button
+            onClick={() => setActiveTab('export')}
+            className={`pb-3 px-4 text-sm font-semibold border-b-2 whitespace-nowrap transition-all flex items-center gap-2 ${
+              activeTab === 'export'
+                ? 'border-primary-600 text-primary-700'
+                : 'border-transparent text-brown-500 hover:text-brown-800'
+            }`}
+          >
+            <Download className="w-4 h-4" />
+            Xuất dữ liệu báo cáo
+          </button>
+        </div>
+
+        {/* TAB: POI ĐƯỢC NGHE NHIỀU NHẤT */}
+        {activeTab === 'top_poi' && (
+          <div className="p-5 space-y-6">
+            <div className="flex items-center justify-between">
               <div>
-                <label className="block text-sm font-medium text-brown-700 mb-1.5">Start Date</label>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brown-400 pointer-events-none" />
-                  <input
-                    type="date"
-                    value={startDate}
-                    onChange={e => setStartDate(e.target.value)}
-                    className="w-full pl-10 pr-3 py-2 rounded-lg border border-brown-200 text-sm text-brown-700 outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-brown-700 mb-1.5">End Date</label>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brown-400 pointer-events-none" />
-                  <input
-                    type="date"
-                    value={endDate}
-                    onChange={e => setEndDate(e.target.value)}
-                    className="w-full pl-10 pr-3 py-2 rounded-lg border border-brown-200 text-sm text-brown-700 outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100"
-                  />
-                </div>
+                <h3 className="text-base font-bold text-brown-900">Biểu đồ xếp hạng di tích</h3>
+                <p className="text-xs text-brown-400 mt-0.5">Top 10 điểm tham quan có số lượt nghe thuyết minh cao nhất</p>
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-2 mt-4">
-              {['Today', 'Last 7 days', 'Last 30 days', 'This month', 'This year'].map(preset => (
-                <button
-                  key={preset}
-                  onClick={() => {
-                    const end = new Date('2026-10-07');
-                    const start = new Date(end);
-                    if (preset === 'Last 7 days') start.setDate(start.getDate() - 7);
-                    else if (preset === 'Last 30 days') start.setDate(start.getDate() - 30);
-                    else if (preset === 'This month') start.setDate(1);
-                    else if (preset === 'This year') start.setMonth(0, 1);
-                    setStartDate(start.toISOString().slice(0, 10));
-                    setEndDate(end.toISOString().slice(0, 10));
-                  }}
-                  className="px-3 py-1 text-xs font-medium rounded-lg border border-brown-200 text-brown-600 hover:bg-brown-50 transition-colors"
+            {/* Biểu đồ */}
+            <div className="h-[320px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={top10Pois} margin={{ top: 10, right: 10, left: -10, bottom: 25 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0e9e2" vertical={false} />
+                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#8b5e3c' }} angle={-15} textAnchor="end" interval={0} />
+                  <YAxis tick={{ fontSize: 11, fill: '#8b5e3c' }} />
+                  <Tooltip
+                    contentStyle={{ borderRadius: '8px', border: '1px solid #e0d1c3', fontSize: '12px' }}
+                    cursor={{ fill: '#f5ebdb' }}
+                  />
+                  <Bar dataKey="sessions" radius={[6, 6, 0, 0]} name="Lượt nghe">
+                    {top10Pois.map((_, i) => (
+                      <Cell key={i} fill={barColors[i % barColors.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* 7.1.1 Bảng xếp hạng */}
+            <div>
+              <h3 className="text-base font-bold text-brown-900 mb-3">Bảng xếp hạng chi tiết</h3>
+              <div className="overflow-x-auto rounded-lg border border-brown-100">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-brown-100 bg-brown-50/60">
+                      <th className="px-4 py-3 text-center font-semibold text-brown-600 text-xs uppercase w-16">Thứ hạng</th>
+                      <th className="px-4 py-3 text-left font-semibold text-brown-600 text-xs uppercase">Điểm tham quan (POI)</th>
+                      <th className="px-4 py-3 text-right font-semibold text-brown-600 text-xs uppercase">Tổng lượt nghe</th>
+                      <th className="px-4 py-3 text-right font-semibold text-brown-600 text-xs uppercase">Thời lượng TB</th>
+                      <th className="px-4 py-3 text-right font-semibold text-brown-600 text-xs uppercase">Tỷ trọng</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-brown-50">
+                    {(() => {
+                      const total = top10Pois.reduce((s, p) => s + p.sessions, 0);
+                      return top10Pois.map((poi, idx) => (
+                        <tr key={idx} className="hover:bg-brown-50/30 transition-colors">
+                          <td className="px-4 py-3 text-center">
+                            <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold ${
+                              idx === 0 ? 'bg-amber-100 text-amber-800 border border-amber-300' :
+                              idx === 1 ? 'bg-slate-200 text-slate-700' :
+                              idx === 2 ? 'bg-orange-100 text-orange-800' : 'text-brown-500'
+                            }`}>
+                              {idx + 1}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 font-semibold text-brown-900">{poi.name}</td>
+                          <td className="px-4 py-3 text-right font-mono font-medium text-brown-700">{formatNumber(poi.sessions)}</td>
+                          <td className="px-4 py-3 text-right text-xs text-brown-500">{poi.avgTime}</td>
+                          <td className="px-4 py-3 text-right text-xs font-semibold text-primary-700">
+                            {((poi.sessions / total) * 100).toFixed(1)}%
+                          </td>
+                        </tr>
+                      ));
+                    })()}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 7.2: THỜI GIAN NGHE TRUNG BÌNH */}
+        {activeTab === 'avg_time' && (
+          <div className="p-5 space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* 7.2.1 Theo POI */}
+              <div className="space-y-3">
+                <div>
+                  <h3 className="text-base font-bold text-brown-900">Thời gian nghe trung bình theo POI</h3>
+                  <p className="text-xs text-brown-400 mt-0.5">Thời lượng khách dừng lại nghe thuyết minh tại từng di tích</p>
+                </div>
+                <div className="space-y-2">
+                  {avgTimeByPoi.map((item, i) => (
+                    <div key={i} className="flex items-center justify-between p-3 rounded-lg border border-brown-100 bg-white hover:bg-brown-50/30 transition-colors">
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 text-xs text-brown-400 font-mono">#{i + 1}</span>
+                        <span className="font-semibold text-brown-900 text-sm">{item.name}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-3.5 h-3.5 text-primary-600" />
+                        <span className="font-mono text-sm font-bold text-primary-800">{item.time}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 7.2.2 Theo Ngôn ngữ */}
+              <div className="space-y-3">
+                <div>
+                  <h3 className="text-base font-bold text-brown-900">Thời gian nghe trung bình theo Ngôn ngữ</h3>
+                  <p className="text-xs text-brown-400 mt-0.5">So sánh mức độ quan tâm của du khách theo từng thứ tiếng</p>
+                </div>
+                <div className="space-y-2">
+                  {avgTimeByLanguage.map((item, i) => (
+                    <div key={i} className="flex items-center justify-between p-3 rounded-lg border border-brown-100 bg-white hover:bg-brown-50/30 transition-colors">
+                      <div className="flex items-center gap-2">
+                        <Globe2 className="w-4 h-4 text-brown-500" />
+                        <span className="font-semibold text-brown-900 text-sm">{item.name}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-3.5 h-3.5 text-primary-600" />
+                        <span className="font-mono text-sm font-bold text-primary-800">{item.time} phút</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 7.4: THỐNG KÊ TRUY CẬP (THIẾT BỊ & QUỐC GIA, ONLINE) */}
+        {activeTab === 'access' && (
+          <div className="p-5 space-y-6">
+            {/* 7.4.2 Người dùng đang online */}
+            <div className="p-4 rounded-xl bg-gradient-to-r from-primary-600 to-amber-600 text-white flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 rounded-full bg-green-400 animate-ping" />
+                <div>
+                  <p className="text-xs uppercase tracking-wider text-amber-100 font-bold">Người dùng đang online trong phố cổ</p>
+                  <p className="text-2xl font-black mt-0.5">148 du khách</p>
+                </div>
+              </div>
+              <div className="text-right text-xs text-amber-100">
+                <p>Đang nghe thuyết minh: <strong>89</strong></p>
+                <p>Đang duyệt bản đồ: <strong>59</strong></p>
+              </div>
+            </div>
+
+            {/* 7.4.1 Thiết bị & Quốc gia */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Thiết bị */}
+              <div className="space-y-3">
+                <h3 className="text-base font-bold text-brown-900">Thiết bị truy cập (Device)</h3>
+                <div className="space-y-3">
+                  {deviceData.map((d, i) => {
+                    const Icon = d.icon;
+                    return (
+                      <div key={i} className="p-3.5 rounded-lg border border-brown-100 bg-white">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <Icon className="w-4 h-4 text-brown-600" />
+                            <span className="text-sm font-semibold text-brown-800">{d.name}</span>
+                          </div>
+                          <span className="text-sm font-bold text-primary-800">{d.value}% ({formatNumber(d.count)})</span>
+                        </div>
+                        <div className="w-full bg-brown-100 h-2 rounded-full overflow-hidden">
+                          <div className="h-full rounded-full transition-all" style={{ width: `${d.value}%`, backgroundColor: d.color }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Quốc gia */}
+              <div className="space-y-3">
+                <h3 className="text-base font-bold text-brown-900">Quốc gia du khách (Country)</h3>
+                <div className="space-y-2">
+                  {countryData.map((c, i) => (
+                    <div key={i} className="flex items-center justify-between p-3 rounded-lg border border-brown-100 bg-white">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl">{c.flag}</span>
+                        <span className="text-sm font-semibold text-brown-800">{c.country}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-brown-400 font-mono">{formatNumber(c.sessions)} lượt</span>
+                        <span className="text-xs font-bold text-primary-700 bg-primary-50 px-2 py-0.5 rounded border border-primary-200">{c.percent}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 7.3: XUẤT BÁO CÁO (EXCEL / PDF) */}
+        {activeTab === 'export' && (
+          <div className="p-5 space-y-6">
+            <div>
+              <h3 className="text-base font-bold text-brown-900">Chọn loại báo cáo cần kết xuất</h3>
+              <p className="text-xs text-brown-400 mt-0.5">Chọn mẫu báo cáo số liệu tổng hợp định kỳ phục vụ công tác quản lý</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {reportTemplates.map(tpl => (
+                <div
+                  key={tpl.id}
+                  onClick={() => setSelectedReport(tpl.id)}
+                  className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                    selectedReport === tpl.id
+                      ? 'border-primary-600 bg-primary-50/50 shadow-sm'
+                      : 'border-brown-100 hover:border-brown-200 bg-white'
+                  }`}
                 >
-                  {preset}
-                </button>
-              ))}
-            </div>
-          </Card>
-
-          <Card>
-            <CardHeader title="Export" subtitle="Generate and download the report" />
-            {generating ? (
-              <div className="flex flex-col items-center justify-center py-8">
-                <Loader2 className="w-10 h-10 text-primary-500 animate-spin mb-3" />
-                <p className="text-sm text-brown-600 font-medium">Generating report...</p>
-                <p className="text-xs text-brown-400 mt-1">This may take a few seconds.</p>
-              </div>
-            ) : generated ? (
-              <div className="flex flex-col items-center justify-center py-8">
-                <CheckCircle2 className="w-10 h-10 text-green-500 mb-3" />
-                <p className="text-sm font-semibold text-brown-800">Report exported successfully.</p>
-                <p className="text-xs text-brown-400 mt-1">The file has been downloaded to your device.</p>
-              </div>
-            ) : (
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Button onClick={() => handleExport('excel')} variant="success" size="lg" className="flex-1" icon={<FileSpreadsheet className="w-5 h-5" />}>
-                  Export Excel
-                </Button>
-                <Button onClick={() => handleExport('pdf')} variant="danger" size="lg" className="flex-1" icon={<FileText className="w-5 h-5" />}>
-                  Export PDF
-                </Button>
-              </div>
-            )}
-          </Card>
-        </div>
-
-        <div className="space-y-4">
-          <Card>
-            <CardHeader title="Report Summary" subtitle="Current selection" />
-            <div className="space-y-3 text-sm">
-              <div className="flex justify-between">
-                <span className="text-brown-400">Type</span>
-                <span className="font-medium text-brown-800">{reportTypes.find(r => r.id === selectedType)?.label}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-brown-400">Start Date</span>
-                <span className="font-medium text-brown-800">{startDate}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-brown-400">End Date</span>
-                <span className="font-medium text-brown-800">{endDate}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-brown-400">Format</span>
-                <span className="font-medium text-brown-800">Excel / PDF</span>
-              </div>
-            </div>
-          </Card>
-
-          <Card>
-            <CardHeader title="Recent Reports" subtitle="Previously generated" />
-            <div className="space-y-2">
-              {[
-                { name: 'Monthly Listening Report', date: 'Oct 2026', type: 'Excel' },
-                { name: 'POI Performance Q3', date: 'Sep 2026', type: 'PDF' },
-                { name: 'Language Distribution', date: 'Sep 2026', type: 'Excel' },
-              ].map((r, i) => (
-                <div key={i} className="flex items-center gap-3 p-2 rounded-lg hover:bg-brown-50 transition-colors">
-                  <div className={classNames('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
-                    r.type === 'Excel' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600')}>
-                    {r.type === 'Excel' ? <FileSpreadsheet className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-2">
+                      <FileText className={`w-5 h-5 ${selectedReport === tpl.id ? 'text-primary-600' : 'text-brown-400'}`} />
+                      <h4 className="font-semibold text-sm text-brown-900">{tpl.label}</h4>
+                    </div>
+                    {selectedReport === tpl.id && <CheckCircle2 className="w-5 h-5 text-primary-600" />}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-brown-800 truncate">{r.name}</p>
-                    <p className="text-xs text-brown-400">{r.date} — {r.type}</p>
+                  <p className="text-xs text-brown-500 mt-2">{tpl.desc}</p>
+                  <div className="mt-3 flex items-center justify-between text-[11px] text-brown-400">
+                    <span>Định dạng: <strong>{tpl.format}</strong></span>
                   </div>
-                  <Download className="w-4 h-4 text-brown-300" />
                 </div>
               ))}
             </div>
-          </Card>
-        </div>
-      </div>
+
+            {/* Bộ lọc thời gian */}
+            <div className="p-4 rounded-xl border border-brown-100 bg-brown-50/40 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="text-xs font-semibold text-brown-700 flex items-center gap-1.5">
+                  <Calendar className="w-4 h-4 text-brown-500" />
+                  Khoảng thời gian:
+                </span>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={e => setStartDate(e.target.value)}
+                  className="px-3 py-1.5 rounded-lg border border-brown-200 text-xs bg-white outline-none focus:border-primary-400"
+                />
+                <span className="text-xs text-brown-400">đến</span>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={e => setEndDate(e.target.value)}
+                  className="px-3 py-1.5 rounded-lg border border-brown-200 text-xs bg-white outline-none focus:border-primary-400"
+                />
+              </div>
+
+              {/* 7.3.2 Nút xuất Excel / PDF */}
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="secondary"
+                  disabled={exporting}
+                  onClick={() => handleExport('Excel')}
+                  icon={<FileSpreadsheet className="w-4 h-4 text-green-600" />}
+                >
+                  Xuất Excel (.xlsx)
+                </Button>
+                <Button
+                  variant="primary"
+                  disabled={exporting}
+                  onClick={() => handleExport('PDF')}
+                  icon={<Download className="w-4 h-4" />}
+                >
+                  {exporting ? 'Đang tạo báo cáo…' : 'Xuất PDF (.pdf)'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </Card>
     </div>
   );
 }

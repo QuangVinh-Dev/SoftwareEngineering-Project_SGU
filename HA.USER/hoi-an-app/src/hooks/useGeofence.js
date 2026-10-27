@@ -1,4 +1,4 @@
-// src/hooks/useGeofence.js
+﻿// src/hooks/useGeofence.js
 //
 // Automatic POI Audio Playback by GPS
 // ====================================
