@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+﻿import { useRef, useState } from 'react';
 import {
   Eye, EyeOff, User, Lock, Mail, Phone, Store, Building2,
   CreditCard, ImagePlus, ArrowRight, ChevronLeft, CheckCircle2,
@@ -18,7 +18,7 @@ type Mode = 'login' | 'register';
 const inputSquare =
   'w-full rounded-md border border-[#E5E7EB] bg-white pl-11 pr-4 py-3 text-[14px] text-[#1F2937] ' +
   'outline-none placeholder:text-[#9CA3AF] transition-all ' +
-  'focus:border-[#7C3AED] focus:ring-4 focus:ring-[#7C3AED]/10';
+  'focus:border-[#286b7b] focus:ring-4 focus:ring-[#286b7b]/10';
 
 /* ============================================================
    Decorative SVG pattern
@@ -63,12 +63,12 @@ function BannerPattern() {
 /* ============================================================
    Purple Banner
    ============================================================ */
-function PurpleBanner({ title, subtitle }: { title: string; subtitle: string }) {
+function NavyBanner({ title, subtitle }: { title: string; subtitle: string }) {
   return (
-    <div className="relative hidden overflow-hidden bg-[#7C3AED] lg:block">
-      <div className="absolute inset-0 bg-gradient-to-br from-[#6D28D9] via-[#7C3AED] to-[#8B5CF6]" />
+    <div className="relative hidden overflow-hidden bg-[#183a54] lg:block">
+      <div className="absolute inset-0 bg-gradient-to-br from-[#142e44] via-[#183a54] to-[#286b7b]" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_40%,rgba(255,255,255,0.18),transparent_45%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(76,29,149,0.55),transparent_50%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(20,46,68,0.7),transparent_50%)]" />
       <BannerPattern />
 
       <img
@@ -116,7 +116,7 @@ function FieldIcon({ icon: Icon }: { icon: typeof User }) {
 function FieldLabel({ children, required }: { children: React.ReactNode; required?: boolean }) {
   return (
     <label className="mb-1.5 block text-[12.5px] font-medium text-[#374151]">
-      {children} {required && <span className="text-[#7C3AED]">*</span>}
+      {children} {required && <span className="text-[#286b7b]">*</span>}
     </label>
   );
 }
@@ -145,7 +145,7 @@ function SectionGroup({ title, icon: Icon, children }: { title: string; icon: ty
 function Step({ n, children }: { n: number; children: React.ReactNode }) {
   return (
     <li className="flex items-start gap-2">
-      <span className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-sm bg-[#EDE9FE] text-[10px] font-bold text-[#7C3AED]">{n}</span>
+      <span className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-sm bg-[#f0f8f9] text-[10px] font-bold text-[#286b7b]">{n}</span>
       <span>{children}</span>
     </li>
   );
@@ -252,16 +252,16 @@ export default function Login() {
      ============================================================ */
   return (
     // Trang độc lập, tràn màn hình, căn giữa form
-    <div className="flex min-h-screen items-center justify-center bg-[#EEF0FB] p-4 sm:p-8">
+    <div className="flex min-h-screen items-center justify-center bg-[#f0f3f6] p-4 sm:p-8">
       {/* Khung ngoài cùng: HÌNH VUÔNG (không bo góc) */}
       <div
-        className={`grid w-full overflow-hidden bg-white shadow-[0_20px_60px_-15px_rgba(76,29,149,0.3)] ${
+        className={`grid w-full overflow-hidden bg-white shadow-[0_20px_60px_-15px_rgba(24,58,84,0.2)] ${
           isLogin ? 'max-w-[1100px] lg:grid-cols-2' : 'max-w-[560px] grid-cols-1'
         }`}
       >
         {/* ===== Banner (login only) ===== */}
         {isLogin && (
-          <PurpleBanner
+          <NavyBanner
             title="Welcome back!"
             subtitle="Bạn có thể đăng nhập để truy cập vào tài khoản chủ gian hàng của mình."
           />
@@ -274,7 +274,7 @@ export default function Login() {
             {/* Mobile logo (login only) */}
             {isLogin && (
               <div className="mb-7 flex items-center gap-2 lg:hidden">
-                <span className="flex h-9 w-9 items-center justify-center rounded-md bg-[#7C3AED] text-white">
+                <span className="flex h-9 w-9 items-center justify-center rounded-md bg-[#183a54] text-white">
                   <Store className="h-4 w-4" />
                 </span>
                 <span className="text-[14px] font-semibold text-[#1F2937]">Hội An Audio Guide</span>
@@ -330,14 +330,14 @@ export default function Login() {
                         type="checkbox"
                         checked={remember}
                         onChange={e => setRemember(e.target.checked)}
-                        className="h-3.5 w-3.5 rounded-sm border-[#D1D5DB] text-[#7C3AED] focus:ring-[#7C3AED]"
+                        className="h-3.5 w-3.5 rounded-sm border-[#D1D5DB] text-[#286b7b] focus:ring-[#286b7b]"
                       />
                       Ghi nhớ đăng nhập
                     </label>
                     <button
                       type="button"
                       onClick={() => setError('Vui lòng liên hệ quản trị viên để đặt lại mật khẩu.')}
-                      className="text-[12.5px] font-medium text-[#7C3AED] hover:underline"
+                      className="text-[12.5px] font-medium text-[#286b7b] hover:underline"
                     >
                       Quên mật khẩu?
                     </button>
@@ -348,7 +348,7 @@ export default function Login() {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="mt-2 flex w-full items-center justify-center gap-2 rounded-md bg-[#7C3AED] py-3 text-[14px] font-semibold text-white shadow-[0_8px_20px_-6px_rgba(124,58,237,0.55)] transition-all hover:bg-[#6D28D9] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+                    className="mt-2 flex w-full items-center justify-center gap-2 rounded-md bg-[#183a54] py-3 text-[14px] font-semibold text-white shadow-[0_8px_20px_-6px_rgba(40,107,123,0.45)] transition-all hover:bg-[#205764] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {isSubmitting ? (
                       <>
@@ -364,7 +364,7 @@ export default function Login() {
                   <button
                     type="button"
                     onClick={() => { setMode('register'); setError(''); }}
-                    className="font-semibold text-[#7C3AED] hover:underline"
+                    className="font-semibold text-[#286b7b] hover:underline"
                   >
                     Tạo tài khoản
                   </button>
@@ -378,7 +378,7 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={backToLogin}
-                  className="mb-5 inline-flex items-center gap-1.5 text-[12.5px] font-medium text-[#6B7280] transition-colors hover:text-[#7C3AED]"
+                  className="mb-5 inline-flex items-center gap-1.5 text-[12.5px] font-medium text-[#6B7280] transition-colors hover:text-[#286b7b]"
                 >
                   <ChevronLeft className="h-4 w-4" /> Quay lại đăng nhập
                 </button>
@@ -437,13 +437,13 @@ export default function Login() {
                             className={`group flex h-24 w-full items-center justify-center overflow-hidden rounded-md border-2 border-dashed transition-all ${
                               cccd[side]
                                 ? 'border-[#E5E7EB] bg-[#F9FAFB]'
-                                : 'border-[#E5E7EB] bg-[#F9FAFB] hover:border-[#7C3AED] hover:bg-[#F5F3FF]'
+                                : 'border-[#E5E7EB] bg-[#F9FAFB] hover:border-[#286b7b] hover:bg-[#f0f8f9]'
                             }`}
                           >
                             {cccd[side] ? (
                               <img src={cccd[side]} alt={label} className="h-full w-full object-cover" />
                             ) : (
-                              <span className="flex flex-col items-center gap-1 text-[#9CA3AF] transition-colors group-hover:text-[#7C3AED]">
+                              <span className="flex flex-col items-center gap-1 text-[#9CA3AF] transition-colors group-hover:text-[#286b7b]">
                                 <ImagePlus className="h-5 w-5" />
                                 <span className="text-[11px] font-medium">Chọn ảnh</span>
                               </span>
@@ -501,13 +501,13 @@ export default function Login() {
                       type="checkbox"
                       checked={agreeTerms}
                       onChange={e => { setAgreeTerms(e.target.checked); setError(''); }}
-                      className="mt-0.5 h-4 w-4 shrink-0 rounded-sm border-[#D1D5DB] text-[#7C3AED] focus:ring-[#7C3AED]"
+                      className="mt-0.5 h-4 w-4 shrink-0 rounded-sm border-[#D1D5DB] text-[#286b7b] focus:ring-[#286b7b]"
                     />
                     <span>
                       Tôi đồng ý với{' '}
-                      <button type="button" className="font-semibold text-[#7C3AED] hover:underline">Điều khoản sử dụng</button>{' '}
+                      <button type="button" className="font-semibold text-[#286b7b] hover:underline">Điều khoản sử dụng</button>{' '}
                       và{' '}
-                      <button type="button" className="font-semibold text-[#7C3AED] hover:underline">Chính sách bảo mật</button>{' '}
+                      <button type="button" className="font-semibold text-[#286b7b] hover:underline">Chính sách bảo mật</button>{' '}
                       của Hội An Audio Guide.
                     </span>
                   </label>
@@ -525,7 +525,7 @@ export default function Login() {
                     type="button"
                     onClick={handleSubmitRegister}
                     disabled={isSubmitting}
-                    className="flex items-center gap-2 rounded-md bg-[#7C3AED] px-5 py-2.5 text-[13px] font-semibold text-white shadow-[0_8px_20px_-6px_rgba(124,58,237,0.55)] transition-all hover:bg-[#6D28D9] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+                    className="flex items-center gap-2 rounded-md bg-[#183a54] px-5 py-2.5 text-[13px] font-semibold text-white shadow-[0_8px_20px_-6px_rgba(40,107,123,0.45)] transition-all hover:bg-[#205764] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {isSubmitting ? (
                       <>
@@ -544,8 +544,8 @@ export default function Login() {
             {!isLogin && regSuccess && (
               <div className="flex flex-col items-center text-center">
                 <div className="relative mb-5">
-                  <div className="relative flex h-20 w-20 items-center justify-center rounded-md bg-gradient-to-br from-[#EDE9FE] to-[#DDD6FE]">
-                    <Clock className="h-9 w-9 text-[#7C3AED]" strokeWidth={2} />
+                  <div className="relative flex h-20 w-20 items-center justify-center rounded-md bg-gradient-to-br from-[#f0f8f9] to-[#d9eef1]">
+                    <Clock className="h-9 w-9 text-[#286b7b]" strokeWidth={2} />
                   </div>
                 </div>
                 <h2 className="text-[22px] font-bold text-[#1F2937]">Đăng ký thành công!</h2>
@@ -555,7 +555,7 @@ export default function Login() {
 
                 <div className="mt-6 w-full rounded-md border border-[#E5E7EB] bg-[#F9FAFB] p-5 text-left">
                   <p className="mb-3 flex items-center gap-2 text-[13px] font-semibold text-[#1F2937]">
-                    <CheckCircle2 className="h-4 w-4 text-[#7C3AED]" />
+                    <CheckCircle2 className="h-4 w-4 text-[#286b7b]" />
                     Bước tiếp theo
                   </p>
                   <ul className="space-y-2 text-[12.5px] text-[#4B5563]">
