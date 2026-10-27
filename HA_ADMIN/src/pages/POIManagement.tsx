@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+﻿import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Check, Edit2, Languages, MapPin, Plus, RefreshCw, Search, Volume2, X,
   Clock, CheckCircle2, XCircle, AlertCircle, Eye, ExternalLink, Compass
@@ -421,8 +421,12 @@ export default function POIManagement() {
                         {poi.images && poi.images[0] ? (
                           <img
                             src={resolvePoiImageUrl(poi.images[0])}
-                            alt=""
+                            alt={poi.name}
                             className="h-11 w-11 rounded-lg object-cover border border-brown-200 flex-shrink-0"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLImageElement).src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="%23286b7b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>';
+                              (e.currentTarget as HTMLImageElement).className = "h-11 w-11 rounded-lg p-2 bg-slate-100 border border-slate-200 flex-shrink-0 object-contain";
+                            }}
                           />
                         ) : (
                           <div className="h-11 w-11 rounded-lg bg-brown-100 flex items-center justify-center text-brown-400 flex-shrink-0">
@@ -685,6 +689,10 @@ export default function POIManagement() {
                         src={resolvePoiImageUrl(img)}
                         alt={`Ảnh ${idx + 1}`}
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="%23286b7b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>';
+                          (e.currentTarget as HTMLImageElement).className = "w-full h-full p-4 bg-slate-100 flex-shrink-0 object-contain";
+                        }}
                       />
                     </a>
                   ))}

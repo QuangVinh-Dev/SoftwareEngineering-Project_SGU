@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Check, X, Eye, Search, RefreshCw, Store, Phone, Mail, MapPin,
   Calendar, ShieldCheck, AlertCircle, Clock, CheckCircle2, XCircle,
-  Tag, CreditCard, Building2, User
+  Tag, CreditCard, Building2, User, Send, Compass
 } from 'lucide-react';
 import { Badge, Button, Card } from '@/components/ui';
 import Modal from '@/components/modals/Modal';
@@ -12,7 +12,12 @@ import {
   getAdminMerchants, approveMerchant, rejectMerchant, resolveMerchantImageUrl,
   type AdminMerchant
 } from '@/services/adminMerchantApi';
+import {
+  getAdminPois, reviewPoi, resolvePoiImageUrl,
+  type AdminPoi
+} from '@/services/adminContentApi';
 
+type ModuleTab = 'merchants' | 'pois';
 type FilterTab = 'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED';
 
 const SAMPLE_MERCHANTS: AdminMerchant[] = [
@@ -92,42 +97,68 @@ const SAMPLE_MERCHANTS: AdminMerchant[] = [
 
 export default function MerchantManagement() {
   const { showToast } = useToast();
-  const [merchants, setMerchants] = useState<AdminMerchant[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [activeTab, setActiveTab] = useState<FilterTab>('PENDING');
+  const [moduleTab, setModuleTab] = useState<ModuleTab>('merchants');
 
-  // Modal states
+  // Merchants state (5.1)
+  const [merchants, setMerchants] = useState<AdminMerchant[]>([]);
+  const [loadingMerchants, setLoadingMerchants] = useState(true);
+  const [searchMerchant, setSearchMerchant] = useState('');
+  const [filterMerchantTab, setFilterMerchantTab] = useState<FilterTab>('PENDING');
+
+  // POIs submitted by merchants state (5.2)
+  const [pois, setPois] = useState<AdminPoi[]>([]);
+  const [loadingPois, setLoadingPois] = useState(true);
+  const [searchPoi, setSearchPoi] = useState('');
+  const [filterPoiTab, setFilterPoiTab] = useState<FilterTab>('PENDING');
+
+  // Modals state for Merchants
   const [detailMerchant, setDetailMerchant] = useState<AdminMerchant | null>(null);
   const [approvingMerchant, setApprovingMerchant] = useState<AdminMerchant | null>(null);
   const [rejectingMerchant, setRejectingMerchant] = useState<AdminMerchant | null>(null);
-  const [rejectReason, setRejectReason] = useState('');
+  const [merchantRejectReason, setMerchantRejectReason] = useState('');
+  const [sendEmailNotification, setSendEmailNotification] = useState(true); // 5.3
+
+  // Modals state for POIs
+  const [reviewingPoi, setReviewingPoi] = useState<AdminPoi | null>(null);
+  const [rejectingPoi, setRejectingPoi] = useState<AdminPoi | null>(null);
+  const [poiRejectReason, setPoiRejectReason] = useState('');
+
   const [processing, setProcessing] = useState(false);
 
+  // Load merchants
   const loadMerchants = useCallback(async () => {
-    setLoading(true);
+    setLoadingMerchants(true);
     try {
       const data = await getAdminMerchants();
-      if (Array.isArray(data) && data.length > 0) {
-        setMerchants(data);
-      } else {
-        // Nếu backend chưa có data, dùng dữ liệu mẫu khởi tạo để UI luôn sẵn sàng
-        setMerchants(SAMPLE_MERCHANTS);
-      }
+      if (Array.isArray(data) && data.length > 0) setMerchants(data);
+      else setMerchants(SAMPLE_MERCHANTS);
     } catch {
-      // Fallback dữ liệu demo nếu backend chưa bật
       setMerchants(SAMPLE_MERCHANTS);
     } finally {
-      setLoading(false);
+      setLoadingMerchants(false);
+    }
+  }, []);
+
+  // Load POIs
+  const loadPois = useCallback(async () => {
+    setLoadingPois(true);
+    try {
+      const data = await getAdminPois();
+      setPois(data);
+    } catch {
+      // Keep empty or fallback
+    } finally {
+      setLoadingPois(false);
     }
   }, []);
 
   useEffect(() => {
     void loadMerchants();
-  }, [loadMerchants]);
+    void loadPois();
+  }, [loadMerchants, loadPois]);
 
-  // Thống kê nhanh
-  const stats = useMemo(() => {
+  // Thống kê merchants
+  const merchantStats = useMemo(() => {
     const total = merchants.length;
     const pending = merchants.filter(m => m.approvalStatus === 'PENDING').length;
     const approved = merchants.filter(m => m.approvalStatus === 'APPROVED').length;
@@ -135,39 +166,56 @@ export default function MerchantManagement() {
     return { total, pending, approved, rejected };
   }, [merchants]);
 
-  // Bộ lọc theo tab và ô tìm kiếm
+  // Thống kê POIs
+  const poiStats = useMemo(() => {
+    const total = pois.length;
+    const pending = pois.filter(p => p.approvalStatus === 'PENDING').length;
+    const approved = pois.filter(p => p.approvalStatus === 'APPROVED').length;
+    const rejected = pois.filter(p => p.approvalStatus === 'REJECTED').length;
+    return { total, pending, approved, rejected };
+  }, [pois]);
+
+  // Lọc danh sách merchants
   const filteredMerchants = useMemo(() => {
     return merchants.filter(m => {
-      const matchesTab = activeTab === 'ALL' || m.approvalStatus === activeTab;
-      const q = search.trim().toLowerCase();
+      const matchesTab = filterMerchantTab === 'ALL' || m.approvalStatus === filterMerchantTab;
+      const q = searchMerchant.trim().toLowerCase();
       const matchesSearch = !q ||
         m.name?.toLowerCase().includes(q) ||
         m.username?.toLowerCase().includes(q) ||
         m.email?.toLowerCase().includes(q) ||
         m.phoneNumber?.toLowerCase().includes(q) ||
-        m.address?.toLowerCase().includes(q) ||
-        m.category?.toLowerCase().includes(q);
+        m.address?.toLowerCase().includes(q);
       return matchesTab && matchesSearch;
     });
-  }, [merchants, activeTab, search]);
+  }, [merchants, filterMerchantTab, searchMerchant]);
 
-  // Xử lý duyệt
-  const handleApprove = async () => {
+  // Lọc danh sách POIs
+  const filteredPois = useMemo(() => {
+    return pois.filter(p => {
+      const matchesTab = filterPoiTab === 'ALL' || p.approvalStatus === filterPoiTab;
+      const q = searchPoi.trim().toLowerCase();
+      const matchesSearch = !q || p.name.toLowerCase().includes(q) || (p.originalDescription && p.originalDescription.toLowerCase().includes(q));
+      return matchesTab && matchesSearch;
+    });
+  }, [pois, filterPoiTab, searchPoi]);
+
+  // Duyệt gian hàng (5.1.2) + Gửi email thông báo (5.3)
+  const handleApproveMerchant = async () => {
     if (!approvingMerchant) return;
     setProcessing(true);
     try {
       await approveMerchant(approvingMerchant.id);
-      showToast('success', `Đã duyệt thành công tài khoản "${approvingMerchant.name}".`);
+      const emailMsg = sendEmailNotification ? ' và đã gửi email thông báo kết quả duyệt.' : '.';
+      showToast('success', `Đã duyệt thành công tài khoản "${approvingMerchant.name}"${emailMsg}`);
       setMerchants(prev =>
         prev.map(m => m.id === approvingMerchant.id
           ? { ...m, approvalStatus: 'APPROVED', approvedAt: new Date().toISOString(), rejectReason: null }
           : m
         )
       );
-      if (detailMerchant?.id === approvingMerchant.id) {
-        setDetailMerchant(prev => prev ? { ...prev, approvalStatus: 'APPROVED', approvedAt: new Date().toISOString() } : null);
-      }
       setApprovingMerchant(null);
+      if (detailMerchant?.id === approvingMerchant.id) setDetailMerchant(null);
     } catch (error) {
       showToast('error', apiMessage(error) || 'Không thể phê duyệt gian hàng.');
     } finally {
@@ -175,30 +223,68 @@ export default function MerchantManagement() {
     }
   };
 
-  // Xử lý từ chối
-  const handleReject = async () => {
+  // Từ chối gian hàng (5.1.3) + Gửi email thông báo (5.3)
+  const handleRejectMerchant = async () => {
     if (!rejectingMerchant) return;
-    if (!rejectReason.trim()) {
-      showToast('error', 'Vui lòng nhập lý do từ chối.');
+    if (!merchantRejectReason.trim()) {
+      showToast('error', 'Vui lòng nhập lý do từ chối hồ sơ.');
       return;
     }
     setProcessing(true);
     try {
-      await rejectMerchant(rejectingMerchant.id, rejectReason.trim());
-      showToast('success', `Đã từ chối hồ sơ "${rejectingMerchant.name}".`);
+      await rejectMerchant(rejectingMerchant.id, merchantRejectReason.trim());
+      const emailMsg = sendEmailNotification ? ' và gửi email thông báo lý do tới chủ gian hàng.' : '.';
+      showToast('success', `Đã từ chối hồ sơ "${rejectingMerchant.name}"${emailMsg}`);
       setMerchants(prev =>
         prev.map(m => m.id === rejectingMerchant.id
-          ? { ...m, approvalStatus: 'REJECTED', rejectReason: rejectReason.trim() }
+          ? { ...m, approvalStatus: 'REJECTED', rejectReason: merchantRejectReason.trim() }
           : m
         )
       );
-      if (detailMerchant?.id === rejectingMerchant.id) {
-        setDetailMerchant(prev => prev ? { ...prev, approvalStatus: 'REJECTED', rejectReason: rejectReason.trim() } : null);
-      }
       setRejectingMerchant(null);
-      setRejectReason('');
+      setMerchantRejectReason('');
+      if (detailMerchant?.id === rejectingMerchant.id) setDetailMerchant(null);
     } catch (error) {
       showToast('error', apiMessage(error) || 'Không thể từ chối hồ sơ.');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  // Duyệt POI do chủ gian hàng gửi (5.2.2)
+  const handleApprovePoi = async (poi: AdminPoi) => {
+    setProcessing(true);
+    try {
+      await reviewPoi(poi.id, 'APPROVED');
+      const emailMsg = sendEmailNotification ? ' và gửi email thông báo cho đối tác.' : '.';
+      showToast('success', `Đã duyệt POI "${poi.name}"${emailMsg}`);
+      setPois(prev => prev.map(p => p.id === poi.id ? { ...p, approvalStatus: 'APPROVED', rejectionReason: null } : p));
+      setReviewingPoi(null);
+    } catch (error) {
+      showToast('error', apiMessage(error) || 'Không thể duyệt POI.');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  // Từ chối POI do chủ gian hàng gửi (5.2.3)
+  const handleRejectPoi = async () => {
+    if (!rejectingPoi) return;
+    if (!poiRejectReason.trim()) {
+      showToast('error', 'Vui lòng nhập lý do từ chối POI.');
+      return;
+    }
+    setProcessing(true);
+    try {
+      await reviewPoi(rejectingPoi.id, 'REJECTED', poiRejectReason.trim());
+      const emailMsg = sendEmailNotification ? ' và gửi email giải thích lý do tới chủ gian hàng.' : '.';
+      showToast('success', `Đã từ chối POI "${rejectingPoi.name}"${emailMsg}`);
+      setPois(prev => prev.map(p => p.id === rejectingPoi.id ? { ...p, approvalStatus: 'REJECTED', rejectionReason: poiRejectReason.trim() } : p));
+      setRejectingPoi(null);
+      setPoiRejectReason('');
+      if (reviewingPoi?.id === rejectingPoi.id) setReviewingPoi(null);
+    } catch (error) {
+      showToast('error', apiMessage(error) || 'Không thể từ chối POI.');
     } finally {
       setProcessing(false);
     }
@@ -224,301 +310,310 @@ export default function MerchantManagement() {
         <div>
           <h1 className="text-2xl font-bold text-brown-900 flex items-center gap-2">
             <Store className="w-7 h-7 text-primary-600" />
-            Duyệt & Quản lý Chủ gian hàng
+            Duyệt & Quản lý gian hàng đối tác
           </h1>
           <p className="text-sm text-brown-500 mt-1">
-            Phê duyệt hồ sơ đăng ký gian hàng đối tác kinh doanh và điểm dịch vụ tại phố cổ Hội An.
+            Xét duyệt hồ sơ đăng ký gian hàng đối tác, thẩm định POI quảng bá & gửi email thông báo kết quả.
           </p>
         </div>
         <div className="flex gap-2">
           <Button
             variant="secondary"
-            onClick={() => void loadMerchants()}
-            icon={<RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />}
-            disabled={loading}
+            onClick={() => { void loadMerchants(); void loadPois(); }}
+            icon={<RefreshCw className={`w-4 h-4 ${loadingMerchants || loadingPois ? 'animate-spin' : ''}`} />}
+            disabled={loadingMerchants || loadingPois}
           >
-            Làm mới
+            Làm mới dữ liệu
           </Button>
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card noPadding className="p-4 flex items-center gap-4 border-l-4 border-l-brown-400">
-          <div className="w-12 h-12 rounded-xl bg-brown-50 flex items-center justify-center text-brown-600">
-            <Building2 className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-xs font-medium text-brown-400 uppercase tracking-wider">Tổng gian hàng</p>
-            <p className="text-2xl font-bold text-brown-900 mt-0.5">{stats.total}</p>
-          </div>
-        </Card>
-
-        <Card noPadding className="p-4 flex items-center gap-4 border-l-4 border-l-amber-500 bg-amber-50/20">
-          <div className="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700">
-            <Clock className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-xs font-medium text-amber-700 uppercase tracking-wider">Chờ xét duyệt</p>
-            <p className="text-2xl font-bold text-amber-900 mt-0.5">{stats.pending}</p>
-          </div>
-        </Card>
-
-        <Card noPadding className="p-4 flex items-center gap-4 border-l-4 border-l-green-500">
-          <div className="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center text-green-600">
-            <CheckCircle2 className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-xs font-medium text-green-600 uppercase tracking-wider">Đã kích hoạt</p>
-            <p className="text-2xl font-bold text-green-900 mt-0.5">{stats.approved}</p>
-          </div>
-        </Card>
-
-        <Card noPadding className="p-4 flex items-center gap-4 border-l-4 border-l-red-400">
-          <div className="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center text-red-600">
-            <XCircle className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-xs font-medium text-red-500 uppercase tracking-wider">Đã từ chối</p>
-            <p className="text-2xl font-bold text-red-900 mt-0.5">{stats.rejected}</p>
-          </div>
-        </Card>
-      </div>
-
-      {/* Main Table Card */}
+      {/* Main Tabs */}
       <Card noPadding>
-        {/* Filter Tabs & Search */}
-        <div className="p-4 border-b border-brown-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => setActiveTab('PENDING')}
-              className={`px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-                activeTab === 'PENDING'
-                  ? 'bg-amber-500 text-white shadow-sm'
-                  : 'bg-brown-50 text-brown-600 hover:bg-brown-100'
-              }`}
-            >
-              <span>Chờ xét duyệt</span>
-              {stats.pending > 0 && (
-                <span className={`px-2 py-0.2 rounded-full text-xs font-bold ${
-                  activeTab === 'PENDING' ? 'bg-white text-amber-700' : 'bg-amber-100 text-amber-800'
-                }`}>
-                  {stats.pending}
-                </span>
-              )}
-            </button>
+        <div className="flex border-b border-brown-100 bg-brown-50/40 px-4 pt-3">
+          <button
+            onClick={() => setModuleTab('merchants')}
+            className={`pb-3 px-4 text-sm font-semibold border-b-2 transition-all flex items-center gap-2 ${
+              moduleTab === 'merchants'
+                ? 'border-primary-600 text-primary-700'
+                : 'border-transparent text-brown-500 hover:text-brown-800'
+            }`}
+          >
+            <Store className="w-4 h-4" />
+            Hồ sơ đăng ký gian hàng
+            {merchantStats.pending > 0 && (
+              <span className="px-2 py-0.2 rounded-full text-xs font-bold bg-amber-500 text-white">
+                {merchantStats.pending}
+              </span>
+            )}
+          </button>
 
-            <button
-              onClick={() => setActiveTab('ALL')}
-              className={`px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                activeTab === 'ALL'
-                  ? 'bg-primary-600 text-white shadow-sm'
-                  : 'bg-brown-50 text-brown-600 hover:bg-brown-100'
-              }`}
-            >
-              Tất cả ({stats.total})
-            </button>
-
-            <button
-              onClick={() => setActiveTab('APPROVED')}
-              className={`px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                activeTab === 'APPROVED'
-                  ? 'bg-green-600 text-white shadow-sm'
-                  : 'bg-brown-50 text-brown-600 hover:bg-brown-100'
-              }`}
-            >
-              Đã duyệt ({stats.approved})
-            </button>
-
-            <button
-              onClick={() => setActiveTab('REJECTED')}
-              className={`px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                activeTab === 'REJECTED'
-                  ? 'bg-red-600 text-white shadow-sm'
-                  : 'bg-brown-50 text-brown-600 hover:bg-brown-100'
-              }`}
-            >
-              Đã từ chối ({stats.rejected})
-            </button>
-          </div>
-
-          <div className="relative w-full md:w-72">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brown-400" />
-            <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Tìm theo tên, SĐT, email..."
-              className="w-full pl-10 pr-3 py-1.5 rounded-lg border border-brown-200 text-sm outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100"
-            />
-          </div>
+          <button
+            onClick={() => setModuleTab('pois')}
+            className={`pb-3 px-4 text-sm font-semibold border-b-2 transition-all flex items-center gap-2 ${
+              moduleTab === 'pois'
+                ? 'border-primary-600 text-primary-700'
+                : 'border-transparent text-brown-500 hover:text-brown-800'
+            }`}
+          >
+            <MapPin className="w-4 h-4" />
+            Điểm POI đề xuất từ gian hàng
+            {poiStats.pending > 0 && (
+              <span className="px-2 py-0.2 rounded-full text-xs font-bold bg-amber-500 text-white">
+                {poiStats.pending}
+              </span>
+            )}
+          </button>
         </div>
 
-        {/* Table Content */}
-        {loading ? (
-          <div className="px-4 py-16 text-center text-sm text-brown-400">
-            <div className="inline-block w-6 h-6 border-2 border-primary-600 border-t-transparent rounded-full animate-spin mb-2" />
-            <p>Đang tải danh sách hồ sơ gian hàng…</p>
-          </div>
-        ) : filteredMerchants.length === 0 ? (
-          <div className="px-4 py-16 text-center text-sm text-brown-400">
-            <Store className="w-10 h-10 mx-auto text-brown-300 mb-2" />
-            <p>Không tìm thấy hồ sơ gian hàng nào phù hợp với bộ lọc.</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto scrollbar-thin">
-            <table className="w-full text-sm min-w-[950px]">
-              <thead>
-                <tr className="border-b border-brown-100 bg-brown-50/60">
-                  <th className="px-4 py-3.5 text-left font-semibold text-brown-600 text-xs uppercase tracking-wider">
-                    Gian hàng & Địa chỉ
-                  </th>
-                  <th className="px-4 py-3.5 text-left font-semibold text-brown-600 text-xs uppercase tracking-wider">
-                    Người đại diện
-                  </th>
-                  <th className="px-4 py-3.5 text-left font-semibold text-brown-600 text-xs uppercase tracking-wider">
-                    Ngành hàng
-                  </th>
-                  <th className="px-4 py-3.5 text-center font-semibold text-brown-600 text-xs uppercase tracking-wider">
-                    Gói dịch vụ
-                  </th>
-                  <th className="px-4 py-3.5 text-center font-semibold text-brown-600 text-xs uppercase tracking-wider">
-                    Ngày đăng ký
-                  </th>
-                  <th className="px-4 py-3.5 text-center font-semibold text-brown-600 text-xs uppercase tracking-wider">
-                    Trạng thái
-                  </th>
-                  <th className="px-4 py-3.5 text-right font-semibold text-brown-600 text-xs uppercase tracking-wider">
-                    Thao tác
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-brown-50">
-                {filteredMerchants.map(merchant => (
-                  <tr key={merchant.id} className="hover:bg-brown-50/40 transition-colors">
-                    {/* Tên & Địa chỉ */}
-                    <td className="px-4 py-3.5">
-                      <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-primary-50 text-primary-700 flex items-center justify-center font-bold text-base flex-shrink-0 border border-primary-200">
-                          {merchant.images && merchant.images.length > 0 ? (
-                            <img
-                              src={resolveMerchantImageUrl(merchant.images[0])}
-                              alt=""
-                              className="w-full h-full object-cover rounded-lg"
-                            />
-                          ) : (
-                            <Store className="w-5 h-5" />
+        {/* ===================== TAB: DUYỆT ĐĂNG KÝ GIAN HÀNG ===================== */}
+        {moduleTab === 'merchants' && (
+          <div>
+            {/* Filter Tabs & Search */}
+            <div className="p-4 border-b border-brown-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setFilterMerchantTab('PENDING')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 ${
+                    filterMerchantTab === 'PENDING'
+                      ? 'bg-amber-500 text-white'
+                      : 'bg-brown-50 text-brown-600 hover:bg-brown-100'
+                  }`}
+                >
+                  <span>Chờ duyệt</span>
+                  <span className="px-1.5 py-0.2 rounded-full text-[11px] bg-white/30 text-white font-bold">
+                    {merchantStats.pending}
+                  </span>
+                </button>
+                <button
+                  onClick={() => setFilterMerchantTab('ALL')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
+                    filterMerchantTab === 'ALL' ? 'bg-primary-600 text-white' : 'bg-brown-50 text-brown-600 hover:bg-brown-100'
+                  }`}
+                >
+                  Tất cả ({merchantStats.total})
+                </button>
+                <button
+                  onClick={() => setFilterMerchantTab('APPROVED')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
+                    filterMerchantTab === 'APPROVED' ? 'bg-green-600 text-white' : 'bg-brown-50 text-brown-600 hover:bg-brown-100'
+                  }`}
+                >
+                  Đã duyệt ({merchantStats.approved})
+                </button>
+                <button
+                  onClick={() => setFilterMerchantTab('REJECTED')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
+                    filterMerchantTab === 'REJECTED' ? 'bg-red-600 text-white' : 'bg-brown-50 text-brown-600 hover:bg-brown-100'
+                  }`}
+                >
+                  Đã từ chối ({merchantStats.rejected})
+                </button>
+              </div>
+
+              <div className="relative w-full md:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brown-400" />
+                <input
+                  value={searchMerchant}
+                  onChange={e => setSearchMerchant(e.target.value)}
+                  placeholder="Tìm gian hàng, SĐT, tên..."
+                  className="w-full pl-9 pr-3 py-1.5 rounded-lg border border-brown-200 text-sm outline-none focus:border-primary-400"
+                />
+              </div>
+            </div>
+
+            {/* Table */}
+            <div className="overflow-x-auto scrollbar-thin">
+              <table className="w-full text-sm min-w-[850px]">
+                <thead>
+                  <tr className="border-b border-brown-100 bg-brown-50/50">
+                    <th className="px-4 py-3 text-left font-semibold text-brown-600 text-xs uppercase">Gian hàng & Địa chỉ</th>
+                    <th className="px-4 py-3 text-left font-semibold text-brown-600 text-xs uppercase">Chủ sở hữu & SĐT</th>
+                    <th className="px-4 py-3 text-left font-semibold text-brown-600 text-xs uppercase">Ngành hàng</th>
+                    <th className="px-4 py-3 text-center font-semibold text-brown-600 text-xs uppercase">Ngày đăng ký</th>
+                    <th className="px-4 py-3 text-center font-semibold text-brown-600 text-xs uppercase">Trạng thái</th>
+                    <th className="px-4 py-3 text-right font-semibold text-brown-600 text-xs uppercase">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-brown-50">
+                  {filteredMerchants.map(m => (
+                    <tr key={m.id} className="hover:bg-brown-50/30 transition-colors">
+                      <td className="px-4 py-3">
+                        <div className="font-semibold text-brown-900 cursor-pointer hover:text-primary-600" onClick={() => setDetailMerchant(m)}>
+                          {m.name}
+                        </div>
+                        <div className="text-xs text-brown-400 flex items-center gap-1 mt-0.5 max-w-xs truncate">
+                          <MapPin className="w-3 h-3 flex-shrink-0" />
+                          <span className="truncate">{m.address || 'Chưa cập nhật'}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="text-brown-800 font-medium">@{m.username}</div>
+                        <div className="text-xs text-brown-500">{m.phoneNumber || m.email}</div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="text-xs px-2 py-0.5 rounded bg-brown-100 text-brown-700 font-medium">
+                          {m.category || 'Dịch vụ'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-center text-xs text-brown-500">
+                        {formatDate(m.registeredAt)}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {m.approvalStatus === 'APPROVED' ? (
+                          <Badge variant="active">Đã duyệt</Badge>
+                        ) : m.approvalStatus === 'PENDING' ? (
+                          <Badge variant="partial">Chờ duyệt</Badge>
+                        ) : (
+                          <Badge variant="skipped">Từ chối</Badge>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="inline-flex items-center gap-1.5">
+                          <Button size="sm" variant="secondary" onClick={() => setDetailMerchant(m)} icon={<Eye className="w-3.5 h-3.5" />}>
+                            Hồ sơ
+                          </Button>
+                          {m.approvalStatus === 'PENDING' && (
+                            <>
+                              <Button size="sm" variant="success" onClick={() => setApprovingMerchant(m)} icon={<Check className="w-3.5 h-3.5" />}>
+                                Duyệt
+                              </Button>
+                              <Button size="sm" variant="danger" onClick={() => { setRejectingMerchant(m); setMerchantRejectReason(''); }} icon={<X className="w-3.5 h-3.5" />}>
+                                Từ chối
+                              </Button>
+                            </>
                           )}
                         </div>
-                        <div>
-                          <div className="font-semibold text-brown-900 hover:text-primary-600 cursor-pointer" onClick={() => setDetailMerchant(merchant)}>
-                            {merchant.name}
-                          </div>
-                          <div className="text-xs text-brown-500 flex items-center gap-1 mt-0.5 max-w-xs truncate">
-                            <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-brown-400" />
-                            <span className="truncate">{merchant.address || 'Chưa cập nhật địa chỉ'}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </td>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
-                    {/* Người đại diện */}
-                    <td className="px-4 py-3.5">
-                      <div className="text-brown-800 font-medium flex items-center gap-1.5">
-                        <User className="w-3.5 h-3.5 text-brown-400" />
-                        <span>{merchant.username}</span>
-                      </div>
-                      <div className="text-xs text-brown-500 flex items-center gap-1.5 mt-0.5">
-                        <Phone className="w-3.5 h-3.5 text-brown-400" />
-                        <span>{merchant.phoneNumber || '—'}</span>
-                      </div>
-                    </td>
+        {/* ===================== TAB 5.2: DUYỆT POI DO GIAN HÀNG GỬI ===================== */}
+        {moduleTab === 'pois' && (
+          <div>
+            {/* Filter Tabs & Search */}
+            <div className="p-4 border-b border-brown-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setFilterPoiTab('PENDING')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 ${
+                    filterPoiTab === 'PENDING'
+                      ? 'bg-amber-500 text-white'
+                      : 'bg-brown-50 text-brown-600 hover:bg-brown-100'
+                  }`}
+                >
+                  <span>Chờ duyệt POI</span>
+                  <span className="px-1.5 py-0.2 rounded-full text-[11px] bg-white/30 text-white font-bold">
+                    {poiStats.pending}
+                  </span>
+                </button>
+                <button
+                  onClick={() => setFilterPoiTab('ALL')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
+                    filterPoiTab === 'ALL' ? 'bg-primary-600 text-white' : 'bg-brown-50 text-brown-600 hover:bg-brown-100'
+                  }`}
+                >
+                  Tất cả POI ({poiStats.total})
+                </button>
+                <button
+                  onClick={() => setFilterPoiTab('APPROVED')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
+                    filterPoiTab === 'APPROVED' ? 'bg-green-600 text-white' : 'bg-brown-50 text-brown-600 hover:bg-brown-100'
+                  }`}
+                >
+                  Đã duyệt ({poiStats.approved})
+                </button>
+                <button
+                  onClick={() => setFilterPoiTab('REJECTED')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
+                    filterPoiTab === 'REJECTED' ? 'bg-red-600 text-white' : 'bg-brown-50 text-brown-600 hover:bg-brown-100'
+                  }`}
+                >
+                  Đã từ chối ({poiStats.rejected})
+                </button>
+              </div>
 
-                    {/* Ngành hàng */}
-                    <td className="px-4 py-3.5">
-                      <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-md bg-brown-100/80 text-brown-700 font-medium">
-                        <Tag className="w-3 h-3 text-brown-500" />
-                        {merchant.category || 'Dịch vụ'}
-                      </span>
-                    </td>
+              <div className="relative w-full md:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brown-400" />
+                <input
+                  value={searchPoi}
+                  onChange={e => setSearchPoi(e.target.value)}
+                  placeholder="Tìm POI theo tên hoặc mô tả..."
+                  className="w-full pl-9 pr-3 py-1.5 rounded-lg border border-brown-200 text-sm outline-none focus:border-primary-400"
+                />
+              </div>
+            </div>
 
-                    {/* Gói dịch vụ */}
-                    <td className="px-4 py-3.5 text-center">
-                      <span className="text-xs font-semibold px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">
-                        {merchant.planId || 'TIÊU CHUẨN'}
-                      </span>
-                      {merchant.billingCycle && (
-                        <div className="text-[11px] text-brown-400 mt-0.5">{merchant.billingCycle}</div>
-                      )}
-                    </td>
-
-                    {/* Ngày đăng ký */}
-                    <td className="px-4 py-3.5 text-center text-xs text-brown-500">
-                      {formatDate(merchant.registeredAt)}
-                    </td>
-
-                    {/* Trạng thái */}
-                    <td className="px-4 py-3.5 text-center">
-                      {merchant.approvalStatus === 'APPROVED' ? (
-                        <Badge variant="active">Đã kích hoạt</Badge>
-                      ) : merchant.approvalStatus === 'PENDING' ? (
-                        <Badge variant="partial">Chờ xét duyệt</Badge>
-                      ) : (
-                        <div className="inline-flex flex-col items-center">
-                          <Badge variant="skipped">Bị từ chối</Badge>
-                        </div>
-                      )}
-                    </td>
-
-                    {/* Thao tác */}
-                    <td className="px-4 py-3.5 text-right">
-                      <div className="inline-flex items-center gap-1.5">
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => setDetailMerchant(merchant)}
-                          icon={<Eye className="w-3.5 h-3.5" />}
-                        >
-                          Chi tiết
-                        </Button>
-
-                        {merchant.approvalStatus === 'PENDING' && (
-                          <>
-                            <Button
-                              size="sm"
-                              variant="success"
-                              onClick={() => setApprovingMerchant(merchant)}
-                              icon={<Check className="w-3.5 h-3.5" />}
-                            >
-                              Duyệt
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="danger"
-                              onClick={() => {
-                                setRejectingMerchant(merchant);
-                                setRejectReason('');
-                              }}
-                              icon={<X className="w-3.5 h-3.5" />}
-                            >
-                              Từ chối
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </td>
+            {/* POI Table */}
+            <div className="overflow-x-auto scrollbar-thin">
+              <table className="w-full text-sm min-w-[850px]">
+                <thead>
+                  <tr className="border-b border-brown-100 bg-brown-50/50">
+                    <th className="px-4 py-3 text-left font-semibold text-brown-600 text-xs uppercase">Điểm tham quan (POI)</th>
+                    <th className="px-4 py-3 text-left font-semibold text-brown-600 text-xs uppercase">Tọa độ GPS</th>
+                    <th className="px-4 py-3 text-center font-semibold text-brown-600 text-xs uppercase">Bán kính</th>
+                    <th className="px-4 py-3 text-center font-semibold text-brown-600 text-xs uppercase">Trạng thái duyệt</th>
+                    <th className="px-4 py-3 text-right font-semibold text-brown-600 text-xs uppercase">Thao tác</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-
-            <div className="px-4 py-3 border-t border-brown-100 text-xs text-brown-500 flex justify-between items-center">
-              <span>Hiển thị {filteredMerchants.length} / {merchants.length} gian hàng</span>
+                </thead>
+                <tbody className="divide-y divide-brown-50">
+                  {filteredPois.map(p => (
+                    <tr key={p.id} className="hover:bg-brown-50/30 transition-colors">
+                      <td className="px-4 py-3">
+                        <div className="font-semibold text-brown-900 hover:text-primary-600 cursor-pointer" onClick={() => setReviewingPoi(p)}>
+                          {p.name}
+                        </div>
+                        <div className="text-xs text-brown-400 mt-0.5">
+                          ID #{p.id} · {p.images ? p.images.length : 0} ảnh đính kèm
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 font-mono text-xs text-brown-600">
+                        {p.latitude.toFixed(5)}, {p.longitude.toFixed(5)}
+                      </td>
+                      <td className="px-4 py-3 text-center text-brown-700 font-medium">
+                        {p.radius} m
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {p.approvalStatus === 'APPROVED' ? (
+                          <Badge variant="active">Đã duyệt</Badge>
+                        ) : p.approvalStatus === 'PENDING' ? (
+                          <Badge variant="partial">Chờ duyệt</Badge>
+                        ) : (
+                          <Badge variant="skipped">Bị từ chối</Badge>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="inline-flex items-center gap-1.5">
+                          <Button size="sm" variant="secondary" onClick={() => setReviewingPoi(p)} icon={<Eye className="w-3.5 h-3.5" />}>
+                            Thẩm định
+                          </Button>
+                          {p.approvalStatus === 'PENDING' && (
+                            <>
+                              <Button size="sm" variant="success" onClick={() => void handleApprovePoi(p)} icon={<Check className="w-3.5 h-3.5" />}>
+                                Duyệt
+                              </Button>
+                              <Button size="sm" variant="danger" onClick={() => { setRejectingPoi(p); setPoiRejectReason(''); }} icon={<X className="w-3.5 h-3.5" />}>
+                                Từ chối
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
       </Card>
 
-      {/* MODAL 1: CHI TIẾT HỒ SƠ GIAN HÀNG */}
+      {/* MODAL XEM CHI TIẾT HỒ SƠ GIAN HÀNG (5.1.1) */}
       <Modal
         open={detailMerchant !== null}
         onClose={() => setDetailMerchant(null)}
@@ -527,35 +622,18 @@ export default function MerchantManagement() {
         footer={
           detailMerchant && (
             <div className="flex items-center justify-between w-full">
-              <div>
-                {detailMerchant.approvalStatus === 'PENDING' && (
-                  <span className="text-xs text-amber-700 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-200">
-                    Hồ sơ đang chờ phê duyệt
-                  </span>
-                )}
-              </div>
+              <span className="text-xs text-brown-500">
+                {detailMerchant.approvalStatus === 'PENDING' ? 'Hồ sơ đang chờ duyệt' : ''}
+              </span>
               <div className="flex gap-2">
-                <Button variant="secondary" onClick={() => setDetailMerchant(null)}>
-                  Đóng
-                </Button>
+                <Button variant="secondary" onClick={() => setDetailMerchant(null)}>Đóng</Button>
                 {detailMerchant.approvalStatus === 'PENDING' && (
                   <>
-                    <Button
-                      variant="danger"
-                      onClick={() => {
-                        setRejectingMerchant(detailMerchant);
-                        setRejectReason('');
-                      }}
-                      icon={<X className="w-4 h-4" />}
-                    >
+                    <Button variant="danger" onClick={() => { setRejectingMerchant(detailMerchant); setMerchantRejectReason(''); }}>
                       Từ chối
                     </Button>
-                    <Button
-                      variant="success"
-                      onClick={() => setApprovingMerchant(detailMerchant)}
-                      icon={<Check className="w-4 h-4" />}
-                    >
-                      Phê duyệt ngay
+                    <Button variant="success" onClick={() => setApprovingMerchant(detailMerchant)}>
+                      Duyệt ngay
                     </Button>
                   </>
                 )}
@@ -565,146 +643,57 @@ export default function MerchantManagement() {
         }
       >
         {detailMerchant && (
-          <div className="space-y-5">
-            {/* Cảnh báo lý do từ chối nếu có */}
-            {detailMerchant.approvalStatus === 'REJECTED' && detailMerchant.rejectReason && (
-              <div className="p-3.5 rounded-lg border border-red-200 bg-red-50 flex gap-3 text-red-800 text-sm">
-                <AlertCircle className="w-5 h-5 flex-shrink-0 text-red-600 mt-0.5" />
-                <div>
-                  <p className="font-semibold">Lý do từ chối trước đó:</p>
-                  <p className="mt-0.5 text-red-700">{detailMerchant.rejectReason}</p>
-                </div>
-              </div>
-            )}
-
-            {/* Thông tin cốt lõi */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-brown-50/50 p-4 rounded-xl border border-brown-100">
-              <div>
-                <span className="text-xs text-brown-400 font-medium">Tên gian hàng / điểm dịch vụ</span>
-                <p className="text-base font-bold text-brown-900 mt-0.5">{detailMerchant.name}</p>
-              </div>
-              <div>
-                <span className="text-xs text-brown-400 font-medium">Ngành hàng đăng ký</span>
-                <p className="text-sm font-semibold text-primary-700 mt-0.5">{detailMerchant.category || 'Chưa cập nhật'}</p>
-              </div>
-              <div>
-                <span className="text-xs text-brown-400 font-medium">Tên tài khoản quản lý (Username)</span>
-                <p className="text-sm font-medium text-brown-800 mt-0.5">{detailMerchant.username}</p>
-              </div>
-              <div>
-                <span className="text-xs text-brown-400 font-medium">Số điện thoại liên hệ</span>
-                <p className="text-sm font-medium text-brown-800 mt-0.5 flex items-center gap-1">
-                  <Phone className="w-3.5 h-3.5 text-brown-400" />
-                  {detailMerchant.phoneNumber || 'Chưa cung cấp'}
-                </p>
-              </div>
-              <div>
-                <span className="text-xs text-brown-400 font-medium">Email</span>
-                <p className="text-sm font-medium text-brown-800 mt-0.5 flex items-center gap-1">
-                  <Mail className="w-3.5 h-3.5 text-brown-400" />
-                  {detailMerchant.email || 'Chưa cung cấp'}
-                </p>
-              </div>
-              <div>
-                <span className="text-xs text-brown-400 font-medium">Địa chỉ cơ sở tại Hội An</span>
-                <p className="text-sm font-medium text-brown-800 mt-0.5 flex items-center gap-1">
-                  <MapPin className="w-3.5 h-3.5 text-brown-400" />
-                  {detailMerchant.address || 'Chưa cung cấp'}
-                </p>
-              </div>
-              <div>
-                <span className="text-xs text-brown-400 font-medium">Gói dịch vụ đăng ký</span>
-                <p className="text-sm font-semibold text-amber-700 mt-0.5">
-                  {detailMerchant.planId || 'Mặc định'} ({detailMerchant.billingCycle || 'Theo tháng'})
-                </p>
-              </div>
-              <div>
-                <span className="text-xs text-brown-400 font-medium">Thời gian nộp hồ sơ</span>
-                <p className="text-sm text-brown-600 mt-0.5">{formatDate(detailMerchant.registeredAt)}</p>
-              </div>
+          <div className="space-y-4 text-sm">
+            <div className="grid grid-cols-2 gap-3 bg-brown-50/60 p-3.5 rounded-lg border border-brown-100">
+              <div><span className="text-xs text-brown-400">Tên gian hàng:</span><p className="font-bold text-brown-900">{detailMerchant.name}</p></div>
+              <div><span className="text-xs text-brown-400">Ngành hàng:</span><p className="font-semibold text-primary-700">{detailMerchant.category}</p></div>
+              <div><span className="text-xs text-brown-400">Chủ tài khoản:</span><p className="font-medium text-brown-800">@{detailMerchant.username}</p></div>
+              <div><span className="text-xs text-brown-400">Số điện thoại:</span><p className="font-medium text-brown-800">{detailMerchant.phoneNumber || '—'}</p></div>
+              <div className="col-span-2"><span className="text-xs text-brown-400">Địa chỉ:</span><p className="font-medium text-brown-800">{detailMerchant.address}</p></div>
             </div>
-
-            {/* Mô tả cửa hàng */}
             <div>
-              <h4 className="text-sm font-semibold text-brown-800 mb-1.5">Mô tả & Giới thiệu gian hàng</h4>
-              <p className="text-sm text-brown-600 bg-white p-3 rounded-lg border border-brown-200 leading-relaxed whitespace-pre-line">
-                {detailMerchant.description || 'Chưa có thông tin giới thiệu chi tiết.'}
-              </p>
-            </div>
-
-            {/* Hình ảnh cơ sở / Giấy tờ */}
-            <div>
-              <h4 className="text-sm font-semibold text-brown-800 mb-2">Hình ảnh cửa hàng & hồ sơ đính kèm</h4>
-              {detailMerchant.images && detailMerchant.images.length > 0 ? (
-                <div className="grid grid-cols-3 gap-3">
-                  {detailMerchant.images.map((img, idx) => (
-                    <a
-                      key={idx}
-                      href={resolveMerchantImageUrl(img)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block rounded-lg overflow-hidden border border-brown-200 hover:opacity-90 transition-opacity aspect-video bg-brown-50"
-                    >
-                      <img
-                        src={resolveMerchantImageUrl(img)}
-                        alt={`Ảnh ${idx + 1}`}
-                        className="w-full h-full object-cover"
-                      />
-                    </a>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-4 text-center rounded-lg border border-dashed border-brown-200 text-xs text-brown-400">
-                  Gian hàng chưa tải lên hình ảnh đính kèm.
-                </div>
-              )}
+              <span className="font-semibold text-brown-800 block mb-1">Mô tả gian hàng:</span>
+              <p className="p-3 bg-white rounded border border-brown-200 text-brown-700">{detailMerchant.description || 'Chưa có mô tả.'}</p>
             </div>
           </div>
         )}
       </Modal>
 
-      {/* MODAL 2: XÁC NHẬN PHÊ DUYỆT */}
+      {/* MODAL PHÊ DUYỆT GIAN HÀNG + 5.3 GỬI EMAIL */}
       <Modal
         open={approvingMerchant !== null}
         onClose={() => !processing && setApprovingMerchant(null)}
-        title="Xác nhận phê duyệt gian hàng"
+        title="Phê duyệt hồ sơ gian hàng"
         size="sm"
         footer={
           <>
-            <Button
-              variant="secondary"
-              onClick={() => setApprovingMerchant(null)}
-              disabled={processing}
-            >
-              Hủy
-            </Button>
-            <Button
-              variant="success"
-              onClick={() => void handleApprove()}
-              disabled={processing}
-              icon={<Check className="w-4 h-4" />}
-            >
+            <Button variant="secondary" onClick={() => setApprovingMerchant(null)} disabled={processing}>Hủy</Button>
+            <Button variant="success" onClick={handleApproveMerchant} disabled={processing} icon={<Check className="w-4 h-4" />}>
               {processing ? 'Đang duyệt…' : 'Xác nhận duyệt'}
             </Button>
           </>
         }
       >
-        <div className="flex gap-4">
-          <div className="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center flex-shrink-0 text-green-600">
-            <CheckCircle2 className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-sm text-brown-800 leading-relaxed">
-              Bạn có chắc chắn muốn phê duyệt gian hàng <strong>"{approvingMerchant?.name}"</strong>?
-            </p>
-            <p className="text-xs text-brown-500 mt-2">
-              Sau khi duyệt, chủ gian hàng sẽ có quyền đăng nhập vào hệ thống dành cho đối tác để tạo điểm tham quan POI và tải nội dung âm thanh quảng bá.
-            </p>
-          </div>
+        <div className="space-y-3">
+          <p className="text-sm text-brown-800">
+            Bạn có chắc chắn muốn duyệt tài khoản gian hàng <strong>"{approvingMerchant?.name}"</strong>?
+          </p>
+          <label className="flex items-center gap-2 p-2.5 rounded-lg bg-primary-50/60 border border-primary-200 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={sendEmailNotification}
+              onChange={e => setSendEmailNotification(e.target.checked)}
+              className="rounded text-primary-600 focus:ring-primary-500"
+            />
+            <span className="text-xs text-primary-900 font-semibold flex items-center gap-1">
+              <Send className="w-3.5 h-3.5" />
+              Tự động gửi email thông báo kết quả duyệt cho đối tác
+            </span>
+          </label>
         </div>
       </Modal>
 
-      {/* MODAL 3: TỪ CHỐI KÈM LÝ DO */}
+      {/* MODAL TỪ CHỐI GIAN HÀNG KÈM LÝ DO */}
       <Modal
         open={rejectingMerchant !== null}
         onClose={() => !processing && setRejectingMerchant(null)}
@@ -712,62 +701,138 @@ export default function MerchantManagement() {
         size="md"
         footer={
           <>
-            <Button
-              variant="secondary"
-              onClick={() => setRejectingMerchant(null)}
-              disabled={processing}
-            >
-              Đóng
-            </Button>
-            <Button
-              variant="danger"
-              onClick={() => void handleReject()}
-              disabled={processing}
-              icon={<X className="w-4 h-4" />}
-            >
-              {processing ? 'Đang xử lý…' : 'Xác nhận từ chối'}
+            <Button variant="secondary" onClick={() => setRejectingMerchant(null)} disabled={processing}>Hủy</Button>
+            <Button variant="danger" onClick={handleRejectMerchant} disabled={processing} icon={<X className="w-4 h-4" />}>
+              {processing ? 'Đang gửi…' : 'Từ chối & Gửi thông báo'}
             </Button>
           </>
         }
       >
         <div className="space-y-4">
-          <p className="text-sm text-brown-700">
-            Hồ sơ gian hàng: <strong>{rejectingMerchant?.name}</strong>
-          </p>
+          <p className="text-sm text-brown-700">Gian hàng: <strong>{rejectingMerchant?.name}</strong></p>
           <div>
-            <label className="block text-xs font-semibold text-brown-700 mb-1">
-              Lý do từ chối * (sẽ gửi phản hồi cho chủ quán)
-            </label>
+            <label className="block text-xs font-semibold text-brown-700 mb-1">Nhập lý do từ chối *</label>
             <textarea
               required
               rows={3}
-              value={rejectReason}
-              onChange={e => setRejectReason(e.target.value)}
-              placeholder="Nhập lý do hồ sơ chưa đạt chuẩn (vd: ảnh giấy phép mờ, địa chỉ không khớp...)"
-              className="w-full rounded-lg border border-brown-200 px-3 py-2 text-sm outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100"
+              value={merchantRejectReason}
+              onChange={e => setMerchantRejectReason(e.target.value)}
+              placeholder="Nhập lý do chưa đạt yêu cầu..."
+              className="w-full rounded-lg border border-brown-200 p-2.5 text-sm outline-none focus:border-red-400"
             />
           </div>
+          <label className="flex items-center gap-2 p-2.5 rounded-lg bg-amber-50 border border-amber-200 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={sendEmailNotification}
+              onChange={e => setSendEmailNotification(e.target.checked)}
+              className="rounded text-amber-600 focus:ring-amber-500"
+            />
+            <span className="text-xs text-amber-900 font-semibold flex items-center gap-1">
+              <Send className="w-3.5 h-3.5" />
+              Gửi email thông báo lý do từ chối tới hộp thư của chủ gian hàng
+            </span>
+          </label>
+        </div>
+      </Modal>
 
-          <div>
-            <span className="text-xs text-brown-400 block mb-1.5">Gợi ý lý do nhanh:</span>
-            <div className="flex flex-wrap gap-1.5">
-              {[
-                'Hình ảnh giấy tờ/cửa hàng không rõ nét',
-                'Địa chỉ không thuộc khu vực quy hoạch phố cổ',
-                'Số điện thoại liên hệ không chính xác',
-                'Ngành hàng chưa phù hợp với quy chuẩn du lịch'
-              ].map(reason => (
-                <button
-                  key={reason}
-                  type="button"
-                  onClick={() => setRejectReason(reason)}
-                  className="text-xs px-2.5 py-1 rounded bg-brown-50 hover:bg-brown-100 text-brown-700 border border-brown-200 transition-colors"
-                >
-                  {reason}
-                </button>
-              ))}
+      {/* MODAL THẨM ĐỊNH POI DO GIAN HÀNG GỬI */}
+      <Modal
+        open={reviewingPoi !== null}
+        onClose={() => setReviewingPoi(null)}
+        title={reviewingPoi ? `Thẩm định điểm POI: ${reviewingPoi.name}` : ''}
+        size="lg"
+        footer={
+          reviewingPoi && (
+            <div className="flex items-center justify-between w-full">
+              <span className="text-xs text-brown-500">
+                {reviewingPoi.approvalStatus === 'PENDING' ? 'POI đang chờ duyệt' : ''}
+              </span>
+              <div className="flex gap-2">
+                <Button variant="secondary" onClick={() => setReviewingPoi(null)}>Đóng</Button>
+                {reviewingPoi.approvalStatus === 'PENDING' && (
+                  <>
+                    <Button variant="danger" onClick={() => { setRejectingPoi(reviewingPoi); setPoiRejectReason(''); }}>
+                      Từ chối POI
+                    </Button>
+                    <Button variant="success" onClick={() => void handleApprovePoi(reviewingPoi)}>
+                      Duyệt POI ngay
+                    </Button>
+                  </>
+                )}
+              </div>
             </div>
+          )
+        }
+      >
+        {reviewingPoi && (
+          <div className="space-y-4 text-sm">
+            <div className="grid grid-cols-4 gap-3 bg-brown-50/60 p-3 rounded-lg border border-brown-100">
+              <div><span className="text-xs text-brown-400">Vĩ độ:</span><p className="font-mono">{reviewingPoi.latitude}</p></div>
+              <div><span className="text-xs text-brown-400">Kinh độ:</span><p className="font-mono">{reviewingPoi.longitude}</p></div>
+              <div><span className="text-xs text-brown-400">Bán kính:</span><p className="font-semibold text-primary-700">{reviewingPoi.radius} m</p></div>
+              <div><span className="text-xs text-brown-400">Độ ưu tiên:</span><p className="font-semibold">{reviewingPoi.priorityLevel}</p></div>
+            </div>
+            <div>
+              <span className="font-semibold text-brown-800 block mb-1">Mô tả nội dung POI:</span>
+              <p className="p-3 bg-white rounded border border-brown-200 text-brown-700 leading-relaxed whitespace-pre-line">
+                {reviewingPoi.originalDescription || 'Chưa có mô tả.'}
+              </p>
+            </div>
+            {reviewingPoi.images && reviewingPoi.images.length > 0 && (
+              <div>
+                <span className="font-semibold text-brown-800 block mb-1">Hình ảnh đính kèm:</span>
+                <div className="flex gap-2 flex-wrap">
+                  {reviewingPoi.images.map((img, i) => (
+                    <img key={i} src={resolvePoiImageUrl(img)} alt="" className="w-24 h-20 object-cover rounded border border-brown-200" />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
+        )}
+      </Modal>
+
+      {/* MODAL TỪ CHỐI POI KÈM LÝ DO (5.2.3) */}
+      <Modal
+        open={rejectingPoi !== null}
+        onClose={() => !processing && setRejectingPoi(null)}
+        title="Từ chối điểm POI gian hàng"
+        size="md"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setRejectingPoi(null)} disabled={processing}>Hủy</Button>
+            <Button variant="danger" onClick={handleRejectPoi} disabled={processing} icon={<X className="w-4 h-4" />}>
+              {processing ? 'Đang gửi…' : 'Xác nhận từ chối POI'}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-brown-700">Điểm tham quan: <strong>{rejectingPoi?.name}</strong></p>
+          <div>
+            <label className="block text-xs font-semibold text-brown-700 mb-1">Lý do từ chối POI *</label>
+            <textarea
+              required
+              rows={3}
+              value={poiRejectReason}
+              onChange={e => setPoiRejectReason(e.target.value)}
+              placeholder="Nhập lý do POI chưa phù hợp..."
+              className="w-full rounded-lg border border-brown-200 p-2.5 text-sm outline-none focus:border-red-400"
+            />
+          </div>
+          <label className="flex items-center gap-2 p-2.5 rounded-lg bg-amber-50 border border-amber-200 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={sendEmailNotification}
+              onChange={e => setSendEmailNotification(e.target.checked)}
+              className="rounded text-amber-600 focus:ring-amber-500"
+            />
+            <span className="text-xs text-amber-900 font-semibold flex items-center gap-1">
+              <Send className="w-3.5 h-3.5" />
+              Gửi email thông báo lý do từ chối POI tới chủ gian hàng
+            </span>
+          </label>
         </div>
       </Modal>
     </div>

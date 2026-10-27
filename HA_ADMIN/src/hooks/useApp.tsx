@@ -4,7 +4,7 @@ import {
   type AuthUser,
 } from '@/services/authApi';
 
-type PageKey = 'dashboard' | 'poi' | 'merchants' | 'audio' | 'history' | 'analytics' | 'heatmap' | 'reports' | 'settings';
+type PageKey = 'dashboard' | 'accounts' | 'poi' | 'audio' | 'merchants' | 'history' | 'reports' | 'settings';
 type AuthStatus = 'loading' | 'anonymous' | 'admin' | 'forbidden' | 'error';
 
 interface AppState {
