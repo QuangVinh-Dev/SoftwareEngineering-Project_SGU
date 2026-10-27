@@ -1,6 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 const LANG_LABEL = { VI: 'Tiếng Việt', EN: 'English', ZH: '中文', JA: '日本語', KO: '한국어' };
+function releaseAudioSource(audio) {
+  if (!audio) return;
+  const source = audio.getAttribute('src') || audio.src;
+  audio.pause();
+  audio.removeAttribute('src');
+  audio.load();
+  if (source?.startsWith('blob:')) URL.revokeObjectURL(source);
+}
+
 const formatTime = (seconds) => {
   if (!Number.isFinite(seconds) || seconds < 0) return '00:00';
   return `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
@@ -20,11 +29,7 @@ export function usePlayer() {
   const openPlayer = useCallback((name, langCode, _poiId, audioUrl, options = {}) => {
     const language = String(langCode || 'VI').toUpperCase();
     const audio = audioRef.current;
-    if (audio) {
-      audio.pause();
-      audio.removeAttribute('src');
-      audio.load();
-    }
+    if (audio) releaseAudioSource(audio);
     setTitle(name || '—');
     setIsOpen(true);
     setIsPlaying(false);
@@ -105,12 +110,12 @@ export function usePlayer() {
   }, []);
 
   const closePlayer = useCallback(() => {
-    audioRef.current?.pause();
+    releaseAudioSource(audioRef.current);
     setIsOpen(false);
     setIsPlaying(false);
   }, []);
 
-  useEffect(() => () => { audioRef.current?.pause(); }, []);
+  useEffect(() => () => releaseAudioSource(audioRef.current), []);
 
   return {
     isOpen, isPlaying, isLoading, progress,

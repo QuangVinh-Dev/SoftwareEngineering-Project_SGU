@@ -4,6 +4,7 @@ import { useI18n } from './hooks/useI18n';
 import { useTranslation } from './hooks/useTranslation';
 import { usePlayer } from './hooks/usePlayer';
 import { usePoiLocation } from './hooks/useGeofence';
+import { useServiceAccess } from './hooks/useServiceAccess';
 import { playPoiAudio } from './services/audioService';
 import { getPoiLocations } from './services/poiService';
 
@@ -21,7 +22,16 @@ import AllPoisPage from './components/AllPoisPage';
 import Player from './components/Player';
 import PaymentGate from './components/PaymentGate';
 
+function formatRemainingTime(seconds) {
+  const total = Math.max(0, Math.ceil(Number(seconds) || 0));
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const remainingSeconds = total % 60;
+  return `${String(hours).padStart(2, '0')} giờ ${String(minutes).padStart(2, '0')} phút ${String(remainingSeconds).padStart(2, '0')} giây`;
+}
+
 export default function App() {
+  const access = useServiceAccess();
   const { currentLang, setCurrentLang, t } = useI18n();
   const { getPoiText, translateAllPois } = useTranslation(currentLang);
   const player = usePlayer();
@@ -38,10 +48,7 @@ export default function App() {
   const [allOpen, setAllOpen] = useState(false);
   const [mapFocusPoi, setMapFocusPoi] = useState(null);
 
-  const [unlocked, setUnlocked] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return sessionStorage.getItem('hoian_unlocked') === '1';
-  });
+  const unlocked = access.status === 'active';
 
   useEffect(() => {
     if (!unlocked) return;
@@ -54,11 +61,6 @@ export default function App() {
     }).finally(() => { if (!cancelled) setPoiLoading(false); });
     return () => { cancelled = true; };
   }, [unlocked]);
-
-  const handleUnlock = useCallback(() => {
-    sessionStorage.setItem('hoian_unlocked', '1');
-    setUnlocked(true);
-  }, []);
 
   // ----------------------------------------------------------------
   // Automatic POI audio playback by GPS
@@ -170,18 +172,43 @@ export default function App() {
     player.closePlayer();
   }, [player.closePlayer]);
 
+  useEffect(() => {
+    if (access.status !== 'active' && player.isOpen) handleClosePlayer();
+  }, [access.status, handleClosePlayer, player.isOpen]);
+
   const handleModalOpenMap = useCallback((p) => {
     setModalPoi(null);
     handleOpenMap(p);
   }, [handleOpenMap]);
 
   if (!unlocked) {
-    return <PaymentGate onUnlock={handleUnlock} />;
+    return (
+      <PaymentGate
+        onUnlock={access.activate}
+        accessStatus={access.status}
+        accessError={access.error}
+        onRetryAccess={access.refresh}
+      />
+    );
   }
 
   return (
     <>
       <Topbar t={t} />
+      <aside className="service-access__bar" aria-label="Quyền sử dụng dịch vụ">
+        <div>
+          <strong>Thời gian sử dụng còn lại</strong>
+          <span>Hết hạn: {new Intl.DateTimeFormat('vi-VN', {
+            dateStyle: 'medium', timeStyle: 'short',
+          }).format(new Date(access.expiresAt))}</span>
+        </div>
+        <strong className="service-access__countdown">{formatRemainingTime(access.secondsRemaining)}</strong>
+      </aside>
+      {access.justActivated && (
+        <p className="service-access__notice" role="status">
+          Thanh toán đã được Backend xác nhận. Quyền sử dụng đã kích hoạt.
+        </p>
+      )}
       <Header
         t={t}
         currentLang={currentLang}

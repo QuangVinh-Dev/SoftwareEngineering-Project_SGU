@@ -1,6 +1,7 @@
 // src/config/api.js
-// Centralised API base URL — reads from .env (VITE_API_BASE_URL)
-// Backend is exposed by docker-compose on port 9999.
+// Centralised API origin — services append their own /api paths.
+// Vite injects VITE_API_BASE_URL at build time. Production intentionally falls
+// back to same-origin so a localhost development URL is never baked into dist.
 
 const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL;
 export const API_BASE_URL = (configuredBaseUrl
