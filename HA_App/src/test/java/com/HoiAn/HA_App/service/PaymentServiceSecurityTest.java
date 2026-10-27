@@ -5,6 +5,7 @@ import com.HoiAn.HA_App.entity.GuestSession;
 import com.HoiAn.HA_App.entity.Payment;
 import com.HoiAn.HA_App.entity.PaymentStatus;
 import com.HoiAn.HA_App.event.PaymentConfirmedEvent;
+import com.HoiAn.HA_App.exception.ApiException;
 import com.HoiAn.HA_App.repository.PaymentRepository;
 import com.HoiAn.HA_App.util.VnPayUtil;
 import java.math.BigDecimal;
@@ -126,6 +127,34 @@ class PaymentServiceSecurityTest {
         assertThat(service.getPaymentStatus("txn-ipn", "claim-secret", null).status()).isEqualTo("PAID");
         verify(payments, times(1)).save(any(Payment.class));
         verify(events, times(1)).publishEvent(any(PaymentConfirmedEvent.class));
+    }
+
+    @Test
+    void signedBrowserReturnIsVerifiedAndUpdatesTheSamePaymentIdempotently() {
+        Payment row = pendingPayment("txn-return");
+        when(payments.findByProviderTxnIdForUpdate("txn-return")).thenReturn(Optional.of(row));
+        when(payments.save(row)).thenReturn(row);
+        when(payments.findByProviderTxnId("txn-return")).thenReturn(Optional.of(row));
+
+        var response = service.handleReturn(signedIpn("txn-return"));
+
+        assertThat(response.verified()).isTrue();
+        assertThat(response.txnRef()).isEqualTo("txn-return");
+        assertThat(response.status()).isEqualTo("PAID");
+        assertThat(row.getStatus()).isEqualTo(PaymentStatus.PAID);
+        verify(events).publishEvent(any(PaymentConfirmedEvent.class));
+    }
+
+    @Test
+    void invalidBrowserReturnCannotUpdatePayment() {
+        Map<String, String> returned = signedIpn("txn-return-invalid");
+        returned.put("vnp_Amount", "1");
+
+        var response = service.handleReturn(returned);
+
+        assertThat(response.verified()).isFalse();
+        assertThat(response.status()).isNull();
+        verifyNoInteractions(payments, events);
     }
 
     @Test
@@ -270,7 +299,9 @@ class PaymentServiceSecurityTest {
                 .thenReturn(Optional.of(pendingPayment("txn-pending")));
 
         assertThatThrownBy(() -> service.claimAccess("claim-secret"))
-                .isInstanceOf(IllegalStateException.class);
+                .isInstanceOf(ApiException.class)
+                .extracting(error -> ((ApiException) error).getStatus())
+                .isEqualTo(org.springframework.http.HttpStatus.CONFLICT);
         verifyNoInteractions(tokens);
     }
 

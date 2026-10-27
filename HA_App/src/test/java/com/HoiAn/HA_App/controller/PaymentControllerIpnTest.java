@@ -3,10 +3,12 @@ package com.HoiAn.HA_App.controller;
 import com.HoiAn.HA_App.config.SecurityConfig;
 import com.HoiAn.HA_App.dto.response.CreatePaymentResponse;
 import com.HoiAn.HA_App.dto.response.VnPayIpnResponse;
+import com.HoiAn.HA_App.dto.response.VnPayReturnResponse;
 import com.HoiAn.HA_App.sercurity.JwtService;
 import com.HoiAn.HA_App.service.AccessTokenService;
 import com.HoiAn.HA_App.service.PaymentService;
 import jakarta.servlet.http.Cookie;
+import java.util.NoSuchElementException;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,6 +52,25 @@ class PaymentControllerIpnTest {
     }
 
     @Test
+    void browserReturnIsPublicAndReturnsFrontendJsonInsteadOfIpnJson() throws Exception {
+        when(payments.handleReturn(anyMap()))
+                .thenReturn(new VnPayReturnResponse("test-ref", "PAID", true, "Confirm Success"));
+
+        mvc.perform(post("/api/payments/vnpay/return")
+                        .contentType("application/json")
+                        .content("{\"vnp_TxnRef\":\"test-ref\",\"vnp_ResponseCode\":\"00\",\"ignored\":\"value\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.txnRef").value("test-ref"))
+                .andExpect(jsonPath("$.status").value("PAID"))
+                .andExpect(jsonPath("$.verified").value(true))
+                .andExpect(jsonPath("$.RspCode").doesNotExist());
+
+        verify(payments).handleReturn(argThat(params -> params.size() == 2
+                && !params.containsKey("ignored")));
+        verifyNoInteractions(tokens, jwtService);
+    }
+
+    @Test
     void processingFailureReturnsRetryableJsonWithoutExceptionDetails() throws Exception {
         when(payments.handleIpn(anyMap())).thenThrow(new IllegalStateException("private-error-detail"));
 
@@ -88,5 +109,18 @@ class PaymentControllerIpnTest {
         mvc.perform(post("/api/payments").cookie(new Cookie("hoian_guest_session", device)))
                 .andExpect(status().isOk()).andExpect(cookie().doesNotExist("hoian_guest_session"));
         verify(payments).createPayment(anyString(), eq(device), any(), anyString());
+    }
+
+    @Test
+    void unknownOrUnauthorizedPaymentStatusReturnsJson404() throws Exception {
+        when(payments.getPaymentStatus(eq("unknown"), any(), any()))
+                .thenThrow(new NoSuchElementException("private lookup detail"));
+
+        mvc.perform(get("/api/payments/unknown/status")
+                        .header("X-Payment-Claim-Secret", "wrong"))
+                .andExpect(status().isNotFound())
+                .andExpect(content().contentTypeCompatibleWith("application/json"))
+                .andExpect(jsonPath("$.message").value("Không tìm thấy giao dịch"))
+                .andExpect(content().string(not(containsString("private lookup detail"))));
     }
 }

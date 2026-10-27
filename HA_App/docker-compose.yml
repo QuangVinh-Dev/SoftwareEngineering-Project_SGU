@@ -139,9 +139,6 @@ services:
       VNPAY_HASH_SECRET: ${VNPAY_HASH_SECRET:-}
 
       VNPAY_PAYMENT_URL: ${VNPAY_PAYMENT_URL:-https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
-      # VnPayProperties currently names this record component payUrl; provide its relaxed-binding key
-      # from the existing VNPAY_PAYMENT_URL input without changing the application configuration.
-      VNPAY_PAY_URL: ${VNPAY_PAYMENT_URL:-https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
       VNPAY_RETURN_URL: ${VNPAY_RETURN_URL:-}
       VNPAY_IPN_URL: ${VNPAY_IPN_URL:-}
 

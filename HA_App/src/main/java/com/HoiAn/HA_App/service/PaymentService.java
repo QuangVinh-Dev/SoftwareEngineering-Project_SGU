@@ -4,6 +4,7 @@ package com.HoiAn.HA_App.service;
 
 
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.slf4j.Logger;
@@ -13,9 +14,11 @@ import com.HoiAn.HA_App.config.VnPayProperties;
 import com.HoiAn.HA_App.dto.response.CreatePaymentResponse;
 import com.HoiAn.HA_App.dto.response.PaymentStatusResponse;
 import com.HoiAn.HA_App.dto.response.VnPayIpnResponse;
+import com.HoiAn.HA_App.dto.response.VnPayReturnResponse;
 import com.HoiAn.HA_App.entity.Payment;
 import com.HoiAn.HA_App.entity.PaymentStatus;
 import com.HoiAn.HA_App.event.PaymentConfirmedEvent;
+import com.HoiAn.HA_App.exception.ApiException;
 import com.HoiAn.HA_App.repository.PaymentRepository;
 import com.HoiAn.HA_App.util.VnPayUtil;
 
@@ -405,6 +408,37 @@ public class PaymentService {
         );
     }
 
+    /**
+     * Xác minh Return URL do trình duyệt chuyển tiếp về frontend.
+     *
+     * Return không thay thế IPN: nó dùng cùng phép xác minh và cập nhật
+     * idempotent để người dùng không bị treo PENDING khi IPN đến chậm hoặc
+     * merchant Sandbox chưa gửi callback. IPN gọi sau đó vẫn nhận kết quả đã xử lý.
+     */
+    @Transactional
+    public VnPayReturnResponse handleReturn(Map<String, String> receivedParams) {
+        VnPayIpnResponse verification = handleIpn(receivedParams);
+        String txnRef = receivedParams.get("vnp_TxnRef");
+        boolean verified = "00".equals(verification.RspCode())
+                || "02".equals(verification.RspCode());
+
+        if (!verified || txnRef == null || txnRef.isBlank()) {
+            return new VnPayReturnResponse(txnRef, null, false, verification.Message());
+        }
+
+        Payment payment = paymentRepository.findByProviderTxnId(txnRef).orElse(null);
+        if (payment == null) {
+            return new VnPayReturnResponse(txnRef, null, false, "Order not found");
+        }
+
+        return new VnPayReturnResponse(
+                txnRef,
+                payment.getStatus().name(),
+                true,
+                verification.Message()
+        );
+    }
+
     private VnPayIpnResponse ipnResult(String code, String message) {
         log.info("VNPay IPN result code={} reason={}", code, message);
         return new VnPayIpnResponse(code, message);
@@ -480,7 +514,8 @@ public class PaymentService {
 
         // 3. Chỉ đơn PAID mới được nhận token.
         if (payment.getStatus() != PaymentStatus.PAID) {
-            throw new IllegalStateException(
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
                     "Giao dịch chưa được xác nhận thanh toán"
             );
         }
@@ -489,7 +524,8 @@ public class PaymentService {
         return accessTokenService
                 .claimHandoff(payment.getProviderTxnId())
                 .orElseThrow(() ->
-                        new IllegalStateException(
+                        new ApiException(
+                                HttpStatus.SERVICE_UNAVAILABLE,
                                 "Token chưa sẵn sàng hoặc đã được nhận"
                         )
                 );

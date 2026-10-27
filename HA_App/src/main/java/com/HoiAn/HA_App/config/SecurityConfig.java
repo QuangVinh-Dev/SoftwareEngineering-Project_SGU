@@ -54,7 +54,8 @@ public class SecurityConfig {
                         .requestMatchers("/uploads/audio/**")
                             .hasAnyAuthority("SERVICE_ACCESS", "ROLE_POI_ADMIN", "ROLE_ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register/merchant").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/payments", "/api/payments/claim").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/payments", "/api/payments/claim",
+                                "/api/payments/vnpay/return").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/payments/vnpay/ipn").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/payments/*/status").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/poi/locations", "/api/poi/*/audio")

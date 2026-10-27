@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
@@ -19,8 +20,10 @@ import org.slf4j.LoggerFactory;
 
 import com.HoiAn.HA_App.dto.request.ClaimPaymentRequest;
 import com.HoiAn.HA_App.dto.response.CreatePaymentResponse;
+import com.HoiAn.HA_App.dto.response.ErrorResponse;
 import com.HoiAn.HA_App.dto.response.PaymentStatusResponse;
 import com.HoiAn.HA_App.dto.response.VnPayIpnResponse;
+import com.HoiAn.HA_App.dto.response.VnPayReturnResponse;
 import com.HoiAn.HA_App.service.PaymentService;
 
 import java.net.InetAddress;
@@ -29,6 +32,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.time.Duration;
 import java.util.UUID;
 
@@ -106,6 +110,21 @@ public class PaymentController {
     }
 
     /**
+     * Frontend chuyển tiếp các tham số vnp_* từ Return URL để backend tự xác minh.
+     * Không tin vnp_ResponseCode từ trình duyệt nếu chữ ký/đơn/số tiền không khớp.
+     */
+    @PostMapping("/vnpay/return")
+    public VnPayReturnResponse handleReturn(@RequestBody Map<String, String> query) {
+        Map<String, String> params = new HashMap<>();
+        query.forEach((key, value) -> {
+            if (key != null && key.startsWith("vnp_") && value != null) {
+                params.put(key, value);
+            }
+        });
+        return paymentService.handleReturn(params);
+    }
+
+    /**
      * Status chỉ được trả khi claim secret đúng hoặc service token thuộc giao dịch.
      */
     @GetMapping("/{txnRef}/status")
@@ -129,6 +148,16 @@ public class PaymentController {
         );
 
         return Map.of("accessToken", token);
+    }
+
+    /**
+     * Không phân biệt giao dịch không tồn tại và credential không đúng để tránh
+     * biến endpoint status/claim thành công cụ dò mã giao dịch.
+     */
+    @ExceptionHandler(NoSuchElementException.class)
+    public ResponseEntity<ErrorResponse> paymentNotFound(NoSuchElementException ignored) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ErrorResponse.of("Không tìm thấy giao dịch"));
     }
 
     private String resolveGuestSessionId(HttpServletRequest request, HttpServletResponse response) {
