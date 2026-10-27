@@ -12,6 +12,7 @@
 
 import { API_BASE_URL } from '../config/api';
 import { FALLBACK } from '../utils/constants';
+import { readServiceAccess } from './paymentService';
 
 function unwrapList(payload) {
   const value = payload?.data ?? payload?.content ?? payload;
@@ -50,7 +51,10 @@ export function normalizePoi(poi) {
  *         non-OK HTTP status.  Callers should catch and handle errors.
  */
 export async function getPoiLocations() {
-  const res = await fetch(`${API_BASE_URL}/api/poi/locations`, { headers: { Accept: 'application/json' } });
+  const { token } = readServiceAccess();
+  const res = await fetch(`${API_BASE_URL}/api/poi/locations`, {
+    headers: { Accept: 'application/json', 'X-Service-Token': token || '' },
+  });
 
   if (!res.ok) {
     throw new Error(

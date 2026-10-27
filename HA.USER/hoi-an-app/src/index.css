@@ -9915,6 +9915,119 @@ html[data-reduce-motion="true"] .pg__input,
 html[data-reduce-motion="true"] .pg__btn {
   transition: none;
 }
+
+/* Payment states and service entitlement, reusing the existing Hội An palette. */
+.pg__section-title {
+  margin: 0 0 .75rem;
+  color: #2b1d12;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 1.55rem;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.pg__message {
+  margin: 0 0 1.25rem;
+  color: rgba(43, 29, 18, .72);
+  font: .875rem/1.65 'Be Vietnam Pro', sans-serif;
+  text-align: center;
+}
+
+.pg__message--error,
+.pg__error { color: #a52c22; }
+
+.pg__payment-state {
+  display: flex;
+  align-items: flex-start;
+  gap: .75rem;
+  margin: 0 0 1rem;
+  padding: 1rem;
+  background: #f2e8dc;
+  color: #2b1d12;
+  font: .8125rem/1.55 'Be Vietnam Pro', sans-serif;
+}
+
+.pg__payment-state p { margin: .3rem 0 0; color: rgba(43, 29, 18, .68); }
+
+.pg__spinner {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 1rem;
+  margin-top: .15rem;
+  border: 2px solid rgba(122, 62, 42, .25);
+  border-top-color: #7a3e2a;
+  border-radius: 50%;
+  animation: pgSpin .8s linear infinite;
+}
+
+@keyframes pgSpin { to { transform: rotate(360deg); } }
+
+.pg__actions { display: grid; gap: .65rem; }
+.pg__btn--link { display: flex; align-items: center; justify-content: center; text-decoration: none; }
+
+.pg__secondary-btn {
+  width: 100%;
+  padding: .9rem 1rem;
+  border: 1px solid rgba(43, 29, 18, .35);
+  background: transparent;
+  color: #2b1d12;
+  font: 700 .75rem 'Be Vietnam Pro', sans-serif;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.pg__secondary-btn:hover { border-color: #7a3e2a; color: #7a3e2a; }
+
+.pg__steps {
+  display: grid;
+  gap: .45rem;
+  margin: 1.25rem 0 0;
+  padding: 1rem 1rem 1rem 2.25rem;
+  background: #f2e8dc;
+  color: rgba(43, 29, 18, .72);
+  font: .75rem/1.5 'Be Vietnam Pro', sans-serif;
+}
+
+.pg__error { margin: .75rem 0; font: .75rem/1.5 'Be Vietnam Pro', sans-serif; }
+
+.service-access__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .75rem max(1rem, calc((100vw - 1200px) / 2));
+  border-bottom: 1px solid rgba(43, 29, 18, .12);
+  background: #f5ede2;
+  color: #2b1d12;
+  font-family: 'Be Vietnam Pro', sans-serif;
+}
+
+.service-access__bar > div { display: grid; gap: .15rem; }
+.service-access__bar strong { font-size: .75rem; }
+.service-access__bar span { color: rgba(43, 29, 18, .65); font-size: .6875rem; }
+.service-access__countdown { white-space: nowrap; color: #7a3e2a; font-variant-numeric: tabular-nums; }
+
+.service-access__notice {
+  margin: .75rem auto;
+  width: min(100% - 2rem, 1200px);
+  padding: .75rem 1rem;
+  background: #e9f1e5;
+  color: #345a31;
+  font: .8125rem/1.5 'Be Vietnam Pro', sans-serif;
+}
+
+@media (max-width: 520px) {
+  .pg__section-title { font-size: 1.35rem; }
+  .service-access__bar { align-items: flex-start; flex-direction: column; gap: .35rem; }
+  .service-access__countdown { font-size: .8125rem !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pg__spinner { animation: none; }
+}
+
+html[data-reduce-motion="true"] .pg__spinner { animation: none; }
 /* ============================================================
    PLAYER — Queue indicator
    ============================================================ */
