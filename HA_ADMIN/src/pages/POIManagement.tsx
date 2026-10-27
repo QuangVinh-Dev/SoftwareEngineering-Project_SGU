@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Check, Edit2, Languages, MapPin, Plus, RefreshCw, Search, Volume2, X } from 'lucide-react';
+import {
+  Check, Edit2, Languages, MapPin, Plus, RefreshCw, Search, Volume2, X,
+  Clock, CheckCircle2, XCircle, AlertCircle, Eye, ExternalLink, Compass
+} from 'lucide-react';
 import { Badge, Button, Card } from '@/components/ui';
 import Modal from '@/components/modals/Modal';
 import AudioPlayer from '@/components/AudioPlayer';
@@ -14,18 +17,31 @@ import { formatNumber } from '@/utils/helpers';
 
 const targetLanguages = SUPPORTED_LANGUAGES.filter(language => language.code !== 'vi');
 
+type PoiFilterTab = 'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED';
+
 export default function POIManagement() {
   const { showToast } = useToast();
   const [pois, setPois] = useState<AdminPoi[]>([]);
   const [loading, setLoading] = useState(true);
   const [listError, setListError] = useState('');
   const [search, setSearch] = useState('');
+  const [filterTab, setFilterTab] = useState<PoiFilterTab>('ALL');
+
+  // POI Review modals state
+  const [reviewingPoi, setReviewingPoi] = useState<AdminPoi | null>(null);
+  const [rejectingPoi, setRejectingPoi] = useState<AdminPoi | null>(null);
+  const [rejectionReasonInput, setRejectionReasonInput] = useState('');
+  const [reviewProcessing, setReviewProcessing] = useState(false);
+
+  // POI Edit / Create state
   const [selectedPoi, setSelectedPoi] = useState<AdminPoi | null>(null);
   const [poiEditor, setPoiEditor] = useState<AdminPoi | null | undefined>(undefined);
   const [poiForm, setPoiForm] = useState<PoiFormState>(emptyPoiForm());
   const [poiFormError, setPoiFormError] = useState('');
   const [poiSaving, setPoiSaving] = useState(false);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
+
+  // Multilingual / Audio content state
   const [content, setContent] = useState<PoiContent | null>(null);
   const [contentLoading, setContentLoading] = useState(false);
   const [contentError, setContentError] = useState('');
@@ -119,17 +135,54 @@ export default function POIManagement() {
     finally { setPoiSaving(false); }
   };
 
-  const handlePoiReview = async (poi: AdminPoi, approvalStatus: 'APPROVED' | 'REJECTED') => {
-    const rejectionReason = approvalStatus === 'REJECTED'
-      ? window.prompt('Nhập lý do từ chối POI (không bắt buộc):')
-      : undefined;
-    if (approvalStatus === 'REJECTED' && rejectionReason === null) return;
+  // Duyệt POI
+  const handleApprovePoi = async (poi: AdminPoi) => {
+    setReviewProcessing(true);
     try {
-      await reviewPoi(poi.id, approvalStatus, rejectionReason ?? undefined);
-      await loadPois();
-      showToast('success', approvalStatus === 'APPROVED' ? 'Đã duyệt POI.' : 'Đã từ chối POI.');
+      await reviewPoi(poi.id, 'APPROVED');
+      showToast('success', `Đã phê duyệt POI "${poi.name}".`);
+      setPois(current =>
+        current.map(item => item.id === poi.id
+          ? { ...item, approvalStatus: 'APPROVED', rejectionReason: null }
+          : item
+        )
+      );
+      if (reviewingPoi?.id === poi.id) {
+        setReviewingPoi(prev => prev ? { ...prev, approvalStatus: 'APPROVED', rejectionReason: null } : null);
+      }
     } catch (error) {
-      showToast('error', apiMessage(error));
+      showToast('error', apiMessage(error) || 'Không thể duyệt POI.');
+    } finally {
+      setReviewProcessing(false);
+    }
+  };
+
+  // Từ chối POI kèm lý do
+  const handleRejectPoi = async () => {
+    if (!rejectingPoi) return;
+    if (!rejectionReasonInput.trim()) {
+      showToast('error', 'Vui lòng nhập lý do từ chối POI.');
+      return;
+    }
+    setReviewProcessing(true);
+    try {
+      await reviewPoi(rejectingPoi.id, 'REJECTED', rejectionReasonInput.trim());
+      showToast('success', `Đã từ chối POI "${rejectingPoi.name}".`);
+      setPois(current =>
+        current.map(item => item.id === rejectingPoi.id
+          ? { ...item, approvalStatus: 'REJECTED', rejectionReason: rejectionReasonInput.trim() }
+          : item
+        )
+      );
+      if (reviewingPoi?.id === rejectingPoi.id) {
+        setReviewingPoi(prev => prev ? { ...prev, approvalStatus: 'REJECTED', rejectionReason: rejectionReasonInput.trim() } : null);
+      }
+      setRejectingPoi(null);
+      setRejectionReasonInput('');
+    } catch (error) {
+      showToast('error', apiMessage(error) || 'Không thể từ chối POI.');
+    } finally {
+      setReviewProcessing(false);
     }
   };
 
@@ -144,7 +197,22 @@ export default function POIManagement() {
     setImageFiles(selected);
   };
 
-  const filtered = useMemo(() => pois.filter(poi => poi.name.toLowerCase().includes(search.trim().toLowerCase())), [pois, search]);
+  // Lọc POI theo Tab và tìm kiếm
+  const counts = useMemo(() => {
+    const pending = pois.filter(p => p.approvalStatus === 'PENDING').length;
+    const approved = pois.filter(p => p.approvalStatus === 'APPROVED').length;
+    const rejected = pois.filter(p => p.approvalStatus === 'REJECTED').length;
+    return { all: pois.length, pending, approved, rejected };
+  }, [pois]);
+
+  const filtered = useMemo(() => {
+    return pois.filter(poi => {
+      const matchTab = filterTab === 'ALL' || poi.approvalStatus === filterTab;
+      const matchSearch = poi.name.toLowerCase().includes(search.trim().toLowerCase())
+        || (poi.originalDescription && poi.originalDescription.toLowerCase().includes(search.trim().toLowerCase()));
+      return matchTab && matchSearch;
+    });
+  }, [pois, filterTab, search]);
 
   const handlePreview = async () => {
     if (!selectedPoi || !sourceText.trim()) {
@@ -230,51 +298,496 @@ export default function POIManagement() {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-brown-900">POI & Nội dung đa ngôn ngữ</h1>
-          <p className="text-sm text-brown-400 mt-1">Xem POI từ backend, biên tập bản dịch, duyệt và tạo audio.</p>
+          <h1 className="text-2xl font-bold text-brown-900">Quản lý POI & Xét duyệt điểm tham quan</h1>
+          <p className="text-sm text-brown-500 mt-1">
+            Quản lý điểm di tích Hội An, duyệt POI đề xuất từ chủ gian hàng, dịch thuật và phát sinh audio thuyết minh.
+          </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="secondary" onClick={() => void loadPois()} icon={<RefreshCw className="w-4 h-4" />} disabled={loading}>Tải lại POI</Button>
-          <Button onClick={() => openPoiEditor(null)} icon={<Plus className="w-4 h-4" />}>Thêm POI</Button>
+          <Button variant="secondary" onClick={() => void loadPois()} icon={<RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />} disabled={loading}>
+            Tải lại POI
+          </Button>
+          <Button onClick={() => openPoiEditor(null)} icon={<Plus className="w-4 h-4" />}>
+            Thêm POI mới
+          </Button>
         </div>
       </div>
 
       <Card noPadding>
-        <div className="p-4 border-b border-brown-100 flex gap-3">
-          <div className="relative flex-1">
+        {/* Tab & Search Filter */}
+        <div className="p-4 border-b border-brown-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setFilterTab('ALL')}
+              className={`px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                filterTab === 'ALL'
+                  ? 'bg-primary-600 text-white shadow-sm'
+                  : 'bg-brown-50 text-brown-600 hover:bg-brown-100'
+              }`}
+            >
+              Tất cả POI ({counts.all})
+            </button>
+
+            <button
+              onClick={() => setFilterTab('PENDING')}
+              className={`px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                filterTab === 'PENDING'
+                  ? 'bg-amber-500 text-white shadow-sm'
+                  : 'bg-brown-50 text-brown-600 hover:bg-brown-100'
+              }`}
+            >
+              <span>Yêu cầu duyệt từ gian hàng</span>
+              {counts.pending > 0 && (
+                <span className={`px-2 py-0.2 rounded-full text-xs font-bold ${
+                  filterTab === 'PENDING' ? 'bg-white text-amber-700' : 'bg-amber-100 text-amber-800'
+                }`}>
+                  {counts.pending}
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => setFilterTab('APPROVED')}
+              className={`px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                filterTab === 'APPROVED'
+                  ? 'bg-green-600 text-white shadow-sm'
+                  : 'bg-brown-50 text-brown-600 hover:bg-brown-100'
+              }`}
+            >
+              Đã duyệt ({counts.approved})
+            </button>
+
+            <button
+              onClick={() => setFilterTab('REJECTED')}
+              className={`px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                filterTab === 'REJECTED'
+                  ? 'bg-red-600 text-white shadow-sm'
+                  : 'bg-brown-50 text-brown-600 hover:bg-brown-100'
+              }`}
+            >
+              Bị từ chối ({counts.rejected})
+            </button>
+          </div>
+
+          <div className="relative w-full md:w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brown-400" />
-            <input value={search} onChange={event => setSearch(event.target.value)} placeholder="Tìm POI theo tên…" className="w-full pl-10 pr-3 py-2 rounded-lg border border-brown-200 text-sm outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100" />
+            <input
+              value={search}
+              onChange={event => setSearch(event.target.value)}
+              placeholder="Tìm POI theo tên hoặc mô tả…"
+              className="w-full pl-10 pr-3 py-1.5 rounded-lg border border-brown-200 text-sm outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100"
+            />
           </div>
         </div>
-        {loading ? <div className="px-4 py-12 text-center text-sm text-brown-400">Đang tải POI từ backend…</div>
-          : listError ? <div className="px-4 py-8 text-center"><p role="alert" className="mb-3 text-sm text-red-600">{listError}</p><Button variant="secondary" onClick={() => void loadPois()}>Thử lại</Button></div>
-            : filtered.length === 0 ? <div className="px-4 py-12 text-center text-sm text-brown-400">Không có POI phù hợp.</div>
-              : <div className="overflow-x-auto scrollbar-thin">
-                <table className="w-full text-sm min-w-[860px]">
-                  <thead><tr className="border-b border-brown-100 bg-brown-50/50">
-                    <th className="px-4 py-3 text-left font-medium text-brown-500 text-xs uppercase tracking-wider">POI</th>
-                    <th className="px-4 py-3 text-left font-medium text-brown-500 text-xs uppercase tracking-wider">Tọa độ</th>
-                    <th className="px-4 py-3 text-center font-medium text-brown-500 text-xs uppercase tracking-wider">Bán kính</th>
-                    <th className="px-4 py-3 text-center font-medium text-brown-500 text-xs uppercase tracking-wider">Trạng thái</th>
-                    <th className="px-4 py-3 text-center font-medium text-brown-500 text-xs uppercase tracking-wider">Duyệt</th>
-                    <th className="px-4 py-3 text-right font-medium text-brown-500 text-xs uppercase tracking-wider">Tác vụ</th>
-                  </tr></thead>
-                  <tbody>{filtered.map(poi => <tr key={poi.id} className="border-b border-brown-50 hover:bg-brown-50/30">
-                    <td className="px-4 py-3"><div className="flex items-center gap-3">{poi.images[0] && <img src={resolvePoiImageUrl(poi.images[0])} alt="" className="h-10 w-10 rounded object-cover" />}<div><div className="font-medium text-brown-800">{poi.name}</div><div className="text-xs text-brown-400">ID {poi.id} · {poi.images.length} hình</div></div></div></td>
-                    <td className="px-4 py-3 text-xs text-brown-600 font-mono">{poi.latitude.toFixed(5)}, {poi.longitude.toFixed(5)}</td>
-                    <td className="px-4 py-3 text-center text-brown-600">{poi.radius} m</td>
-                    <td className="px-4 py-3 text-center"><Badge variant={poi.status === 'ACTIVE' ? 'active' : 'inactive'}>{poi.status === 'ACTIVE' ? 'Đang hoạt động' : 'Ngừng hoạt động'}</Badge></td>
-                    <td className="px-4 py-3 text-center"><Badge variant={poi.approvalStatus === 'APPROVED' ? 'active' : poi.approvalStatus === 'PENDING' ? 'partial' : 'skipped'}>{approvalLabel(poi.approvalStatus)}</Badge></td>
-                    <td className="px-4 py-3 text-right"><div className="inline-flex gap-2">{poi.approvalStatus === 'PENDING' && <><Button size="sm" variant="success" onClick={() => void handlePoiReview(poi, 'APPROVED')} icon={<Check className="w-4 h-4" />}>Duyệt</Button><Button size="sm" variant="danger" onClick={() => void handlePoiReview(poi, 'REJECTED')} icon={<X className="w-4 h-4" />}>Từ chối</Button></>}<Button size="sm" variant="secondary" onClick={() => openPoiEditor(poi)} icon={<Edit2 className="w-4 h-4" />}>Sửa</Button><Button size="sm" onClick={() => void openContent(poi)} icon={<Languages className="w-4 h-4" />}>Nội dung & audio</Button></div></td>
-                  </tr>)}</tbody>
-                </table>
-                <div className="px-4 py-3 border-t border-brown-100 text-sm text-brown-500">Hiển thị {formatNumber(filtered.length)} / {formatNumber(pois.length)} POI</div>
-              </div>}
+
+        {/* Table Content */}
+        {loading ? (
+          <div className="px-4 py-16 text-center text-sm text-brown-400">
+            <div className="inline-block w-6 h-6 border-2 border-primary-600 border-t-transparent rounded-full animate-spin mb-2" />
+            <p>Đang tải danh sách POI từ backend…</p>
+          </div>
+        ) : listError ? (
+          <div className="px-4 py-8 text-center">
+            <p role="alert" className="mb-3 text-sm text-red-600">{listError}</p>
+            <Button variant="secondary" onClick={() => void loadPois()}>Thử lại</Button>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="px-4 py-16 text-center text-sm text-brown-400">
+            <MapPin className="w-10 h-10 mx-auto text-brown-300 mb-2" />
+            <p>Không có POI nào phù hợp với bộ lọc.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto scrollbar-thin">
+            <table className="w-full text-sm min-w-[900px]">
+              <thead>
+                <tr className="border-b border-brown-100 bg-brown-50/50">
+                  <th className="px-4 py-3.5 text-left font-semibold text-brown-600 text-xs uppercase tracking-wider">Điểm tham quan (POI)</th>
+                  <th className="px-4 py-3.5 text-left font-semibold text-brown-600 text-xs uppercase tracking-wider">Tọa độ GPS</th>
+                  <th className="px-4 py-3.5 text-center font-semibold text-brown-600 text-xs uppercase tracking-wider">Bán kính</th>
+                  <th className="px-4 py-3.5 text-center font-semibold text-brown-600 text-xs uppercase tracking-wider">Trạng thái</th>
+                  <th className="px-4 py-3.5 text-center font-semibold text-brown-600 text-xs uppercase tracking-wider">Xét duyệt</th>
+                  <th className="px-4 py-3.5 text-right font-semibold text-brown-600 text-xs uppercase tracking-wider">Tác vụ</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-brown-50">
+                {filtered.map(poi => (
+                  <tr key={poi.id} className="hover:bg-brown-50/30 transition-colors">
+                    {/* Tên POI & Ảnh */}
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        {poi.images && poi.images[0] ? (
+                          <img
+                            src={resolvePoiImageUrl(poi.images[0])}
+                            alt=""
+                            className="h-11 w-11 rounded-lg object-cover border border-brown-200 flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="h-11 w-11 rounded-lg bg-brown-100 flex items-center justify-center text-brown-400 flex-shrink-0">
+                            <MapPin className="w-5 h-5" />
+                          </div>
+                        )}
+                        <div>
+                          <div
+                            className="font-semibold text-brown-900 hover:text-primary-600 cursor-pointer"
+                            onClick={() => setReviewingPoi(poi)}
+                          >
+                            {poi.name}
+                          </div>
+                          <div className="text-xs text-brown-400 flex items-center gap-2 mt-0.5">
+                            <span>ID #{poi.id}</span>
+                            <span>·</span>
+                            <span>{poi.images ? poi.images.length : 0} hình</span>
+                            {poi.directionLink && (
+                              <>
+                                <span>·</span>
+                                <a
+                                  href={poi.directionLink}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-primary-600 hover:underline inline-flex items-center gap-0.5"
+                                >
+                                  Chỉ đường <ExternalLink className="w-2.5 h-2.5" />
+                                </a>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Tọa độ */}
+                    <td className="px-4 py-3 text-xs text-brown-600 font-mono">
+                      {poi.latitude.toFixed(5)}, {poi.longitude.toFixed(5)}
+                    </td>
+
+                    {/* Bán kính */}
+                    <td className="px-4 py-3 text-center text-brown-600 font-medium">
+                      {poi.radius} m
+                    </td>
+
+                    {/* Trạng thái hoạt động */}
+                    <td className="px-4 py-3 text-center">
+                      <Badge variant={poi.status === 'ACTIVE' ? 'active' : 'inactive'}>
+                        {poi.status === 'ACTIVE' ? 'Hoạt động' : 'Tạm dừng'}
+                      </Badge>
+                    </td>
+
+                    {/* Trạng thái duyệt */}
+                    <td className="px-4 py-3 text-center">
+                      {poi.approvalStatus === 'APPROVED' ? (
+                        <Badge variant="active">Đã duyệt</Badge>
+                      ) : poi.approvalStatus === 'PENDING' ? (
+                        <Badge variant="partial">Chờ duyệt</Badge>
+                      ) : (
+                        <span title={poi.rejectionReason || 'Đã bị từ chối'}>
+                          <Badge variant="skipped" className="cursor-pointer">
+                            Bị từ chối
+                          </Badge>
+                        </span>
+                      )}
+                    </td>
+
+                    {/* Thao tác */}
+                    <td className="px-4 py-3 text-right">
+                      <div className="inline-flex items-center gap-1.5">
+                        {/* Nút Xem xét & Duyệt cho POI PENDING */}
+                        {poi.approvalStatus === 'PENDING' ? (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="primary"
+                              onClick={() => setReviewingPoi(poi)}
+                              icon={<Eye className="w-3.5 h-3.5" />}
+                            >
+                              Thẩm định
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="success"
+                              onClick={() => void handleApprovePoi(poi)}
+                              icon={<Check className="w-3.5 h-3.5" />}
+                            >
+                              Duyệt
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="danger"
+                              onClick={() => {
+                                setRejectingPoi(poi);
+                                setRejectionReasonInput('');
+                              }}
+                              icon={<X className="w-3.5 h-3.5" />}
+                            >
+                              Từ chối
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => setReviewingPoi(poi)}
+                              icon={<Eye className="w-3.5 h-3.5" />}
+                            >
+                              Chi tiết
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => openPoiEditor(poi)}
+                              icon={<Edit2 className="w-3.5 h-3.5" />}
+                            >
+                              Sửa
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={() => void openContent(poi)}
+                              icon={<Languages className="w-3.5 h-3.5" />}
+                            >
+                              Nội dung & Audio
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <div className="px-4 py-3 border-t border-brown-100 text-xs text-brown-500 flex justify-between items-center">
+              <span>Hiển thị {formatNumber(filtered.length)} / {formatNumber(pois.length)} điểm tham quan POI</span>
+            </div>
+          </div>
+        )}
       </Card>
 
-      <Modal open={poiEditor !== undefined} onClose={() => setPoiEditor(undefined)} title={poiEditor ? `Sửa POI: ${poiEditor.name}` : 'Thêm POI'} size="lg" footer={<><Button variant="secondary" onClick={() => setPoiEditor(undefined)} disabled={poiSaving}>Hủy</Button><button form="poi-editor-form" type="submit" disabled={poiSaving} className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50">{poiSaving ? 'Đang lưu…' : poiEditor ? 'Lưu thay đổi' : 'Tạo POI'}</button></>}>
+      {/* MODAL 1: THẨM ĐỊNH & XEM CHI TIẾT POI GIAN HÀNG */}
+      <Modal
+        open={reviewingPoi !== null}
+        onClose={() => setReviewingPoi(null)}
+        title={reviewingPoi ? `Thẩm định POI: ${reviewingPoi.name}` : ''}
+        size="lg"
+        footer={
+          reviewingPoi && (
+            <div className="flex items-center justify-between w-full">
+              <div>
+                {reviewingPoi.approvalStatus === 'PENDING' && (
+                  <span className="text-xs text-amber-700 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-200">
+                    POI đang chờ duyệt kích hoạt
+                  </span>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <Button variant="secondary" onClick={() => setReviewingPoi(null)}>
+                  Đóng
+                </Button>
+                {reviewingPoi.approvalStatus === 'PENDING' && (
+                  <>
+                    <Button
+                      variant="danger"
+                      onClick={() => {
+                        setRejectingPoi(reviewingPoi);
+                        setRejectionReasonInput('');
+                      }}
+                      icon={<X className="w-4 h-4" />}
+                    >
+                      Từ chối
+                    </Button>
+                    <Button
+                      variant="success"
+                      onClick={() => void handleApprovePoi(reviewingPoi)}
+                      icon={<Check className="w-4 h-4" />}
+                      disabled={reviewProcessing}
+                    >
+                      {reviewProcessing ? 'Đang duyệt…' : 'Phê duyệt POI'}
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+          )
+        }
+      >
+        {reviewingPoi && (
+          <div className="space-y-5">
+            {/* Cảnh báo lý do từ chối nếu có */}
+            {reviewingPoi.approvalStatus === 'REJECTED' && reviewingPoi.rejectionReason && (
+              <div className="p-3.5 rounded-lg border border-red-200 bg-red-50 flex gap-3 text-red-800 text-sm">
+                <AlertCircle className="w-5 h-5 flex-shrink-0 text-red-600 mt-0.5" />
+                <div>
+                  <p className="font-semibold">Lý do từ chối POI trước đó:</p>
+                  <p className="mt-0.5 text-red-700">{reviewingPoi.rejectionReason}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Thông số kỹ thuật GPS & Kích hoạt */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-brown-50/60 p-3.5 rounded-xl border border-brown-100">
+              <div>
+                <span className="text-[11px] text-brown-400 uppercase font-semibold">Vĩ độ (Lat)</span>
+                <p className="text-sm font-mono font-medium text-brown-800 mt-0.5">{reviewingPoi.latitude}</p>
+              </div>
+              <div>
+                <span className="text-[11px] text-brown-400 uppercase font-semibold">Kinh độ (Lng)</span>
+                <p className="text-sm font-mono font-medium text-brown-800 mt-0.5">{reviewingPoi.longitude}</p>
+              </div>
+              <div>
+                <span className="text-[11px] text-brown-400 uppercase font-semibold">Bán kính Geofence</span>
+                <p className="text-sm font-semibold text-primary-700 mt-0.5">{reviewingPoi.radius} mét</p>
+              </div>
+              <div>
+                <span className="text-[11px] text-brown-400 uppercase font-semibold">Độ ưu tiên phát</span>
+                <p className="text-sm font-semibold text-brown-800 mt-0.5">{reviewingPoi.priorityLevel}</p>
+              </div>
+            </div>
+
+            {/* Mô tả gốc */}
+            <div>
+              <h4 className="text-sm font-semibold text-brown-800 mb-1.5">Mô tả điểm tham quan / gian hàng</h4>
+              <p className="text-sm text-brown-700 bg-white p-3.5 rounded-lg border border-brown-200 leading-relaxed whitespace-pre-line">
+                {reviewingPoi.originalDescription || 'Chưa có thông tin mô tả chi tiết.'}
+              </p>
+            </div>
+
+            {/* Liên kết chỉ đường */}
+            {reviewingPoi.directionLink && (
+              <div>
+                <span className="text-xs text-brown-500 font-medium">Liên kết chỉ đường Google Maps:</span>
+                <a
+                  href={reviewingPoi.directionLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-1 block text-sm text-primary-600 hover:underline truncate"
+                >
+                  {reviewingPoi.directionLink}
+                </a>
+              </div>
+            )}
+
+            {/* Gallery ảnh POI */}
+            <div>
+              <h4 className="text-sm font-semibold text-brown-800 mb-2">Hình ảnh POI đính kèm ({reviewingPoi.images.length})</h4>
+              {reviewingPoi.images.length > 0 ? (
+                <div className="grid grid-cols-3 gap-3">
+                  {reviewingPoi.images.map((img, idx) => (
+                    <a
+                      key={idx}
+                      href={resolvePoiImageUrl(img)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block rounded-lg overflow-hidden border border-brown-200 hover:opacity-90 transition-opacity aspect-video bg-brown-50"
+                    >
+                      <img
+                        src={resolvePoiImageUrl(img)}
+                        alt={`Ảnh ${idx + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-4 text-center rounded-lg border border-dashed border-brown-200 text-xs text-brown-400">
+                  POI này chưa có hình ảnh đính kèm.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* MODAL 2: TỪ CHỐI POI KÈM LÝ DO */}
+      <Modal
+        open={rejectingPoi !== null}
+        onClose={() => !reviewProcessing && setRejectingPoi(null)}
+        title="Từ chối yêu cầu duyệt POI"
+        size="md"
+        footer={
+          <>
+            <Button
+              variant="secondary"
+              onClick={() => setRejectingPoi(null)}
+              disabled={reviewProcessing}
+            >
+              Hủy
+            </Button>
+            <Button
+              variant="danger"
+              onClick={() => void handleRejectPoi()}
+              disabled={reviewProcessing}
+              icon={<X className="w-4 h-4" />}
+            >
+              {reviewProcessing ? 'Đang xử lý…' : 'Xác nhận từ chối'}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-brown-700">
+            Điểm tham quan: <strong>{rejectingPoi?.name}</strong> (ID #{rejectingPoi?.id})
+          </p>
+          <div>
+            <label className="block text-xs font-semibold text-brown-700 mb-1">
+              Lý do từ chối POI * (chủ gian hàng sẽ xem được lý do này)
+            </label>
+            <textarea
+              required
+              rows={3}
+              value={rejectionReasonInput}
+              onChange={e => setRejectionReasonInput(e.target.value)}
+              placeholder="Nhập lý do POI chưa đạt yêu cầu (vd: Tọa độ GPS lệch khỏi ranh giới, mô tả chứa từ ngữ quảng cáo quá đà...)"
+              className="w-full rounded-lg border border-brown-200 px-3 py-2 text-sm outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100"
+            />
+          </div>
+
+          <div>
+            <span className="text-xs text-brown-400 block mb-1.5">Gợi ý lý do nhanh:</span>
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                'Tọa độ GPS không chính xác so với thực tế',
+                'Bán kính quét quá rộng gây chồng lấn điểm di sản',
+                'Nội dung mô tả chưa đúng quy chuẩn văn hóa',
+                'Hình ảnh tải lên mờ, không rõ biển hiệu'
+              ].map(reason => (
+                <button
+                  key={reason}
+                  type="button"
+                  onClick={() => setRejectionReasonInput(reason)}
+                  className="text-xs px-2.5 py-1 rounded bg-brown-50 hover:bg-brown-100 text-brown-700 border border-brown-200 transition-colors"
+                >
+                  {reason}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </Modal>
+
+      {/* MODAL 3: THÊM / SỬA POI */}
+      <Modal
+        open={poiEditor !== undefined}
+        onClose={() => setPoiEditor(undefined)}
+        title={poiEditor ? `Sửa POI: ${poiEditor.name}` : 'Thêm POI mới'}
+        size="lg"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setPoiEditor(undefined)} disabled={poiSaving}>
+              Hủy
+            </Button>
+            <button
+              form="poi-editor-form"
+              type="submit"
+              disabled={poiSaving}
+              className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
+            >
+              {poiSaving ? 'Đang lưu…' : poiEditor ? 'Lưu thay đổi' : 'Tạo POI'}
+            </button>
+          </>
+        }
+      >
         <form id="poi-editor-form" onSubmit={event => void handlePoiSave(event)} className="space-y-4">
           {poiFormError && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{poiFormError}</p>}
           <label className="block text-sm font-medium text-brown-700">Tên POI *<input required maxLength={200} value={poiForm.name} onChange={event => setPoiForm(form => ({ ...form, name: event.target.value }))} className="mt-1 w-full rounded-lg border border-brown-200 px-3 py-2 text-sm" /></label>
@@ -296,6 +809,7 @@ export default function POIManagement() {
         </form>
       </Modal>
 
+      {/* MODAL 4: NỘI DUNG ĐA NGÔN NGỮ & TẠO AUDIO */}
       <Modal open={!!selectedPoi} onClose={closeContent} title={selectedPoi ? `Nội dung: ${selectedPoi.name}` : 'Nội dung POI'} size="xl">
         {contentLoading && <p className="text-sm text-brown-500">Đang tải trạng thái nội dung…</p>}
         {contentError && <div role="alert" className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">{contentError}</div>}
@@ -385,11 +899,4 @@ function statusLabel(status: string | null) {
 
 function languageName(code: string) {
   return SUPPORTED_LANGUAGES.find(language => language.code === code)?.name ?? code;
-}
-
-function approvalLabel(status: string) {
-  if (status === 'APPROVED') return 'Đã duyệt';
-  if (status === 'PENDING') return 'Chờ duyệt';
-  if (status === 'REJECTED') return 'Từ chối';
-  return status;
 }

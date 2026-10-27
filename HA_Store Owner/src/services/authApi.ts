@@ -122,6 +122,10 @@ export interface RegisterMerchantInput {
   address?: string;
   category?: string;
   description?: string;
+  /** Số CCCD 9 hoặc 12 chữ số + ảnh 2 mặt (data URI base64) — backend lưu kho riêng, chỉ admin xem */
+  cccdNumber: string;
+  cccdFrontImage: string;
+  cccdBackImage: string;
   /** data URI base64, tối đa 5 ảnh */
   merchantImages?: string[];
   plan?: { id: string; billing: string; totalPrice?: number };

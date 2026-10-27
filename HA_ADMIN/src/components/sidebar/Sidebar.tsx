@@ -1,12 +1,12 @@
 import { useApp } from '@/hooks/useApp';
 import { classNames } from '@/utils/helpers';
 import {
-  LayoutDashboard, MapPin, Headphones, Clock,
+  LayoutDashboard, MapPin, Store, Headphones, Clock,
   BarChart3, Map, FileText, Settings,
   ChevronLeft, ChevronRight, Volume2,
 } from 'lucide-react';
 
-type PageKey = 'dashboard' | 'poi' | 'audio' | 'history' | 'analytics' | 'heatmap' | 'reports' | 'settings';
+type PageKey = 'dashboard' | 'poi' | 'merchants' | 'audio' | 'history' | 'analytics' | 'heatmap' | 'reports' | 'settings';
 
 interface NavItem {
   key: PageKey;
@@ -20,6 +20,7 @@ const mainItems: NavItem[] = [
 
 const managementItems: NavItem[] = [
   { key: 'poi', label: 'Quản lý điểm tham quan', icon: MapPin },
+  { key: 'merchants', label: 'Duyệt chủ gian hàng', icon: Store },
   { key: 'audio', label: 'Quản lý nội dung thuyết minh', icon: Headphones },
   { key: 'history', label: 'Lịch sử nghe', icon: Clock },
 ];
