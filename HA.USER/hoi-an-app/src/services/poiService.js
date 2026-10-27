@@ -6,6 +6,7 @@
 import { API_BASE_URL } from '../config/api';
 import { FALLBACK } from '../utils/constants';
 import { POIS } from '../data/pois';
+import { readServiceAccess } from './paymentService';
 
 function unwrapList(payload) {
   const value = payload?.data ?? payload?.content ?? payload;
@@ -48,17 +49,14 @@ export function normalizePoi(poi) {
  * Falls back to local POIS on network error / unauthorized so the UI never breaks.
  */
 export async function getPoiLocations() {
-<<<<<<< HEAD
-  const { token } = readServiceAccess();
-  const res = await fetch(`${API_BASE_URL}/api/poi/locations`, {
-    headers: { Accept: 'application/json', 'X-Service-Token': token || '' },
-  });
-=======
   try {
-    const res = await fetch(`${API_BASE_URL}/api/poi/locations`, {
-      headers: { Accept: 'application/json' },
-    });
->>>>>>> bbf2deb3dc305320a2bef2f510554f171ebccd01
+    const { token } = readServiceAccess();
+    const headers = { Accept: 'application/json' };
+    if (token) {
+      headers['X-Service-Token'] = token;
+    }
+
+    const res = await fetch(`${API_BASE_URL}/api/poi/locations`, { headers });
 
     if (res.ok) {
       const data = await res.json();

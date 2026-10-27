@@ -36,7 +36,7 @@ public class AuthController {
         return authService.registerMerchant(request);
     }
 
-    /** Tạo tài khoản admin mới, chỉ SUPER_ADMIN được gọi. */
+    /** Tạo tài khoản admin mới, chỉ ADMIN được gọi. */
     @PostMapping("/register/admin")
     @ResponseStatus(HttpStatus.CREATED)
     public UserResponse registerAdmin(@Valid @RequestBody RegisterAdminRequest request) {

@@ -177,7 +177,7 @@ public class AuthService {
     }
 
     // ------------------------------------------------------------------
-    // Tạo tài khoản admin (chỉ SUPER_ADMIN gọi được, xem SecurityConfig)
+    // Tạo tài khoản admin (chỉ ADMIN gọi được, xem SecurityConfig)
     // ------------------------------------------------------------------
     @Transactional
     public UserResponse registerAdmin(RegisterAdminRequest request) {
