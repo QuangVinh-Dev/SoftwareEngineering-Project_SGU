@@ -14,6 +14,7 @@ import ApprovalStatus from '@/pages/ApprovalStatus';
 function AppContent() {
   const { isLoggedIn, currentPage } = useApp();
 
+  // Chưa đăng nhập -> Chỉ hiển thị trang Login độc lập
   if (!isLoggedIn) return <Login />;
 
   const pages: Record<string, React.ReactNode> = {
@@ -27,6 +28,7 @@ function AppContent() {
     'approval-status': <ApprovalStatus />,
   };
 
+  // Đã đăng nhập -> Hiển thị Layout Admin (có Sidebar, Header, Footer bên trong Layout nếu bạn muốn)
   return <Layout>{pages[currentPage]}</Layout>;
 }
 

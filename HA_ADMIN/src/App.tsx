@@ -4,6 +4,7 @@ import Layout from '@/components/layout/Layout';
 import Login from '@/pages/Login';
 import Dashboard from '@/pages/Dashboard';
 import POIManagement from '@/pages/POIManagement';
+import MerchantManagement from '@/pages/MerchantManagement';
 import AudioContent from '@/pages/AudioContent';
 import ListeningHistory from '@/pages/ListeningHistory';
 import Analytics from '@/pages/Analytics';
@@ -34,6 +35,7 @@ function AppContent() {
   const pages: Record<string, React.ReactNode> = {
     dashboard: <Dashboard />,
     poi: <POIManagement />,
+    merchants: <MerchantManagement />,
     audio: <AudioContent />,
     history: <ListeningHistory />,
     analytics: <Analytics />,
