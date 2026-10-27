@@ -1,4 +1,4 @@
--- =====================================================================
+﻿-- =====================================================================
 -- hoian_database.sql  (BẢN VIẾT LẠI)
 -- HỆ THỐNG THUYẾT MINH TỰ ĐỘNG ĐA NGÔN NGỮ - PHỐ CỔ HỘI AN
 -- PostgreSQL 16 | 19 bảng | khớp ERD (đã gồm 5 cột hiển thị của poi/poi_revision)
@@ -31,7 +31,7 @@ BEGIN;
 -- ---------- XÓA BẢNG CŨ (cho phép chạy lại nhiều lần) ----------
 DROP TABLE IF EXISTS
     payment, listen_log, audio, voice, translation, poi_image, poi_revision, poi,
-    merchant_image, guest_session, language, action_log, notification,
+    merchant_image, guest_session, language, action_log,
     merchant, account, role_permission, role, config, daily_statistic,
     -- các bảng không còn trong thiết kế
     users_online, access_session, qr_code, menu_item
@@ -300,7 +300,7 @@ CREATE INDEX idx_account_role            ON account(role_id);
 CREATE INDEX idx_merchant_reviewed_by    ON merchant(reviewed_by);
 CREATE INDEX idx_merchant_approval       ON merchant(approval_status);
 CREATE INDEX idx_merchant_image_merchant ON merchant_image(merchant_id, order_num);
-CREATE INDEX idx_notification_account    ON notification(account_id, is_read);
+
 CREATE INDEX idx_action_log_account      ON action_log(account_id, performed_at DESC);
 
 -- POI & nội dung
