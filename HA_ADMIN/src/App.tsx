@@ -3,11 +3,11 @@ import { ToastProvider } from '@/components/toast/ToastProvider';
 import Layout from '@/components/layout/Layout';
 import Login from '@/pages/Login';
 import Dashboard from '@/pages/Dashboard';
+import Accounts from '@/pages/Accounts';
 import POIManagement from '@/pages/POIManagement';
 import AudioContent from '@/pages/AudioContent';
+import MerchantManagement from '@/pages/MerchantManagement';
 import ListeningHistory from '@/pages/ListeningHistory';
-import Analytics from '@/pages/Analytics';
-import Heatmap from '@/pages/Heatmap';
 import Reports from '@/pages/Reports';
 import Settings from '@/pages/Settings';
 
@@ -33,16 +33,16 @@ function AppContent() {
 
   const pages: Record<string, React.ReactNode> = {
     dashboard: <Dashboard />,
+    accounts: <Accounts />,
     poi: <POIManagement />,
     audio: <AudioContent />,
+    merchants: <MerchantManagement />,
     history: <ListeningHistory />,
-    analytics: <Analytics />,
-    heatmap: <Heatmap />,
     reports: <Reports />,
     settings: <Settings />,
   };
 
-  return <Layout>{pages[currentPage]}</Layout>;
+  return <Layout>{pages[currentPage] || <Dashboard />}</Layout>;
 }
 
 export default function App() {

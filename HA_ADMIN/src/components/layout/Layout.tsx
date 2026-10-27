@@ -15,7 +15,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   const { sidebarCollapsed } = useApp();
 
   return (
-    <div className="flex min-h-screen bg-[#f8f7f4]">
+    <div className="flex min-h-screen bg-[#f0f3f6]">
       <Sidebar />
       <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-0' : 'lg:ml-0'}`}>
         <Topbar

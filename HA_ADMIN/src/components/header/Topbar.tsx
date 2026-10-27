@@ -1,18 +1,16 @@
 import { Menu } from 'lucide-react';
 import { useApp } from '@/hooks/useApp';
-import SearchDropdown from './SearchDropdown';
-import NotificationDropdown from './NotificationDropdown';
 import ProfileDropdown from './ProfileDropdown';
 
 const pageNames: Record<string, string> = {
-  dashboard: 'Tổng quan',
-  poi: 'Quản lý điểm tham quan',
-  audio: 'Quản lý nội dung thuyết minh',
-  history: 'Lịch sử nghe',
-  analytics: 'Thống kê & phân tích',
-  heatmap: 'Bản đồ nhiệt',
-  reports: 'Báo cáo',
-  settings: 'Cài đặt hệ thống',
+  dashboard: 'Tổng quan hệ thống',
+  accounts: 'Quản lý tài khoản quản trị',
+  poi: 'Điểm tham quan di sản (POI)',
+  audio: 'Bản dịch & Thuyết minh audio',
+  merchants: 'Duyệt hồ sơ gian hàng',
+  history: 'Nhật ký nghe thuyết minh',
+  reports: 'Báo cáo & Thống kê',
+  settings: 'Cấu hình hệ thống',
 };
 
 interface TopbarProps {
@@ -26,7 +24,7 @@ export default function Topbar({ onProfile, onChangePassword, onAccountSettings,
   const { currentPage, setMobileSidebarOpen } = useApp();
 
   return (
-    <header className="sticky top-0 z-30 bg-white border-b border-brown-100 h-16 flex items-center justify-between px-4 lg:px-6 gap-4">
+    <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-brown-100 h-16 flex items-center justify-between px-4 lg:px-6">
       <div className="flex items-center gap-3">
         <button
           onClick={() => setMobileSidebarOpen(true)}
@@ -34,18 +32,14 @@ export default function Topbar({ onProfile, onChangePassword, onAccountSettings,
         >
           <Menu className="w-5 h-5" />
         </button>
-        <div className="hidden sm:flex items-center gap-2 text-sm">
-          <span className="text-brown-400">Trang chủ</span>
+        <div className="flex items-center gap-2 text-sm">
+          <span className="text-brown-400 font-medium">Cổng Quản Trị</span>
           <span className="text-brown-300">/</span>
-          <span className="font-semibold text-brown-800">{pageNames[currentPage]}</span>
+          <span className="font-bold text-brown-900 tracking-tight">{pageNames[currentPage] || 'Bảng điều khiển'}</span>
         </div>
       </div>
 
-      <div className="flex items-center gap-2 sm:gap-3">
-        <div className="hidden md:block w-48 lg:w-72">
-          <SearchDropdown />
-        </div>
-        <NotificationDropdown />
+      <div className="flex items-center gap-3">
         <ProfileDropdown
           onProfile={onProfile}
           onChangePassword={onChangePassword}
