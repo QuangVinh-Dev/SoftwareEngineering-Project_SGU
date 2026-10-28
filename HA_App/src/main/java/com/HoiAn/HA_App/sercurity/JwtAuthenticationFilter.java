@@ -69,9 +69,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static boolean isServiceProtectedRequest(HttpServletRequest request) {
         String path = request.getRequestURI().substring(request.getContextPath().length());
-        boolean protectedApi = "GET".equals(request.getMethod())
+        boolean protectedApi = ("GET".equals(request.getMethod())
                 && ("/api/poi/locations".equals(path)
-                    || path.matches("/api/poi/[^/]+/audio"));
+                    || path.matches("/api/poi/[^/]+/audio")))
+                || ("POST".equals(request.getMethod())
+                    && path.matches("/api/poi/[^/]+/listening"));
         boolean protectedAudio = path.startsWith("/uploads/audio/")
                 && !path.startsWith("/uploads/audio/merchant-images/");
         return protectedApi || protectedAudio;

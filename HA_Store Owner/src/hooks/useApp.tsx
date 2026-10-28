@@ -1,7 +1,7 @@
-import { createContext, useContext, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useState, type ReactNode } from 'react';
 import type { AuthUser } from '@/services/authApi';
 
-type PageKey = 'dashboard' | 'my-poi' | 'submit-poi' | 'edit-poi' | 'audio' | 'stats' | 'account' | 'approval-status';
+type PageKey = 'dashboard' | 'my-poi' | 'edit-poi' | 'stats' | 'account' | 'approval-status';
 
 interface AppState {
   currentPage: PageKey;
@@ -60,14 +60,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setAuthUser(user);
   };
 
-  const signOut = () => {
+  const signOut = useCallback(() => {
     localStorage.removeItem('ha_auth_token');
     localStorage.removeItem('ha_auth_user');
     sessionStorage.removeItem('ha_auth_token');
     sessionStorage.removeItem('ha_auth_user');
     setAuthToken(null);
     setAuthUser(null);
-  };
+  }, []);
 
   return (
     <AppContext.Provider value={{

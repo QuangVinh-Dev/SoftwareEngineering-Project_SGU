@@ -1,11 +1,11 @@
 import { useApp } from '@/hooks/useApp';
 import { classNames } from '@/utils/helpers';
 import {
-  LayoutDashboard, User, FileCheck, MapPin, Send, Edit3, Headphones,
+  LayoutDashboard, User, FileCheck, MapPin, Edit3,
   BarChart3, ChevronLeft, ChevronRight, Volume2, Store,
 } from 'lucide-react';
 
-type PageKey = 'dashboard' | 'my-poi' | 'submit-poi' | 'edit-poi' | 'audio' | 'stats' | 'account' | 'approval-status';
+type PageKey = 'dashboard' | 'my-poi' | 'edit-poi' | 'stats' | 'account' | 'approval-status';
 
 interface NavItem {
   key: PageKey;
@@ -24,9 +24,7 @@ const accountItems: NavItem[] = [
 
 const poiItems: NavItem[] = [
   { key: 'my-poi', label: 'POI của tôi', icon: MapPin },
-  { key: 'submit-poi', label: 'Gửi POI mới', icon: Send },
   { key: 'edit-poi', label: 'Chỉnh sửa POI', icon: Edit3 },
-  { key: 'audio', label: 'Nội dung audio', icon: Headphones },
 ];
 
 const statsItems: NavItem[] = [

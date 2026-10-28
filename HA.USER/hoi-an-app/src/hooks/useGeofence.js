@@ -182,7 +182,8 @@ export function usePoiLocation({ enabled = true, currentLang = 'VI', openPlayerF
     playedAudioKeys.current.add(key);
     lastAudioKey.current = key;
     console.log('[usePoiLocation] Loading audio for POI/language:', key);
-    playPoiAudio(currentPoi, currentLang, openPlayerRef.current, () => lastAudioKey.current === key);
+    playPoiAudio(currentPoi, currentLang, openPlayerRef.current, () => lastAudioKey.current === key,
+      { triggerMethod: 'AUTO_GPS' });
   }, [currentPoi, currentLang, enabled]);
 
   // ----------------------------------------------------------------

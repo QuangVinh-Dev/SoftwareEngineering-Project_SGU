@@ -45,6 +45,20 @@ public class AudioRepository {
                 """, rs -> rs.next() ? Optional.of(rs.getInt("id")) : Optional.empty(), poiId, languageCode);
     }
 
+    public boolean isApprovedAudioForPoi(Integer poiId, Integer audioId, String languageCode) {
+        Integer count = jdbcTemplate.queryForObject("""
+                SELECT COUNT(*)
+                FROM audio a
+                JOIN translation t ON t.id = a.translation_id
+                JOIN language l ON l.code = t.language_code
+                JOIN voice v ON v.id = a.voice_id
+                WHERE a.id = ? AND t.poi_id = ? AND t.language_code = ?
+                  AND t.status = 'APPROVED' AND l.is_active = TRUE AND v.is_active = TRUE
+                  AND v.language_code = t.language_code
+                """, Integer.class, audioId, poiId, languageCode);
+        return count != null && count > 0;
+    }
+
     public boolean isActiveVoiceForLanguage(Integer voiceId, String languageCode) {
         Integer count = jdbcTemplate.queryForObject("""
                 SELECT COUNT(*) FROM voice

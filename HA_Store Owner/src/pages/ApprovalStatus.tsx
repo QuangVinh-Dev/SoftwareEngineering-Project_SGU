@@ -179,7 +179,7 @@ export default function ApprovalStatus() {
             </table>
           </div>
           <div className="p-4 border-t border-brown-100">
-            <Button variant="secondary" size="sm" onClick={() => setCurrentPage('submit-poi')} icon={<Send className="w-3.5 h-3.5" />}>Gửi POI mới</Button>
+            <Button variant="secondary" size="sm" onClick={() => setCurrentPage('my-poi')}>Quản lý POI</Button>
           </div>
         </Card>
       </div>

@@ -26,7 +26,23 @@ export function resolveAudioUrl(filePath) {
   return new URL(filePath, `${baseUrl}/`).toString();
 }
 
-export async function playPoiAudio(poi, language, openPlayerFn, isCurrent = () => true, { signal } = {}) {
+export async function recordPoiListening(poiId, audioId, languageCode, triggerMethod) {
+  const { token } = readServiceAccess();
+  if (!token) throw new Error('Quyền sử dụng dịch vụ chưa được xác minh.');
+  const response = await fetch(`${API_BASE_URL}/api/poi/${encodeURIComponent(poiId)}/listening`, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'X-Service-Token': token,
+    },
+    body: JSON.stringify({ audioId, languageCode, triggerMethod }),
+  });
+  if (!response.ok) throw new Error(`Listening log API failed (HTTP ${response.status})`);
+}
+
+export async function playPoiAudio(poi, language, openPlayerFn, isCurrent = () => true,
+  { signal, triggerMethod = 'TAP' } = {}) {
   if (!poi || !openPlayerFn) return;
   const lang = String(language || 'VI').toUpperCase();
   try {
@@ -55,6 +71,10 @@ export async function playPoiAudio(poi, language, openPlayerFn, isCurrent = () =
       languageName: audio.languageName,
       voiceName: audio.voiceName,
       durationSeconds: audio.durationSeconds,
+      onPlaybackStart: () => {
+        recordPoiListening(poi.id, audio.id, requestedCode, triggerMethod)
+          .catch((error) => console.warn('[audioService] Unable to record listening:', error));
+      },
     });
   } catch (error) {
     if (error?.name === 'AbortError') return;

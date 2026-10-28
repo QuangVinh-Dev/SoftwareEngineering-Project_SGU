@@ -25,6 +25,8 @@ export function usePlayer() {
   const [title, setTitle] = useState('—');
   const [meta, setMeta] = useState('');
   const audioRef = useRef(null);
+  const playbackStartCallbackRef = useRef(null);
+  const playbackRecordedRef = useRef(false);
 
   const openPlayer = useCallback((name, langCode, _poiId, audioUrl, options = {}) => {
     const language = String(langCode || 'VI').toUpperCase();
@@ -37,6 +39,8 @@ export function usePlayer() {
     setProgress(0);
     setCurrentTime(0);
     setDuration(Number(options.durationSeconds) || 0);
+    playbackStartCallbackRef.current = options.onPlaybackStart || null;
+    playbackRecordedRef.current = false;
 
     if (options.loading) {
       setMeta(`${LANG_LABEL[language] || language} · Đang tải audio`);
@@ -61,6 +65,12 @@ export function usePlayer() {
     player.onloadedmetadata = () => {
       if (Number.isFinite(player.duration)) setDuration(player.duration);
       setIsLoading(false);
+    };
+    player.onplaying = () => {
+      setIsPlaying(true);
+      if (playbackRecordedRef.current) return;
+      playbackRecordedRef.current = true;
+      playbackStartCallbackRef.current?.();
     };
     player.ontimeupdate = () => {
       setCurrentTime(player.currentTime || 0);
