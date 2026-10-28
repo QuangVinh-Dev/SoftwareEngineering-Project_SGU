@@ -53,6 +53,7 @@ public class SecurityConfig {
                         .requestMatchers("/uploads/audio/merchant-images/**").permitAll()
                         .requestMatchers("/uploads/audio/**")
                             .hasAnyAuthority("SERVICE_ACCESS", "ROLE_ADMIN")
+                        .requestMatchers("/api/public/visitor/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register/merchant").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/payments", "/api/payments/claim",
                                 "/api/payments/vnpay/return").permitAll()
@@ -92,7 +93,7 @@ public class SecurityConfig {
                 .toList();
 
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(origins);
+        config.setAllowedOriginPatterns(List.of("*"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);

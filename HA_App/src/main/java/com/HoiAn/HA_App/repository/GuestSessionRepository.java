@@ -1,6 +1,7 @@
 package com.HoiAn.HA_App.repository;
 
 import com.HoiAn.HA_App.entity.GuestSession;
+import java.time.LocalDateTime;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -22,4 +23,12 @@ public interface GuestSessionRepository extends JpaRepository<GuestSession, Inte
     void upsert(@Param("deviceId") String deviceId,
                 @Param("languageCode") String languageCode,
                 @Param("device") String device);
+
+    @Query("SELECT COUNT(g) FROM GuestSession g WHERE g.lastActiveAt >= :since")
+    long countActiveVisitors(@Param("since") LocalDateTime since);
+
+    @Modifying
+    @Transactional
+    @Query("UPDATE GuestSession g SET g.lastActiveAt = :offlineTime WHERE g.anonymousDeviceId = :deviceId")
+    void markOffline(@Param("deviceId") String deviceId, @Param("offlineTime") LocalDateTime offlineTime);
 }

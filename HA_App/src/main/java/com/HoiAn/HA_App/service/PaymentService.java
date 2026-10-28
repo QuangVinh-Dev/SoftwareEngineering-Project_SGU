@@ -350,6 +350,9 @@ public class PaymentService {
         // Thiếu/malformed kết quả không phải là bằng chứng giao dịch thất bại.
         String responseCode = params.get("vnp_ResponseCode");
         String transactionStatus = params.get("vnp_TransactionStatus");
+        if (transactionStatus == null || transactionStatus.trim().isEmpty()) {
+            transactionStatus = responseCode;
+        }
         if (responseCode == null || !responseCode.matches("[0-9]{2}")
                 || transactionStatus == null || !transactionStatus.matches("[0-9]{2}")) {
             return ipnResult("99", "Invalid transaction result");

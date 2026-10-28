@@ -22,6 +22,7 @@ import MapPage from './components/MapPage';
 import AllPoisPage from './components/AllPoisPage';
 import Player from './components/Player';
 import PaymentGate from './components/PaymentGate';
+import { startVisitorTracking } from './services/visitorTracker';
 
 function formatRemainingTime(seconds) {
   const total = Math.max(0, Math.ceil(Number(seconds) || 0));
@@ -118,6 +119,10 @@ export default function App() {
   const [mapOpen, setMapOpen] = useState(false);
   const [allOpen, setAllOpen] = useState(false);
   const [mapFocusPoi, setMapFocusPoi] = useState(null);
+
+  useEffect(() => {
+    return startVisitorTracking();
+  }, []);
 
   const unlocked = access.status === 'active';
 
