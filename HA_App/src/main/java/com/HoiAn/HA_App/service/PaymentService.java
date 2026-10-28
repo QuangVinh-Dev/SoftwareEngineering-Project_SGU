@@ -81,6 +81,12 @@ public class PaymentService {
     @Transactional
     public CreatePaymentResponse createPayment(
             String clientIp, String anonymousDeviceId, String languageCode, String device) {
+        return createPayment(clientIp, anonymousDeviceId, languageCode, device, null);
+    }
+
+    @Transactional
+    public CreatePaymentResponse createPayment(
+            String clientIp, String anonymousDeviceId, String languageCode, String device, String customReturnUrl) {
         validatePaymentConfiguration();
         var guestSession = guestSessionService.registerOrUpdate(
                 anonymousDeviceId, languageCode, device);
@@ -122,7 +128,8 @@ public class PaymentService {
         Map<String, String> params = buildPaymentParams(
                 txnRef,
                 amount,
-                clientIp
+                clientIp,
+                customReturnUrl
         );
 
         // 6. Ký tham số và tạo URL thanh toán.
@@ -156,7 +163,8 @@ public class PaymentService {
     private Map<String, String> buildPaymentParams(
             String txnRef,
             BigDecimal amount,
-            String clientIp
+            String clientIp,
+            String customReturnUrl
     ) {
         long vnpAmount = amount
                 .multiply(new BigDecimal("100"))
@@ -181,8 +189,11 @@ public class PaymentService {
         params.put("vnp_ExpireDate",
                 expireAt.format(VNPAY_DATE_FORMAT));
         params.put("vnp_IpAddr", normalizeIp(clientIp));
-        params.put("vnp_ReturnUrl",
-                vnpayProperties.returnUrl());
+
+        String effectiveReturnUrl = (customReturnUrl != null && !customReturnUrl.isBlank() && isAbsolutePaymentUrl(customReturnUrl, false))
+                ? customReturnUrl
+                : vnpayProperties.returnUrl();
+        params.put("vnp_ReturnUrl", effectiveReturnUrl);
 
         return params;
     }

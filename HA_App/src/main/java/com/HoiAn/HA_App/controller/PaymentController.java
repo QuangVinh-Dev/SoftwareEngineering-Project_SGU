@@ -67,11 +67,13 @@ public class PaymentController {
     ) {
         String clientIp = resolveClientIp(request);
         String guestId = resolveGuestSessionId(request, response);
+        String customReturnUrl = resolveReturnUrl(request);
         return paymentService.createPayment(
                 clientIp,
                 guestId,
                 resolveLanguage(request.getHeader("Accept-Language")),
-                classifyDevice(request.getHeader("User-Agent"))
+                classifyDevice(request.getHeader("User-Agent")),
+                customReturnUrl
         );
     }
 
@@ -312,5 +314,24 @@ public class PaymentController {
         } catch (Exception ex) {
             return null;
         }
+    }
+
+    private String resolveReturnUrl(HttpServletRequest request) {
+        String custom = request.getHeader("X-Return-Url");
+        if (custom != null && !custom.isBlank()) {
+            return custom.trim();
+        }
+        String origin = request.getHeader("Origin");
+        if (origin != null && !origin.isBlank() && !origin.equalsIgnoreCase("null")) {
+            return origin.trim();
+        }
+        String referer = request.getHeader("Referer");
+        if (referer != null && !referer.isBlank()) {
+            try {
+                java.net.URI uri = java.net.URI.create(referer);
+                return uri.getScheme() + "://" + uri.getAuthority();
+            } catch (Exception ignored) {}
+        }
+        return null;
     }
 }
