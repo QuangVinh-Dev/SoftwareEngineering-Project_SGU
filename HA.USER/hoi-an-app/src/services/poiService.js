@@ -50,13 +50,9 @@ export function normalizePoi(poi) {
  */
 export async function getPoiLocations() {
   try {
-    const { token } = readServiceAccess();
-    const headers = { Accept: 'application/json' };
-    if (token) {
-      headers['X-Service-Token'] = token;
-    }
-
-    const res = await fetch(`${API_BASE_URL}/api/poi/locations`, { headers });
+    const res = await fetch(`${API_BASE_URL}/api/poi/locations`, {
+      headers: { Accept: 'application/json' },
+    });
 
     if (res.ok) {
       const data = await res.json();
