@@ -9,7 +9,7 @@ import {
   savePendingPayment,
 } from '../services/paymentService';
 
-const PENDING_POLL_MS = 3000;
+const PENDING_POLL_MS = 2500;
 
 function formatMoney(value, currency = 'VND') {
   const amount = Number(value);
@@ -42,65 +42,84 @@ export default function PaymentGate({ onUnlock, accessStatus = 'missing', access
     else if (phase === 'checking-access' || phase === 'access-error') setPhase('ready');
   }, [accessStatus, phase]);
 
-  useEffect(() => {
-    if (accessStatus === 'checking' || accessStatus === 'unavailable') return;
-    const pending = readPendingPayment();
-    if (!pending) return;
-
-    setPayment({ ...pending, paymentUrl: null, amount: null, currency: 'VND' });
-    setPhase('pending');
-    const query = new URLSearchParams(window.location.search);
-    const returnedTxn = query.get('vnp_TxnRef');
-    const responseCode = query.get('vnp_ResponseCode');
-    if (responseCode && responseCode !== '00') {
-      setGatewayReturnedFailure(true);
-      setReturnNotice('VNPay trả về kết quả không thành công. Đang chờ Backend xác nhận trạng thái cuối cùng.');
-    }
-    if (returnedTxn) {
-      if (returnedTxn !== pending.txnRef) {
-        setReturnNotice('Thông tin trả về không khớp giao dịch đang chờ; hệ thống chỉ kiểm tra giao dịch đã tạo trong phiên này.');
-      } else if (!responseCode || responseCode === '00') {
-        setReturnNotice('Đã quay lại từ VNPay. Hệ thống đang xác minh giao dịch.');
-      }
-      window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
-
-      const returnParams = {};
-      query.forEach((value, key) => {
-        if (key.startsWith('vnp_')) returnParams[key] = value;
-      });
-      confirmVnPayReturn(returnParams).then((result) => {
-        if (!result.verified) {
-          setError(result.message || 'Backend không xác minh được kết quả VNPay trả về.');
-        } else if (result.status === 'PAID') {
-          setReturnNotice('Backend đã xác minh giao dịch thành công. Đang kích hoạt quyền sử dụng.');
-        } else if (result.status === 'FAILED') {
-          setReturnNotice('Backend đã xác minh giao dịch không thành công.');
-        }
-      }).catch((returnError) => {
-        setError(returnError.message || 'Không thể gửi kết quả VNPay về Backend để xác minh.');
-      });
-    }
-  }, [accessStatus]);
-
   const finishPaidPayment = useCallback(async (current) => {
+    const target = current || readPendingPayment();
+    if (!target?.claimSecret || !target?.txnRef) {
+      console.warn('[PaymentGate] finishPaidPayment missing target or claimSecret:', target);
+      return;
+    }
     if (pollInFlight.current) return;
     pollInFlight.current = true;
     setPhase('claiming');
     setError('');
+
     try {
-      const claimed = await claimPayment(current.claimSecret);
+      console.log('[PaymentGate] Claiming access token for txn:', target.txnRef);
+      const claimed = await claimPayment(target.claimSecret);
       if (!claimed.accessToken) throw new Error('Backend chưa trả access token dịch vụ.');
-      const activated = await onUnlock(claimed.accessToken, current.txnRef);
+
+      console.log('[PaymentGate] Activating unlocked tour with token...');
+      const activated = await onUnlock(claimed.accessToken, target.txnRef);
       if (!activated) throw new Error('Thanh toán đã xác nhận nhưng chưa thể xác minh quyền sử dụng. Hãy thử tải lại trạng thái.');
+
       clearPendingPayment();
       setPhase('success');
+      console.log('[PaymentGate] Tour unlocked successfully!');
     } catch (claimError) {
+      console.error('[PaymentGate] Error in finishPaidPayment:', claimError);
       setError(claimError.message || 'Chưa thể nhận quyền sử dụng.');
       setPhase('pending');
     } finally {
       pollInFlight.current = false;
     }
   }, [onUnlock]);
+
+  useEffect(() => {
+    if (accessStatus === 'checking' || accessStatus === 'unavailable') return;
+    const pending = readPendingPayment();
+    const query = new URLSearchParams(window.location.search);
+    const returnedTxn = query.get('vnp_TxnRef');
+    const responseCode = query.get('vnp_ResponseCode');
+
+    if (!pending && !returnedTxn) return;
+
+    if (pending) {
+      setPayment({ ...pending, paymentUrl: null, amount: null, currency: 'VND' });
+      setPhase('pending');
+    }
+
+    if (returnedTxn) {
+      if (responseCode && responseCode !== '00') {
+        setGatewayReturnedFailure(true);
+        setReturnNotice('VNPay trả về kết quả không thành công.');
+      } else {
+        setReturnNotice('Đã quay lại từ VNPay. Hệ thống đang xác minh giao dịch...');
+      }
+
+      const returnParams = {};
+      query.forEach((value, key) => {
+        if (key.startsWith('vnp_')) returnParams[key] = value;
+      });
+
+      // Xóa query param trên thanh URL để nhìn gọn gàng
+      window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
+
+      confirmVnPayReturn(returnParams).then(async (result) => {
+        console.log('[PaymentGate] VNPay return verification result:', result);
+        if (!result.verified) {
+          setError(result.message || 'Backend không xác minh được kết quả VNPay trả về.');
+        } else if (result.status === 'PAID') {
+          setReturnNotice('Backend đã xác minh giao dịch thành công. Đang kích hoạt quyền sử dụng...');
+          await finishPaidPayment(pending || { txnRef: returnedTxn, claimSecret: pending?.claimSecret });
+        } else if (result.status === 'FAILED') {
+          setReturnNotice('Backend đã xác minh giao dịch không thành công.');
+        }
+      }).catch((returnError) => {
+        console.error('[PaymentGate] confirmVnPayReturn error:', returnError);
+        setError(returnError.message || 'Không thể gửi kết quả VNPay về Backend để xác minh.');
+      });
+    }
+  }, [accessStatus, finishPaidPayment]);
 
   useEffect(() => {
     if (phase !== 'pending' || !payment?.txnRef || !payment?.claimSecret) return undefined;
@@ -163,8 +182,12 @@ export default function PaymentGate({ onUnlock, accessStatus = 'missing', access
       savePendingPayment({ txnRef: next.txnRef, claimSecret: next.claimSecret, createdAt: next.createdAt });
       setPayment(next);
       setPhase('pending');
-      if (!next.paymentUrl) {
-        setError('Backend trả về URL thanh toán không hợp lệ. Giao dịch vẫn được kiểm tra an toàn.');
+
+      if (next.paymentUrl) {
+        // Tự động chuyển hướng sang cổng VNPay ngay lập tức
+        window.location.href = next.paymentUrl;
+      } else {
+        setError('Backend trả về URL thanh toán không hợp lệ.');
       }
     } catch (createError) {
       setPhase('error');
@@ -207,7 +230,7 @@ export default function PaymentGate({ onUnlock, accessStatus = 'missing', access
         ) : phase === 'success' ? (
           <>
             <h2 className="pg__section-title">Thanh toán thành công</h2>
-            <p className="pg__message">Backend đã xác nhận giao dịch và kích hoạt quyền sử dụng.</p>
+            <p className="pg__message">Đã kích hoạt quyền sử dụng. Đang chuyển vào trang chủ…</p>
           </>
         ) : (
           <>
@@ -231,8 +254,8 @@ export default function PaymentGate({ onUnlock, accessStatus = 'missing', access
               <div className="pg__payment-state" role="status">
                 <span className="pg__spinner" aria-hidden="true" />
                 <div>
-                  <strong>{phase === 'claiming' ? 'Đang kích hoạt quyền sử dụng' : 'Đang chờ VNPay xác nhận'}</strong>
-                  <p>{returnNotice || 'Trạng thái được xác minh định kỳ với Backend. Không đóng trang cho đến khi hệ thống cập nhật.'}</p>
+                  <strong>{phase === 'claiming' ? 'Đang kích hoạt quyền sử dụng' : 'Đang xử lý với cổng VNPay'}</strong>
+                  <p>{returnNotice || 'Trạng thái được xác minh tự động với Backend. Vui lòng không đóng trang.'}</p>
                 </div>
               </div>
             )}
@@ -246,7 +269,7 @@ export default function PaymentGate({ onUnlock, accessStatus = 'missing', access
                 </button>
               )}
               {phase === 'creating' && (
-                <button type="button" className="pg__btn" disabled>Đang khởi tạo giao dịch…</button>
+                <button type="button" className="pg__btn" disabled>Đang chuyển hướng sang VNPay…</button>
               )}
               {phase === 'error' && (
                 <button type="button" className="pg__btn" onClick={startPayment}>Thử tạo giao dịch lại</button>
@@ -257,15 +280,12 @@ export default function PaymentGate({ onUnlock, accessStatus = 'missing', access
               {phase === 'failed' && (
                 <button type="button" className="pg__secondary-btn" onClick={retryPayment}>Thử thanh toán lại</button>
               )}
-              {phase === 'pending' && gatewayReturnedFailure && (
-                <p className="pg__message">Chưa bắt đầu giao dịch mới để tránh thu tiền trùng khi Backend chưa xác nhận kết quả.</p>
-              )}
             </div>
 
             <ol className="pg__steps">
-              <li>Backend tạo giao dịch và xác định số tiền.</li>
-              <li>Hoàn tất thanh toán trên cổng VNPay Sandbox.</li>
-              <li>Quay lại trang này để Backend xác minh và cấp quyền.</li>
+              <li>Bấm nút bắt đầu để chuyển sang cổng VNPay Sandbox.</li>
+              <li>Nhập thông tin thẻ test và hoàn tất thanh toán.</li>
+              <li>Hệ thống tự động kích hoạt và mở khóa bản đồ di tích ngay lập tức.</li>
             </ol>
           </>
         )}

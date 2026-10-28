@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { API_BASE_URL } from '@/services/authApi';
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell
@@ -70,6 +71,31 @@ const recentActivities = [
 export default function Dashboard() {
   const { setCurrentPage } = useApp();
   const [cycle, setCycle] = useState<'day' | 'week' | 'month'>('week');
+  const [onlineVisitors, setOnlineVisitors] = useState<number>(0);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchOnlineCount = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/public/visitor/count`);
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted && typeof data.onlineCount === 'number') {
+            setOnlineVisitors(data.onlineCount);
+          }
+        }
+      } catch {
+        // fallback ignore
+      }
+    };
+
+    fetchOnlineCount();
+    const interval = setInterval(fetchOnlineCount, 3000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -89,9 +115,11 @@ export default function Dashboard() {
             </span>
           </div>
           <div className="mt-4 flex items-baseline gap-2">
-            <span className="text-4xl font-extrabold text-[#183a54] tracking-tight">1,546</span>
+            <span className="text-4xl font-extrabold text-[#183a54] tracking-tight">
+              {onlineVisitors.toLocaleString()}
+            </span>
             <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">
-              +12.5%
+              {onlineVisitors > 0 ? `${onlineVisitors} thiết bị` : 'Chờ kết nối'}
             </span>
           </div>
           <p className="text-xs text-slate-400 mt-2">
