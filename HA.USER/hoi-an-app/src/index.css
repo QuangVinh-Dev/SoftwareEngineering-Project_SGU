@@ -1254,21 +1254,6 @@ html[lang="ko"] .h-hero span:last-child{
   padding-bottom:.4rem;
   border-bottom:var(--b1) solid var(--fg);
 }
-.poi-modal__video{
-  position:relative;
-  width:100%;
-  aspect-ratio:16/9;
-  border:var(--b2) solid var(--fg);
-  box-shadow:5px 5px 0 var(--accent);
-  background:#000;
-}
-.poi-modal__video iframe{
-  position:absolute;
-  inset:0;
-  width:100%;
-  height:100%;
-  border:0;
-}
 .audio-langs{
   display:grid;
   grid-template-columns:repeat(2,1fr);
@@ -1347,7 +1332,6 @@ html[lang="ko"] .h-hero span:last-child{
   .poi-modal__name{font-size:clamp(1.5rem,3vw,2.2rem)}
   .poi-modal__desc{font-size:.875rem;line-height:1.65}
   .poi-modal__body{padding:1.75rem 1.5rem;gap:1.75rem}
-  .poi-modal__video{box-shadow:6px 6px 0 var(--accent)}
   .audio-langs{grid-template-columns:repeat(4,1fr)}
   .audio-lang{padding:.875rem .5rem}
   .audio-lang__flag .flag{width:34px;height:22px}
@@ -1359,7 +1343,6 @@ html[lang="ko"] .h-hero span:last-child{
 @media(min-width:768px){
   .poi-modal__info{padding:2rem 1.75rem}
   .poi-modal__body{padding:2rem 1.75rem;gap:2rem}
-  .poi-modal__video{box-shadow:8px 8px 0 var(--accent)}
   .audio-langs{grid-template-columns:repeat(5,1fr)}
   .audio-lang__flag .flag{width:36px;height:24px}
 }
@@ -7670,10 +7653,6 @@ html[data-reduce-motion="true"] .hero__cta:hover {
     font-size: 0.625rem;
     letter-spacing: 0.15em;
     margin-bottom: 0.625rem;
-  }
-
-  .poi-modal__video {
-    box-shadow: 4px 4px 0 var(--accent);
   }
 
   /* Audio langs — 2 cột trên mobile */
