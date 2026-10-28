@@ -4,12 +4,12 @@
 const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL;
 
 function resolveApiBaseUrl() {
-  if (typeof window !== 'undefined' && window.location && window.location.hostname) {
-    const host = window.location.hostname;
-    // Nếu truy cập từ IP mạng LAN (ví dụ 192.168.x.x trên điện thoại hoặc máy khác), gọi backend theo IP đó
-    if (host !== 'localhost' && host !== '127.0.0.1') {
-      return `http://${host}:9999`;
-    }
+  // Khi chạy trên trình duyệt (kể cả máy tính hay điện thoại qua mạng LAN):
+  // Dùng relative path '' để mọi request đi qua chính port của web (5173),
+  // qua Vite proxy chuyển tiếp về backend 9999 ngầm.
+  // Nhờ đó điện thoại không bao giờ bị tường lửa Windows chặn cổng 9999.
+  if (typeof window !== 'undefined' && window.location) {
+    return '';
   }
   return configuredBaseUrl || (import.meta.env.DEV ? 'http://localhost:9999' : '');
 }

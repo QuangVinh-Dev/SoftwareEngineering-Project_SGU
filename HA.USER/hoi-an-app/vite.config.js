@@ -5,6 +5,21 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
-    open: false
-  }
+    host: true,
+    open: false,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:9999',
+        changeOrigin: true,
+      },
+      '/uploads': {
+        target: 'http://localhost:9999',
+        changeOrigin: true,
+      },
+      '/poi-images': {
+        target: 'http://localhost:9999',
+        changeOrigin: true,
+      },
+    },
+  },
 });
