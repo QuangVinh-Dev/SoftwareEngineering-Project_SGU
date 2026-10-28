@@ -15,14 +15,14 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { key: 'dashboard', label: 'Tổng quan hệ thống', icon: LayoutDashboard },
-  { key: 'accounts', label: 'Tài khoản quản trị', icon: Users },
-  { key: 'poi', label: 'Điểm tham quan di sản', icon: MapPin },
-  { key: 'audio', label: 'Thuyết minh & Bản dịch', icon: Headphones },
-  { key: 'merchants', label: 'Duyệt hồ sơ gian hàng', icon: Store, badge: 'Mới' },
-  { key: 'history', label: 'Nhật ký nghe du khách', icon: Clock },
-  { key: 'reports', label: 'Báo cáo & Thống kê', icon: BarChart3 },
-  { key: 'settings', label: 'Cấu hình hệ thống', icon: Settings },
+  { key: 'dashboard', label: 'Tổng quan', icon: LayoutDashboard },
+  { key: 'accounts', label: 'Tài khoản', icon: Users },
+  { key: 'poi', label: 'Điểm tham quan', icon: MapPin },
+  { key: 'audio', label: 'Thuyết minh', icon: Headphones },
+  { key: 'merchants', label: 'Duyệt gian hàng', icon: Store, badge: 'Mới' },
+  { key: 'history', label: 'Nhật ký nghe', icon: Clock },
+  { key: 'reports', label: 'Báo cáo', icon: BarChart3 },
+  { key: 'settings', label: 'Cấu hình', icon: Settings },
 ];
 
 export default function Sidebar() {
@@ -55,10 +55,10 @@ export default function Sidebar() {
         </div>
 
         {/* Navigation Menu */}
-        <nav className="flex-1 overflow-y-auto scrollbar-thin py-4 px-3 space-y-1">
+        <nav className="flex-1 overflow-y-auto scrollbar-thin py-4 px-3 space-y-0.5">
           {!sidebarCollapsed && (
-            <p className="px-3 pb-2 text-[10px] font-bold uppercase tracking-widest text-[#7ea5c2]">
-              Menu Điều Hành
+            <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#7ea5c2]/70">
+              Menu
             </p>
           )}
 
@@ -70,27 +70,22 @@ export default function Sidebar() {
                 key={item.key}
                 onClick={() => { setCurrentPage(item.key); setMobileSidebarOpen(false); }}
                 className={classNames(
-                  'group relative w-full flex items-center justify-between px-3.5 py-2.5 text-sm font-medium transition-all rounded-xl',
+                  'group relative w-full flex items-center justify-between px-3 py-2 text-[13px] leading-5 transition-colors rounded-lg',
                   active
-                    ? 'text-white bg-[#286b7b] font-semibold shadow-md'
-                    : 'text-slate-300 hover:bg-[#204a6b] hover:text-white'
+                    ? 'text-white bg-[#286b7b] font-semibold shadow-sm'
+                    : 'text-slate-300/90 font-medium hover:bg-[#204a6b] hover:text-white'
                 )}
                 title={sidebarCollapsed ? item.label : undefined}
               >
-                <div className="flex items-center gap-3 min-w-0">
-                  <Icon className={classNames('w-5 h-5 flex-shrink-0 transition-colors', active ? 'text-white' : 'text-slate-400 group-hover:text-slate-200')} />
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <Icon className={classNames('w-[18px] h-[18px] flex-shrink-0 transition-colors', active ? 'text-white' : 'text-slate-400 group-hover:text-slate-200')} />
                   {!sidebarCollapsed && <span className="truncate">{item.label}</span>}
                 </div>
 
-                {!sidebarCollapsed && (
-                  <div className="flex items-center gap-1.5 flex-shrink-0">
-                    {item.badge && !active && (
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#a4db77] text-[#142e44]">
-                        {item.badge}
-                      </span>
-                    )}
-                    <ChevronRight className={classNames('w-4 h-4 transition-transform duration-200', active ? 'text-white translate-x-0.5' : 'text-slate-500 group-hover:text-slate-300 group-hover:translate-x-0.5')} />
-                  </div>
+                {!sidebarCollapsed && item.badge && !active && (
+                  <span className="px-1.5 py-[3px] rounded-full text-[9px] leading-none font-bold uppercase tracking-wide bg-[#a4db77] text-[#142e44]">
+                    {item.badge}
+                  </span>
                 )}
               </button>
             );
