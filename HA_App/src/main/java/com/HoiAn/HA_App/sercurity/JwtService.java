@@ -31,7 +31,7 @@ public class JwtService {
                       @Value("${app.jwt.issuer:hoian-api}") String issuer) {
         byte[] bytes = secret == null ? new byte[0] : secret.getBytes(StandardCharsets.UTF_8);
         if (bytes.length < 32) {
-            throw new IllegalStateException("app.jwt.secret (JWT_SECRET) phải dài tối thiểu 32 ký tự");
+            throw new IllegalArgumentException("app.jwt.secret (JWT_SECRET) phải dài tối thiểu 32 ký tự");
         }
         this.secret = bytes;
         this.ttlSeconds = expirationMinutes * 60;

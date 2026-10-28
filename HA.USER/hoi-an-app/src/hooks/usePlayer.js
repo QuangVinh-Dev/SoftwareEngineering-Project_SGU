@@ -1,18 +1,24 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from "react";
 
-const LANG_LABEL = { VI: 'Tiếng Việt', EN: 'English', ZH: '中文', JA: '日本語', KO: '한국어' };
+const LANG_LABEL = {
+  VI: "Tiếng Việt",
+  EN: "English",
+  ZH: "中文",
+  JA: "日本語",
+  KO: "한국어",
+};
 function releaseAudioSource(audio) {
   if (!audio) return;
-  const source = audio.getAttribute('src') || audio.src;
+  const source = audio.getAttribute("src") || audio.src;
   audio.pause();
-  audio.removeAttribute('src');
+  audio.removeAttribute("src");
   audio.load();
-  if (source?.startsWith('blob:')) URL.revokeObjectURL(source);
+  if (source?.startsWith("blob:")) URL.revokeObjectURL(source);
 }
 
 const formatTime = (seconds) => {
-  if (!Number.isFinite(seconds) || seconds < 0) return '00:00';
-  return `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
+  if (!Number.isFinite(seconds) || seconds < 0) return "00:00";
+  return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
 };
 
 export function usePlayer() {
@@ -22,81 +28,131 @@ export function usePlayer() {
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
-  const [title, setTitle] = useState('—');
-  const [meta, setMeta] = useState('');
+  const [title, setTitle] = useState("—");
+  const [meta, setMeta] = useState("");
   const audioRef = useRef(null);
+  const playbackStartCallbackRef = useRef(null);
+  const playbackRecordedRef = useRef(false);
 
-  const openPlayer = useCallback((name, langCode, _poiId, audioUrl, options = {}) => {
-    const language = String(langCode || 'VI').toUpperCase();
-    const audio = audioRef.current;
-    if (audio) releaseAudioSource(audio);
-    setTitle(name || '—');
-    setIsOpen(true);
-    setIsPlaying(false);
-    setIsLoading(false);
-    setProgress(0);
-    setCurrentTime(0);
-    setDuration(Number(options.durationSeconds) || 0);
-
-    if (options.loading) {
-      setMeta(`${LANG_LABEL[language] || language} · Đang tải audio`);
-      setIsLoading(true);
-      return;
-    }
-    if (options.empty) {
-      setMeta(`${LANG_LABEL[language] || language} · Không có audio cho địa điểm này`);
-      return;
-    }
-    if (options.error) {
-      setMeta(`${LANG_LABEL[language] || language} · Không tải được audio`);
-      return;
-    }
-    if (!audioUrl) {
-      setMeta(`${LANG_LABEL[language] || language} · Audio không hợp lệ`);
-      return;
-    }
-
-    const player = audio || new Audio();
-    audioRef.current = player;
-    player.onloadedmetadata = () => {
-      if (Number.isFinite(player.duration)) setDuration(player.duration);
-      setIsLoading(false);
-    };
-    player.ontimeupdate = () => {
-      setCurrentTime(player.currentTime || 0);
-      setProgress(player.duration ? (player.currentTime / player.duration) * 100 : 0);
-    };
-    player.onended = () => { setIsPlaying(false); setProgress(100); };
-    player.onerror = () => {
-      setIsLoading(false);
-      setIsPlaying(false);
-      setMeta(`${LANG_LABEL[language] || language} · Lỗi tải hoặc định dạng audio không hỗ trợ`);
-    };
-    player.src = audioUrl;
-    player.load();
-    setMeta([options.languageName || LANG_LABEL[language] || language, options.voiceName].filter(Boolean).join(' · '));
-    setIsLoading(true);
-    player.play().then(() => setIsPlaying(true)).catch((error) => {
+  const openPlayer = useCallback(
+    (name, langCode, _poiId, audioUrl, options = {}) => {
+      const language = String(langCode || "VI").toUpperCase();
+      const audio = audioRef.current;
+      if (audio) releaseAudioSource(audio);
+      setTitle(name || "—");
+      setIsOpen(true);
       setIsPlaying(false);
       setIsLoading(false);
-      if (error?.name === 'NotAllowedError') {
-        setMeta(`${options.languageName || LANG_LABEL[language] || language} · Nhấn Phát để bắt đầu`);
-      } else {
-        setMeta(`${options.languageName || LANG_LABEL[language] || language} · Không thể phát audio`);
+      setProgress(0);
+      setCurrentTime(0);
+      setDuration(Number(options.durationSeconds) || 0);
+      playbackStartCallbackRef.current = options.onPlaybackStart || null;
+      playbackRecordedRef.current = false;
+
+      if (options.loading) {
+        setMeta(`${LANG_LABEL[language] || language} · Đang tải audio`);
+        setIsLoading(true);
+        return;
       }
-    });
-  }, []);
+      if (options.empty) {
+        setMeta(
+          `${LANG_LABEL[language] || language} · Không có audio cho địa điểm này`,
+        );
+        return;
+      }
+      if (options.error) {
+        setMeta(`${LANG_LABEL[language] || language} · Không tải được audio`);
+        return;
+      }
+      if (!audioUrl) {
+        setMeta(`${LANG_LABEL[language] || language} · Audio không hợp lệ`);
+        return;
+      }
+
+      const player = audio || new Audio();
+      audioRef.current = player;
+      player.onloadedmetadata = () => {
+        if (Number.isFinite(player.duration)) setDuration(player.duration);
+        setIsLoading(false);
+      };
+      player.onplaying = () => {
+        setIsPlaying(true);
+        if (playbackRecordedRef.current) return;
+        playbackRecordedRef.current = true;
+
+        // Kiểm tra xem callback có tồn tại không trước khi gọi
+        if (playbackStartCallbackRef.current) {
+          playbackStartCallbackRef.current();
+        } else {
+          console.warn(
+            "⚠️ [usePlayer] Không tìm thấy onPlaybackStart callback để gọi API!",
+          );
+        }
+      };
+      player.ontimeupdate = () => {
+        setCurrentTime(player.currentTime || 0);
+        setProgress(
+          player.duration ? (player.currentTime / player.duration) * 100 : 0,
+        );
+      };
+      player.onended = () => {
+        setIsPlaying(false);
+        setProgress(100);
+      };
+      player.onerror = () => {
+        setIsLoading(false);
+        setIsPlaying(false);
+        setMeta(
+          `${LANG_LABEL[language] || language} · Lỗi tải hoặc định dạng audio không hỗ trợ`,
+        );
+      };
+      player.src = audioUrl;
+      player.load();
+      setMeta(
+        [
+          options.languageName || LANG_LABEL[language] || language,
+          options.voiceName,
+        ]
+          .filter(Boolean)
+          .join(" · "),
+      );
+      setIsLoading(true);
+      player
+        .play()
+        .then(() => setIsPlaying(true))
+        .catch((error) => {
+          setIsPlaying(false);
+          setIsLoading(false);
+          if (error?.name === "NotAllowedError") {
+            setMeta(
+              `${options.languageName || LANG_LABEL[language] || language} · Nhấn Phát để bắt đầu`,
+            );
+          } else {
+            setMeta(
+              `${options.languageName || LANG_LABEL[language] || language} · Không thể phát audio`,
+            );
+          }
+        });
+    },
+    [],
+  );
 
   const togglePlay = useCallback(() => {
     const audio = audioRef.current;
     if (!audio?.src) return;
     if (audio.paused) {
       setIsLoading(true);
-      audio.play().then(() => { setIsPlaying(true); setIsLoading(false); }).catch(() => {
-        setIsPlaying(false);
-        setIsLoading(false);
-        setMeta((value) => `${value.split(' · ')[0]} · Không thể phát audio`);
-      });
+      audio
+        .play()
+        .then(() => {
+          setIsPlaying(true);
+          setIsLoading(false);
+        })
+        .catch(() => {
+          setIsPlaying(false);
+          setIsLoading(false);
+          setMeta((value) => `${value.split(" · ")[0]} · Không thể phát audio`);
+        });
     } else {
       audio.pause();
       setIsPlaying(false);
@@ -106,7 +162,8 @@ export function usePlayer() {
   const seek = useCallback((percent) => {
     const audio = audioRef.current;
     if (!audio || !Number.isFinite(audio.duration)) return;
-    audio.currentTime = Math.max(0, Math.min(100, percent)) / 100 * audio.duration;
+    audio.currentTime =
+      (Math.max(0, Math.min(100, percent)) / 100) * audio.duration;
   }, []);
 
   const closePlayer = useCallback(() => {
@@ -118,8 +175,16 @@ export function usePlayer() {
   useEffect(() => () => releaseAudioSource(audioRef.current), []);
 
   return {
-    isOpen, isPlaying, isLoading, progress,
+    isOpen,
+    isPlaying,
+    isLoading,
+    progress,
     timeText: `${formatTime(currentTime)} / ${formatTime(duration)}`,
-    title, meta, openPlayer, closePlayer, togglePlay, seek,
+    title,
+    meta,
+    openPlayer,
+    closePlayer,
+    togglePlay,
+    seek,
   };
 }

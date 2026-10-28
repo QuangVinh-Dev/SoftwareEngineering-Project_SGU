@@ -235,7 +235,8 @@ export default function App() {
     const controller = new AbortController();
     player.openPlayer(playerPoi.name, playerLang, playerPoi.id, null, { loading: true });
     playPoiAudio(playerPoi, playerLang, player.openPlayer,
-      () => audioRequestRef.current === requestId, { signal: controller.signal });
+      () => audioRequestRef.current === requestId,
+      { signal: controller.signal, triggerMethod: 'TAP' });
     return () => {
       controller.abort();
       ++audioRequestRef.current;

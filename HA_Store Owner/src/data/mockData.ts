@@ -1,4 +1,4 @@
-import type { StallOwnerPOI, Language, AudioContent, ListeningHistoryEntry, ActivityLog, NotificationItem, StallOwnerProfile } from '@/types';
+import type { StallOwnerPOI, Language, ListeningHistoryEntry, ActivityLog, NotificationItem, StallOwnerProfile } from '@/types';
 
 export const stallOwnerProfile: StallOwnerProfile = {
   name: 'Nguyễn Văn An',
@@ -29,21 +29,6 @@ export const languages: Language[] = [
   { id: 4, name: 'Tiếng Nhật', code: 'ja', status: true, isDefault: false },
   { id: 5, name: 'Tiếng Hàn', code: 'ko', status: true, isDefault: false },
   { id: 6, name: 'Tiếng Pháp', code: 'fr', status: false, isDefault: false },
-];
-
-export const audioContents: AudioContent[] = [
-  { id: 1, poiId: 1, poiName: 'Chùa Cầu', language: 'Tiếng Việt', title: 'Lịch sử Chùa Cầu', ttsVoice: 'vi-VN-HoaiTrang', duration: '07:12', status: 'enabled' },
-  { id: 2, poiId: 1, poiName: 'Chùa Cầu', language: 'Tiếng Anh', title: 'Lịch sử Chùa Cầu (EN)', ttsVoice: 'en-US-JennyNeural', duration: '06:55', status: 'enabled' },
-  { id: 3, poiId: 1, poiName: 'Chùa Cầu', language: 'Tiếng Nhật', title: 'Lịch sử Chùa Cầu (JA)', ttsVoice: 'ja-JP-Nanami', duration: '07:30', status: 'enabled' },
-  { id: 4, poiId: 1, poiName: 'Chùa Cầu', language: 'Tiếng Trung', title: 'Lịch sử Chùa Cầu (ZH)', ttsVoice: 'zh-CN-XiaoxiaoNeural', duration: '06:40', status: 'enabled' },
-  { id: 5, poiId: 1, poiName: 'Chùa Cầu', language: 'Tiếng Hàn', title: 'Lịch sử Chùa Cầu (KO)', ttsVoice: 'ko-KR-JiMin', duration: '06:50', status: 'enabled' },
-  { id: 6, poiId: 2, poiName: 'Hội quán Phúc Kiến', language: 'Tiếng Việt', title: 'Hội quán Phúc Kiến', ttsVoice: 'vi-VN-NamMinh', duration: '06:48', status: 'enabled' },
-  { id: 7, poiId: 2, poiName: 'Hội quán Phúc Kiến', language: 'Tiếng Anh', title: 'Hội quán Phúc Kiến (EN)', ttsVoice: 'en-US-GuyNeural', duration: '06:20', status: 'enabled' },
-  { id: 8, poiId: 2, poiName: 'Hội quán Phúc Kiến', language: 'Tiếng Trung', title: 'Hội quán Phúc Kiến (ZH)', ttsVoice: 'zh-CN-YunxiNeural', duration: '06:35', status: 'enabled' },
-  { id: 9, poiId: 3, poiName: 'Nhà cổ Tấn Ký', language: 'Tiếng Việt', title: 'Nhà cổ Tấn Ký', ttsVoice: 'vi-VN-HoaiTrang', duration: '06:35', status: 'enabled' },
-  { id: 10, poiId: 3, poiName: 'Nhà cổ Tấn Ký', language: 'Tiếng Anh', title: 'Nhà cổ Tấn Ký (EN)', ttsVoice: 'en-US-JennyNeural', duration: '06:10', status: 'enabled' },
-  { id: 11, poiId: 3, poiName: 'Nhà cổ Tấn Ký', language: 'Tiếng Nhật', title: 'Nhà cổ Tấn Ký (JA)', ttsVoice: 'ja-JP-KeitaNeural', duration: '06:25', status: 'disabled' },
-  { id: 12, poiId: 1, poiName: 'Chùa Cầu', language: 'Tiếng Pháp', title: 'Lịch sử Chùa Cầu (FR)', ttsVoice: 'fr-FR-DeniseNeural', duration: '07:15', status: 'disabled' },
 ];
 
 export const ttsVoices: { id: number; voice: string; language: string; gender: 'Nam' | 'Nữ'; status: boolean }[] = [
@@ -87,12 +72,10 @@ export const listeningHistory: ListeningHistoryEntry[] = Array.from({ length: 80
 });
 
 export const activityLogs: ActivityLog[] = [
-  { id: 1, time: '08:45', action: 'Cập nhật nội dung audio: Chùa Cầu — Tiếng Việt', icon: 'edit' },
-  { id: 2, time: '08:32', action: 'Gửi POI mới: Đình làng Cẩm Nam', icon: 'plus' },
+  { id: 2, time: '08:32', action: 'Tạo POI: Đình làng Cẩm Nam', icon: 'plus' },
   { id: 3, time: '08:10', action: 'POI "Hội quán Phúc Kiến" đã được duyệt', icon: 'check' },
   { id: 4, time: '07:55', action: 'Đăng nhập vào hệ thống', icon: 'login' },
-  { id: 5, time: '07:40', action: 'Gửi POI mới: Cửa hiệu lụa tơ tằm', icon: 'plus' },
-  { id: 6, time: '07:20', action: 'Tắt nội dung audio: Nhà cổ Tấn Ký — Tiếng Nhật', icon: 'pause' },
+  { id: 5, time: '07:40', action: 'Tạo POI: Cửa hiệu lụa tơ tằm', icon: 'plus' },
   { id: 7, time: '06:55', action: 'POI "Lồng đèn lụa Hồng" bị từ chối duyệt', icon: 'x' },
 ];
 
@@ -100,7 +83,6 @@ export const notifications: NotificationItem[] = [
   { id: 1, title: 'POI đã được duyệt', message: 'POI "Hội quán Phúc Kiến" đã được quản trị viên duyệt.', time: '5 phút trước', read: false, type: 'approval', link: 'my-poi' },
   { id: 2, title: 'POI bị từ chối', message: 'POI "Lồng đèn lụa Hồng" bị từ chối. Vui lòng xem lý do và gửi lại.', time: '30 phút trước', read: false, type: 'approval', link: 'approval-status' },
   { id: 3, title: 'POI đang chờ duyệt', message: 'POI "Đình làng Cẩm Nam" đang chờ xét duyệt.', time: '2 giờ trước', read: false, type: 'poi', link: 'approval-status' },
-  { id: 4, title: 'Nội dung audio được cập nhật', message: 'Nội dung Tiếng Pháp cho Chùa Cầu đã bị tắt.', time: '1 ngày trước', read: true, type: 'audio', link: 'audio' },
 ];
 
 export const languageDistribution = [
@@ -160,11 +142,6 @@ export function searchAll(query: string): { category: string; label: string; lin
   myPois.forEach(p => {
     if (p.name.toLowerCase().includes(q) || p.nameEn.toLowerCase().includes(q) || p.category.toLowerCase().includes(q)) {
       results.push({ category: 'POI của tôi', label: p.name, link: 'my-poi' });
-    }
-  });
-  audioContents.forEach(a => {
-    if (a.title.toLowerCase().includes(q) || a.language.toLowerCase().includes(q)) {
-      results.push({ category: 'Nội dung audio', label: a.title, link: 'audio' });
     }
   });
   if ('thống kê'.includes(q)) results.push({ category: 'Thống kê', label: 'Thống kê lượt nghe', link: 'stats' });

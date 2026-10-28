@@ -96,19 +96,19 @@ class PaymentControllerIpnTest {
         Cookie guest = result.getResponse().getCookie("hoian_guest_session");
         assertThat(guest).isNotNull();
         assertThat(UUID.fromString(guest.getValue())).isNotNull();
-        verify(payments).createPayment(anyString(), eq(guest.getValue()), any(), anyString());
+        verify(payments).createPayment(anyString(), eq(guest.getValue()), any(), anyString(), any());
         verifyNoInteractions(jwtService, tokens);
     }
 
     @Test
     void existingGuestCookieIsRestoredWithoutCreatingAnotherIdentity() throws Exception {
         String device = UUID.randomUUID().toString();
-        when(payments.createPayment(anyString(), eq(device), any(), anyString()))
+        when(payments.createPayment(anyString(), eq(device), any(), anyString(), any()))
                 .thenReturn(new CreatePaymentResponse("test-ref", "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html", "test-claim"));
 
         mvc.perform(post("/api/payments").cookie(new Cookie("hoian_guest_session", device)))
                 .andExpect(status().isOk()).andExpect(cookie().doesNotExist("hoian_guest_session"));
-        verify(payments).createPayment(anyString(), eq(device), any(), anyString());
+        verify(payments).createPayment(anyString(), eq(device), any(), anyString(), any());
     }
 
     @Test
