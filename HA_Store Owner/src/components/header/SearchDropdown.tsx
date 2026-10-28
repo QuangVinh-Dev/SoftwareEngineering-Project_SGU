@@ -20,7 +20,6 @@ export default function SearchDropdown() {
   const results = query ? searchAll(query) : [];
   const categoryColors: Record<string, string> = {
     'POI của tôi': 'bg-primary-100 text-primary-700',
-    'Nội dung audio': 'bg-blue-100 text-blue-700',
     'Thống kê': 'bg-primary-100 text-primary-700',
     'Tài khoản': 'bg-brown-200 text-brown-700',
   };
@@ -45,7 +44,7 @@ export default function SearchDropdown() {
               type="text"
               value={query}
               onChange={e => setQuery(e.target.value)}
-              placeholder="Tìm POI, nội dung audio, thống kê..."
+              placeholder="Tìm POI, thống kê..."
               className="flex-1 text-sm outline-none bg-transparent text-brown-800"
             />
             {query && (
@@ -58,7 +57,7 @@ export default function SearchDropdown() {
           <div className="max-h-80 overflow-y-auto scrollbar-thin">
             {query === '' && (
               <div className="px-4 py-6 text-center text-sm text-brown-400">
-                Nhập để tìm kiếm POI, nội dung audio, thống kê của bạn.
+                Nhập để tìm kiếm POI, thống kê của bạn.
               </div>
             )}
             {query !== '' && results.length === 0 && (

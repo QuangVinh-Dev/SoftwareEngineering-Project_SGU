@@ -64,7 +64,7 @@ export interface NotificationItem {
   message: string;
   time: string;
   read: boolean;
-  type: 'poi' | 'audio' | 'system' | 'approval';
+  type: 'poi' | 'system' | 'approval';
   link?: string;
 }
 

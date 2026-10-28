@@ -3,7 +3,7 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
 } from 'recharts';
-import { MapPin, Headphones, Clock, Send, ArrowRight, Edit, Plus, Download, Shield, Pause, LogIn, Check, X } from 'lucide-react';
+import { MapPin, Headphones, Clock, ArrowRight, Edit, Plus, Download, Shield, Pause, LogIn, Check, X } from 'lucide-react';
 import KPICard from '@/components/cards/KPICard';
 import { Card, CardHeader, Badge, Button } from '@/components/ui';
 import { useApp } from '@/hooks/useApp';

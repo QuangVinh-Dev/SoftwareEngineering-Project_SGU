@@ -1,18 +1,16 @@
 import { useState, useRef, useEffect } from 'react';
-import { Bell, MapPin, Headphones, Shield, FileCheck } from 'lucide-react';
+import { Bell, MapPin, Shield, FileCheck } from 'lucide-react';
 import { notifications as initialNotifs } from '@/data/mockData';
 import { useApp } from '@/hooks/useApp';
 
 const typeIcons = {
   poi: MapPin,
-  audio: Headphones,
   approval: FileCheck,
   system: Shield,
 };
 
 const typeColors = {
   poi: 'bg-primary-100 text-primary-600',
-  audio: 'bg-blue-100 text-blue-600',
   approval: 'bg-green-100 text-green-600',
   system: 'bg-brown-200 text-brown-600',
 };
