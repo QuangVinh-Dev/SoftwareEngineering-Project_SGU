@@ -3,14 +3,14 @@ import { useApp } from '@/hooks/useApp';
 import ProfileDropdown from './ProfileDropdown';
 
 const pageNames: Record<string, string> = {
-  dashboard: 'Tổng quan hệ thống',
-  accounts: 'Quản lý tài khoản quản trị',
-  poi: 'Điểm tham quan di sản (POI)',
-  audio: 'Bản dịch & Thuyết minh audio',
-  merchants: 'Duyệt hồ sơ gian hàng',
-  history: 'Nhật ký nghe thuyết minh',
-  reports: 'Báo cáo & Thống kê',
-  settings: 'Cấu hình hệ thống',
+  dashboard: 'Tổng quan',
+  accounts: 'Tài khoản quản trị',
+  poi: 'Điểm tham quan',
+  audio: 'Thuyết minh',
+  merchants: 'Duyệt gian hàng',
+  history: 'Nhật ký nghe',
+  reports: 'Báo cáo',
+  settings: 'Cấu hình',
 };
 
 interface TopbarProps {
