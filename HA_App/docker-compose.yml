@@ -142,6 +142,13 @@ services:
       VNPAY_RETURN_URL: ${VNPAY_RETURN_URL:-}
       VNPAY_IPN_URL: ${VNPAY_IPN_URL:-}
 
+      SPRING_MAIL_HOST: ${SPRING_MAIL_HOST:-smtp.gmail.com}
+      SPRING_MAIL_PORT: ${SPRING_MAIL_PORT:-587}
+      SPRING_MAIL_USERNAME: ${SPRING_MAIL_USERNAME:-}
+      SPRING_MAIL_PASSWORD: ${SPRING_MAIL_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-no-reply@hoianheritage.vn}
+      STORE_OWNER_PORTAL_URL: ${STORE_OWNER_PORTAL_URL:-http://localhost:5175}
+
     volumes:
       - ./Data_Storage:/app/uploads/audio
     networks:

@@ -83,6 +83,10 @@ public class AdminPoiService {
 
     @Transactional
     public AdminPoiResponse createForMerchant(int merchantId, PoiMutationRequest request, List<MultipartFile> images) {
+        List<Poi> existing = pois.findByMerchantIdOrderByCreatedAtDesc(merchantId);
+        if (!existing.isEmpty()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Mỗi chủ gian hàng chỉ được tạo duy nhất 1 điểm tham quan (POI)");
+        }
         Poi poi = new Poi();
         apply(poi, request);
         poi.setMerchantId(merchantId);
@@ -91,6 +95,21 @@ public class AdminPoiService {
         poi.setRejectionReason(null);
         poi.setCreatedAt(LocalDateTime.now());
         poi.setUpdatedAt(poi.getCreatedAt());
+        poi = pois.save(poi);
+        addImages(poi.getId(), images);
+        return response(poi);
+    }
+
+    @Transactional
+    public AdminPoiResponse updateForMerchant(int merchantId, int poiId, PoiMutationRequest request, List<MultipartFile> images) {
+        Poi poi = requirePoi(poiId);
+        if (poi.getMerchantId() == null || poi.getMerchantId() != merchantId) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Bạn không có quyền chỉnh sửa POI này");
+        }
+        apply(poi, request);
+        poi.setApprovalStatus("PENDING");
+        poi.setRejectionReason(null);
+        poi.setUpdatedAt(LocalDateTime.now());
         poi = pois.save(poi);
         addImages(poi.getId(), images);
         return response(poi);

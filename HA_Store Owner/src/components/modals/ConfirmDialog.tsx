@@ -1,4 +1,4 @@
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, AlertCircle, Info } from 'lucide-react';
 import Modal from './Modal';
 
 interface ConfirmDialogProps {
@@ -22,8 +22,21 @@ export default function ConfirmDialog({
   cancelLabel = 'Hủy',
   variant = 'danger',
 }: ConfirmDialogProps) {
-  const confirmColor = variant === 'danger' ? 'bg-red-600 hover:bg-red-700' : variant === 'warning' ? 'bg-orange-600 hover:bg-orange-700' : 'bg-primary-600 hover:bg-primary-700';
-  const iconColor = variant === 'danger' ? 'text-red-500' : variant === 'warning' ? 'text-orange-500' : 'text-blue-500';
+  const confirmColor =
+    variant === 'danger'
+      ? 'bg-red-600 hover:bg-red-700 shadow-sm shadow-red-600/30'
+      : variant === 'warning'
+      ? 'bg-amber-600 hover:bg-amber-700 shadow-sm shadow-amber-600/30'
+      : 'bg-[#7c3aed] hover:bg-[#6d28d9] shadow-sm shadow-purple-900/30';
+
+  const iconBg =
+    variant === 'danger'
+      ? 'bg-red-50 text-red-600 border border-red-200'
+      : variant === 'warning'
+      ? 'bg-amber-50 text-amber-600 border border-amber-200'
+      : 'bg-purple-50 text-[#7c3aed] border border-purple-200';
+
+  const Icon = variant === 'danger' ? AlertTriangle : variant === 'warning' ? AlertCircle : Info;
 
   return (
     <Modal
@@ -33,20 +46,29 @@ export default function ConfirmDialog({
       size="sm"
       footer={
         <>
-          <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-medium text-brown-600 hover:bg-brown-50 transition-colors border border-brown-200">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors border border-slate-200"
+          >
             {cancelLabel}
           </button>
-          <button onClick={() => { onConfirm(); onClose(); }} className={`px-4 py-2 rounded-lg text-sm font-medium text-white transition-colors ${confirmColor}`}>
+          <button
+            onClick={() => {
+              onConfirm();
+              onClose();
+            }}
+            className={`px-4 py-2 rounded-xl text-xs font-bold text-white transition-all ${confirmColor}`}
+          >
             {confirmLabel}
           </button>
         </>
       }
     >
-      <div className="flex gap-4">
-        <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${variant === 'danger' ? 'bg-red-50' : variant === 'warning' ? 'bg-orange-50' : 'bg-blue-50'}`}>
-          <AlertTriangle className={`w-6 h-6 ${iconColor}`} />
+      <div className="flex gap-4 items-start py-1">
+        <div className={`flex-shrink-0 w-11 h-11 rounded-2xl flex items-center justify-center ${iconBg}`}>
+          <Icon className="w-5 h-5" />
         </div>
-        <p className="text-sm text-brown-700 pt-3">{message}</p>
+        <p className="text-xs text-slate-600 leading-relaxed pt-1.5">{message}</p>
       </div>
     </Modal>
   );

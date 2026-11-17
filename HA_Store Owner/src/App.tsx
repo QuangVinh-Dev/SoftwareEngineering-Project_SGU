@@ -5,7 +5,6 @@ import Login from '@/pages/Login';
 import Dashboard from '@/pages/Dashboard';
 import MyPOI from '@/pages/MyPOI';
 import EditPOI from '@/pages/EditPOI';
-import Stats from '@/pages/Stats';
 import Account from '@/pages/Account';
 import ApprovalStatus from '@/pages/ApprovalStatus';
 
@@ -19,7 +18,7 @@ function AppContent() {
     dashboard: <Dashboard />,
     'my-poi': <MyPOI />,
     'edit-poi': <EditPOI />,
-    stats: <Stats />,
+    stats: <Dashboard />,
     account: <Account />,
     'approval-status': <ApprovalStatus />,
   };

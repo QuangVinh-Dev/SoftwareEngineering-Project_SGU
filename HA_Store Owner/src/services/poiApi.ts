@@ -37,6 +37,13 @@ export function createMerchantPoi(poi: MerchantPoiInput, images: File[]) {
   return apiRequest<MerchantPoi>('/api/merchant/pois', { method: 'POST', body: formData });
 }
 
+export function updateMerchantPoi(id: number, poi: MerchantPoiInput, images: File[]) {
+  const formData = new FormData();
+  formData.append('poi', new Blob([JSON.stringify(poi)], { type: 'application/json' }));
+  images.forEach(image => formData.append('images', image));
+  return apiRequest<MerchantPoi>(`/api/merchant/pois/${id}`, { method: 'PUT', body: formData });
+}
+
 export function resolveMerchantPoiImage(path: string) {
   return new URL(path, API_BASE_URL ? `${API_BASE_URL}/` : `${window.location.origin}/`).toString();
 }

@@ -24,11 +24,14 @@ public class MerchantAdminService {
 
     private final MerchantRepository merchantRepository;
     private final MerchantImageRepository merchantImageRepository;
+    private final EmailService emailService;
 
     public MerchantAdminService(MerchantRepository merchantRepository,
-                                MerchantImageRepository merchantImageRepository) {
+                                MerchantImageRepository merchantImageRepository,
+                                EmailService emailService) {
         this.merchantRepository = merchantRepository;
         this.merchantImageRepository = merchantImageRepository;
+        this.emailService = emailService;
     }
 
     @Transactional(readOnly = true)
@@ -54,7 +57,13 @@ public class MerchantAdminService {
         merchant.setApprovalStatus("APPROVED");
         merchant.setApprovedAt(LocalDateTime.now());
         merchant.setRejectReason(null);
-        return toResponse(merchantRepository.save(merchant));
+        Merchant saved = merchantRepository.save(merchant);
+
+        if (merchant.getAccount() != null && merchant.getAccount().getEmail() != null) {
+            emailService.sendMerchantApprovedEmail(merchant.getAccount().getEmail(), merchant.getName());
+        }
+
+        return toResponse(saved);
     }
 
     @Transactional
@@ -62,8 +71,15 @@ public class MerchantAdminService {
         Merchant merchant = find(id);
         merchant.setApprovalStatus("REJECTED");
         merchant.setApprovedAt(null);
-        merchant.setRejectReason(reason == null || reason.isBlank() ? null : reason.trim());
-        return toResponse(merchantRepository.save(merchant));
+        String trimmedReason = (reason == null || reason.isBlank()) ? null : reason.trim();
+        merchant.setRejectReason(trimmedReason);
+        Merchant saved = merchantRepository.save(merchant);
+
+        if (merchant.getAccount() != null && merchant.getAccount().getEmail() != null) {
+            emailService.sendMerchantRejectedEmail(merchant.getAccount().getEmail(), merchant.getName(), trimmedReason);
+        }
+
+        return toResponse(saved);
     }
 
     private Merchant find(Integer id) {
