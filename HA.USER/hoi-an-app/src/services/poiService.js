@@ -50,9 +50,13 @@ export function normalizePoi(poi) {
  */
 export async function getPoiLocations() {
   try {
-    const res = await fetch(`${API_BASE_URL}/api/poi/locations`, {
-      headers: { Accept: 'application/json' },
-    });
+    const access = readServiceAccess();
+    const headers = { Accept: 'application/json' };
+    if (access?.token) {
+      headers['X-Service-Token'] = access.token;
+    }
+
+    const res = await fetch(`${API_BASE_URL}/api/poi/locations`, { headers });
 
     if (res.ok) {
       const data = await res.json();
@@ -60,6 +64,8 @@ export async function getPoiLocations() {
       if (list.length > 0) {
         return list.map(normalizePoi);
       }
+    } else {
+      console.warn(`[poiService] Backend returned HTTP ${res.status} for /api/poi/locations`);
     }
   } catch (err) {
     console.warn('[poiService] Could not reach backend /api/poi/locations, using local POIS cache:', err?.message || err);
