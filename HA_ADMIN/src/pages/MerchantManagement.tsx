@@ -20,81 +20,6 @@ import {
 type ModuleTab = 'merchants' | 'pois';
 type FilterTab = 'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED';
 
-const SAMPLE_MERCHANTS: AdminMerchant[] = [
-  {
-    id: 1,
-    accountId: 101,
-    username: 'quan_cao_lau_ha',
-    email: 'caolau.hoian@gmail.com',
-    name: 'Quán Cao Lầu Thanh',
-    phoneNumber: '0905123456',
-    address: '26 Thái Phiên, P. Minh An, Hội An',
-    category: 'Ẩm thực truyền thống',
-    description: 'Chuyên phục vụ món Cao Lầu truyền thống Hội An với hơn 30 năm gia truyền, nước dùng nấu bằng giếng cổ Bá Lễ.',
-    planId: 'PRO_YEARLY',
-    billingCycle: 'YEARLY',
-    images: [],
-    approvalStatus: 'PENDING',
-    rejectReason: null,
-    registeredAt: new Date(Date.now() - 3600000 * 5).toISOString(),
-    approvedAt: null,
-  },
-  {
-    id: 2,
-    accountId: 102,
-    username: 'denlong_pho_hoi',
-    email: 'denlong.phohoi@gmail.com',
-    name: 'Xưởng Đèn Lồng Phố Hội',
-    phoneNumber: '0913987654',
-    address: '57 Trần Phú, P. Cẩm Châu, Hội An',
-    category: 'Quà lưu niệm & Thủ công',
-    description: 'Cơ sở sản xuất và chế tác đèn lồng thủ công mỹ nghệ bằng lụa Hà Đông và khung tre già truyền thống.',
-    planId: 'BASIC_MONTHLY',
-    billingCycle: 'MONTHLY',
-    images: [],
-    approvalStatus: 'PENDING',
-    rejectReason: null,
-    registeredAt: new Date(Date.now() - 3600000 * 26).toISOString(),
-    approvedAt: null,
-  },
-  {
-    id: 3,
-    accountId: 103,
-    username: 'cafe_faifo_rooftop',
-    email: 'contact@faifocoffee.vn',
-    name: 'Faifo Coffee Rooftop',
-    phoneNumber: '02353921555',
-    address: '130 Trần Phú, P. Minh An, Hội An',
-    category: 'Quán cà phê & Giải khát',
-    description: 'Quán cà phê tầng thượng view ngắm toàn cảnh mái ngói âm dương phố cổ Hội An nổi tiếng.',
-    planId: 'PREMIUM_YEARLY',
-    billingCycle: 'YEARLY',
-    images: [],
-    approvalStatus: 'APPROVED',
-    rejectReason: null,
-    registeredAt: new Date(Date.now() - 3600000 * 24 * 7).toISOString(),
-    approvedAt: new Date(Date.now() - 3600000 * 24 * 6).toISOString(),
-  },
-  {
-    id: 4,
-    accountId: 104,
-    username: 'tiem_gom_thanhha',
-    email: 'gomthanhha.shop@gmail.com',
-    name: 'Gốm Sứ Mỹ Nghệ Thanh Hà',
-    phoneNumber: '0935112233',
-    address: 'Khu 5, Làng gốm Thanh Hà, Hội An',
-    category: 'Gốm sứ & Thủ công',
-    description: 'Trưng bày và bán sản phẩm gốm đất nung truyền thống Thanh Hà.',
-    planId: 'BASIC_MONTHLY',
-    billingCycle: 'MONTHLY',
-    images: [],
-    approvalStatus: 'REJECTED',
-    rejectReason: 'Hình ảnh giấy phép kinh doanh tải lên bị mờ, không xác minh được địa chỉ đăng ký.',
-    registeredAt: new Date(Date.now() - 3600000 * 24 * 12).toISOString(),
-    approvedAt: null,
-  },
-];
-
 export default function MerchantManagement() {
   const { showToast } = useToast();
   const [moduleTab, setModuleTab] = useState<ModuleTab>('merchants');
@@ -130,10 +55,9 @@ export default function MerchantManagement() {
     setLoadingMerchants(true);
     try {
       const data = await getAdminMerchants();
-      if (Array.isArray(data) && data.length > 0) setMerchants(data);
-      else setMerchants(SAMPLE_MERCHANTS);
+      setMerchants(Array.isArray(data) ? data : []);
     } catch {
-      setMerchants(SAMPLE_MERCHANTS);
+      setMerchants([]);
     } finally {
       setLoadingMerchants(false);
     }
@@ -144,9 +68,9 @@ export default function MerchantManagement() {
     setLoadingPois(true);
     try {
       const data = await getAdminPois();
-      setPois(data);
+      setPois(Array.isArray(data) ? data : []);
     } catch {
-      // Keep empty or fallback
+      setPois([]);
     } finally {
       setLoadingPois(false);
     }
@@ -436,7 +360,14 @@ export default function MerchantManagement() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-brown-50">
-                  {filteredMerchants.map(m => (
+                  {filteredMerchants.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-8 text-center text-brown-400">
+                        {loadingMerchants ? 'Đang tải danh sách...' : 'Không có gian hàng nào'}
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredMerchants.map(m => (
                     <tr key={m.id} className="hover:bg-brown-50/30 transition-colors">
                       <td className="px-4 py-3">
                         <div className="font-semibold text-brown-900 cursor-pointer hover:text-primary-600" onClick={() => setDetailMerchant(m)}>
@@ -486,7 +417,7 @@ export default function MerchantManagement() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  )))}
                 </tbody>
               </table>
             </div>
@@ -562,7 +493,14 @@ export default function MerchantManagement() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-brown-50">
-                  {filteredPois.map(p => (
+                  {filteredPois.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-4 py-8 text-center text-brown-400">
+                        {loadingPois ? 'Đang tải danh sách...' : 'Không có điểm tham quan nào'}
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredPois.map(p => (
                     <tr key={p.id} className="hover:bg-brown-50/30 transition-colors">
                       <td className="px-4 py-3">
                         <div className="font-semibold text-brown-900 hover:text-primary-600 cursor-pointer" onClick={() => setReviewingPoi(p)}>
@@ -605,7 +543,7 @@ export default function MerchantManagement() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  )))}
                 </tbody>
               </table>
             </div>
