@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   BarChart3, FileSpreadsheet, FileText, Download, Calendar, Clock,
   Globe2, Smartphone, Award, CheckCircle2, Monitor, Tablet
@@ -8,9 +8,8 @@ import {
 } from 'recharts';
 import { Card, Button } from '@/components/ui';
 import { useToast } from '@/components/toast/useToast';
-import {
-  top10Pois, avgTimeByPoi, avgTimeByLanguage
-} from '@/data/mockData';
+import { getAnalyticsStatsApi, type TopPoiItem, type NamedTimeItem } from '@/services/adminStatsApi';
+import { getEngagementStats } from '@/services/dashboardApi';
 import { formatNumber } from '@/utils/helpers';
 
 const barColors = ['#a85f31', '#c07a3e', '#d99d2b', '#9a6d54', '#7e5742', '#cc9259', '#bd7a20', '#654536', '#b08870', '#cab09c'];
@@ -40,12 +39,39 @@ const reportTemplates = [
 export default function Reports() {
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<'top_poi' | 'avg_time' | 'access' | 'export'>('top_poi');
+  const [top10Pois, setTop10Pois] = useState<TopPoiItem[]>([]);
+  const [avgTimeByPoi, setAvgTimeByPoi] = useState<NamedTimeItem[]>([]);
+  const [avgTimeByLanguage, setAvgTimeByLanguage] = useState<NamedTimeItem[]>([]);
+  const [onlineVisitors, setOnlineVisitors] = useState(0);
+  const [loading, setLoading] = useState(true);
 
   // Export report states
   const [selectedReport, setSelectedReport] = useState('top_poi');
   const [startDate, setStartDate] = useState('2026-10-01');
   const [endDate, setEndDate] = useState('2026-10-27');
   const [exporting, setExporting] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    setLoading(true);
+    Promise.all([
+      getAnalyticsStatsApi().catch(() => null),
+      getEngagementStats().catch(() => null),
+    ]).then(([analytics, engagement]) => {
+      if (!mounted) return;
+      if (analytics) {
+        setTop10Pois(analytics.top10Pois || []);
+        setAvgTimeByPoi(analytics.avgTimeByPoi || []);
+        setAvgTimeByLanguage(analytics.avgTimeByLanguage || []);
+      }
+      if (engagement) {
+        setOnlineVisitors(engagement.todayVisitors || 0);
+      }
+    }).finally(() => {
+      if (mounted) setLoading(false);
+    });
+    return () => { mounted = false; };
+  }, []);
 
   // Xử lý xuất báo cáo (7.3)
   const handleExport = (format: 'Excel' | 'PDF') => {
@@ -172,6 +198,15 @@ export default function Reports() {
                   </thead>
                   <tbody className="divide-y divide-brown-50">
                     {(() => {
+                      if (top10Pois.length === 0) {
+                        return (
+                          <tr>
+                            <td colSpan={5} className="px-4 py-8 text-center text-brown-400">
+                              {loading ? 'Đang tải dữ liệu...' : 'Chưa có dữ liệu xếp hạng'}
+                            </td>
+                          </tr>
+                        );
+                      }
                       const total = top10Pois.reduce((s, p) => s + p.sessions, 0);
                       return top10Pois.map((poi, idx) => (
                         <tr key={idx} className="hover:bg-brown-50/30 transition-colors">

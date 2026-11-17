@@ -1,15 +1,44 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
 } from 'recharts';
 import { Card, CardHeader } from '@/components/ui';
-import { top10Pois, avgTimeByPoi, avgTimeByLanguage, listeningTrend30Days, listeningTrend3Months, listeningTrend1Year } from '@/data/mockData';
+import { getAnalyticsStatsApi, type TopPoiItem, type NamedTimeItem, type TrendItem } from '@/services/adminStatsApi';
 import { classNames, formatNumber } from '@/utils/helpers';
 
 const barColors = ['#a85f31', '#c07a3e', '#d99d2b', '#9a6d54', '#7e5742', '#cc9259', '#bd7a20', '#654536', '#b08870', '#cab09c'];
 
 export default function Analytics() {
   const [trendRange, setTrendRange] = useState<'30' | '3m' | '1y'>('30');
+  const [loading, setLoading] = useState(true);
+  const [top10Pois, setTop10Pois] = useState<TopPoiItem[]>([]);
+  const [avgTimeByPoi, setAvgTimeByPoi] = useState<NamedTimeItem[]>([]);
+  const [avgTimeByLanguage, setAvgTimeByLanguage] = useState<NamedTimeItem[]>([]);
+  const [listeningTrend30Days, setListeningTrend30Days] = useState<TrendItem[]>([]);
+  const [listeningTrend3Months, setListeningTrend3Months] = useState<TrendItem[]>([]);
+  const [listeningTrend1Year, setListeningTrend1Year] = useState<TrendItem[]>([]);
+
+  useEffect(() => {
+    let mounted = true;
+    setLoading(true);
+    getAnalyticsStatsApi()
+      .then(res => {
+        if (!mounted || !res) return;
+        setTop10Pois(res.top10Pois || []);
+        setAvgTimeByPoi(res.avgTimeByPoi || []);
+        setAvgTimeByLanguage(res.avgTimeByLanguage || []);
+        setListeningTrend30Days(res.listeningTrend30Days || []);
+        setListeningTrend3Months(res.listeningTrend3Months || []);
+        setListeningTrend1Year(res.listeningTrend1Year || []);
+      })
+      .catch(err => {
+        console.warn('Could not fetch analytics stats:', err);
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
+    return () => { mounted = false; };
+  }, []);
 
   const trendData = { '30': listeningTrend30Days, '3m': listeningTrend3Months, '1y': listeningTrend1Year }[trendRange];
 
@@ -50,6 +79,15 @@ export default function Analytics() {
               </thead>
               <tbody>
                 {(() => {
+                  if (top10Pois.length === 0) {
+                    return (
+                      <tr>
+                        <td colSpan={5} className="px-3 py-8 text-center text-brown-400">
+                          {loading ? 'Đang tải dữ liệu...' : 'Chưa có dữ liệu lượt nghe'}
+                        </td>
+                      </tr>
+                    );
+                  }
                   const total = top10Pois.reduce((s, p) => s + p.sessions, 0);
                   return top10Pois.map((poi, i) => (
                     <tr key={i} className="border-b border-brown-50 hover:bg-brown-50/30 transition-colors">

@@ -1,16 +1,36 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MapPin, X, Headphones, Languages, Clock, Activity } from 'lucide-react';
 import { Card } from '@/components/ui';
-import { heatmapAreas } from '@/data/mockData';
+import { getHeatmapStatsApi, type HeatmapArea } from '@/services/adminStatsApi';
 import { classNames, formatNumber } from '@/utils/helpers';
 
 const dateRanges = ['Today', 'Last 7 Days', 'Last 30 Days', 'Custom'];
 
 export default function Heatmap() {
   const [dateRange, setDateRange] = useState('Last 7 Days');
-  const [selectedArea, setSelectedArea] = useState<typeof heatmapAreas[0] | null>(null);
+  const [areas, setAreas] = useState<HeatmapArea[]>([]);
+  const [selectedArea, setSelectedArea] = useState<HeatmapArea | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const maxSessions = Math.max(...heatmapAreas.map(a => a.sessions));
+  useEffect(() => {
+    let mounted = true;
+    setLoading(true);
+    getHeatmapStatsApi()
+      .then(data => {
+        if (!mounted) return;
+        setAreas(Array.isArray(data) ? data : []);
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setAreas([]);
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
+    return () => { mounted = false; };
+  }, []);
+
+  const maxSessions = Math.max(1, ...areas.map(a => a.sessions));
 
   const getIntensity = (sessions: number) => {
     const ratio = sessions / maxSessions;
@@ -21,7 +41,7 @@ export default function Heatmap() {
     return { bg: 'bg-primary-200/50', border: 'border-primary-100', label: 'Very Low' };
   };
 
-  const totalSessions = heatmapAreas.reduce((s, a) => s + a.sessions, 0);
+  const totalSessions = areas.reduce((s, a) => s + a.sessions, 0);
 
   return (
     <div className="space-y-6">
@@ -70,7 +90,7 @@ export default function Heatmap() {
             <text x="50%" y="62%" textAnchor="middle" className="fill-blue-300 text-xs font-medium" style={{ fontSize: '11px' }}>Sông Hoài</text>
           </svg>
 
-          {heatmapAreas.map(area => {
+          {areas.map(area => {
             const intensity = getIntensity(area.sessions);
             const size = 40 + (area.sessions / maxSessions) * 50;
             return (
@@ -99,7 +119,7 @@ export default function Heatmap() {
       </Card>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {heatmapAreas.map(area => {
+        {areas.map(area => {
           const intensity = getIntensity(area.sessions);
           return (
             <button key={area.id} onClick={() => setSelectedArea(area)}
@@ -147,21 +167,21 @@ export default function Heatmap() {
                   <MapPin className="w-5 h-5 text-primary-400" />
                   <div>
                     <p className="text-xs text-brown-400">Most Popular POI</p>
-                    <p className="text-sm font-semibold text-brown-800">{selectedArea.topPoi}</p>
+                    <p className="text-sm font-semibold text-brown-800">{selectedArea.topPoi || selectedArea.name}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
                   <Languages className="w-5 h-5 text-blue-400" />
                   <div>
                     <p className="text-xs text-brown-400">Most Popular Language</p>
-                    <p className="text-sm font-semibold text-brown-800">{selectedArea.topLang}</p>
+                    <p className="text-sm font-semibold text-brown-800">{selectedArea.topLang || 'Tiếng Việt'}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 p-3 bg-gold-50 rounded-lg">
                   <Clock className="w-5 h-5 text-gold-500" />
                   <div>
                     <p className="text-xs text-brown-400">Average Listening Time</p>
-                    <p className="text-sm font-semibold text-brown-800">{selectedArea.avgTime}</p>
+                    <p className="text-sm font-semibold text-brown-800">{selectedArea.avgTime || '2m 15s'}</p>
                   </div>
                 </div>
               </div>
