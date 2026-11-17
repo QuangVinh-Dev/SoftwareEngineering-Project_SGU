@@ -1,0 +1,98 @@
+name: Backend & Services CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main", "feature", "develop" ]
+  pull_request:
+    branches: [ "main", "feature", "develop" ]
+  workflow_dispatch:
+
+jobs:
+  # =========================================================
+  # 1. CI: Kiểm tra & Biên dịch Spring Boot API (HA_App)
+  # =========================================================
+  ci-spring-boot:
+    name: "CI - Spring Boot Backend API"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21 (Eclipse Temurin)
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Grant execute permission for Maven Wrapper
+        working-directory: ./HA_App
+        run: chmod +x mvnw
+
+      - name: Compile & Verify Spring Boot Backend
+        working-directory: ./HA_App
+        run: ./mvnw clean compile -DskipTests
+
+  # =========================================================
+  # 2. CI: Kiểm tra cú pháp Service AI TTS (Piper Python)
+  # =========================================================
+  ci-python-tts-service:
+    name: "CI - AI Speech TTS Service"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Validate Python Syntax
+        run: python -m py_compile HA_App/tts-service/app.py
+
+  # =========================================================
+  # 3. CD: Kiểm tra đóng gói Docker Services (Multi-services)
+  # =========================================================
+  cd-docker-services-build:
+    name: "CD - Build & Validate Docker Compose Services"
+    needs: [ci-spring-boot, ci-python-tts-service]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Prepare Environment File for Docker Compose
+        working-directory: ./HA_App
+        run: |
+          cat << 'EOF' > .env
+          POSTGRES_DB=hoian_db
+          POSTGRES_USER=hoian
+          POSTGRES_PASSWORD=ci_test_password_12345
+          REDIS_PASSWORD=ci_test_redis_password_12345
+          JWT_SECRET=ci_test_super_secret_jwt_key_that_is_at_least_256_bits_long_abcdef123456
+          JWT_ISSUER=hoian-api
+          JWT_EXPIRATION_MINUTES=60
+          APP_ADMIN_PASSWORD=ci_admin_pass
+          APP_SUPER_ADMIN_PASSWORD=ci_super_pass
+          APP_SEED_MERCHANT_PASSWORD=ci_merchant_pass
+          APP_UID=1000
+          APP_GID=1000
+          CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:5174,http://localhost:5175
+          CLOUDFLARE_TUNNEL_TOKEN=dummy
+          EOF
+
+      - name: Validate Docker Compose Configuration
+        working-directory: ./HA_App
+        run: docker compose config
+
+      - name: Build Docker Service (Piper TTS)
+        working-directory: ./HA_App
+        run: docker compose build piper-tts
+
+      - name: Build Docker Service (Spring Boot App)
+        working-directory: ./HA_App
+        run: docker compose build app
