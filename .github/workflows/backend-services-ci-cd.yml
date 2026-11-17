@@ -89,10 +89,8 @@ jobs:
         working-directory: ./HA_App
         run: docker compose config
 
-      - name: Build Docker Service (Piper TTS)
+      - name: Build Docker Multi-Services (Piper TTS & Spring Boot App)
         working-directory: ./HA_App
-        run: docker compose build piper-tts
-
-      - name: Build Docker Service (Spring Boot App)
-        working-directory: ./HA_App
-        run: docker compose build app
+        run: |
+          sed -i 's/\r$//' mvnw 2>/dev/null || true
+          docker compose build --progress=plain piper-tts app
