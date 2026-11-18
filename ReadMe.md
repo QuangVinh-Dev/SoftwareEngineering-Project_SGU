@@ -18,11 +18,11 @@
 
 ##  THÀNH VIÊN NHÓM THỰC HIỆN
 
-| STT | Họ và tên | GitHub Account | Email |
+| STT | Họ và tên | GitHub Account | MSSV |
 | :---: | :--- | :--- | :--- |
-| 1 | **Võ Thị Thảo Vy** | [@VOTHITHAOVY](https://github.com/VOTHITHAOVY) | `vothithaovy06@gmail.com` |
-| 2 | **Bùi Viết Quang Vinh** | [@QuangVinh-Dev](https://github.com/QuangVinh-Dev) | `buivietquangvinh@gmail.com` |
-| 3 | **Nguyễn Như Thảo** | [@Nhuthaonguyen26](https://github.com/Nhuthaonguyen26) | `nguyennhuthao161@gmail.com` |
+| 1 | **Võ Thị Thảo Vy** | [@VOTHITHAOVY](https://github.com/VOTHITHAOVY) | `3124411356` |
+| 2 | **Bùi Viết Quang Vinh** | [@QuangVinh-Dev](https://github.com/QuangVinh-Dev) | `3124411347` |
+| 3 | **Nguyễn Như Thảo** | [@Nhuthaonguyen26](https://github.com/Nhuthaonguyen26) | `3124411281` |
 
 ---
 
