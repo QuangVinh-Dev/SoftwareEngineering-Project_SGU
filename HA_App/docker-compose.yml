@@ -165,8 +165,7 @@ services:
         condition: service_healthy
     # No application healthcheck is configured: the Spring app has no health endpoint/dependency.
 
-  # Chỉ sửa phần Cloudflare Tunnel
-  # Frontend services (deduplicated)
+  # Frontend services
   user-frontend:
     build:
       context: ../HA.USER/hoi-an-app
@@ -180,23 +179,7 @@ services:
     networks:
       - backend
 
-
-
-  store-owner-frontend:
-    build:
-      context: "./HA_Store Owner"
-      dockerfile: Dockerfile
-      args:
-        VITE_API_BASE_URL: https://api.buivietquangvinh.xyz
-    container_name: hoian-frontend-owner
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:5175:80"
-    networks:
-      - backend
-
-
-admin-frontend:
+  admin-frontend:
     build:
       context: ../HA_ADMIN
       dockerfile: Dockerfile
@@ -209,9 +192,9 @@ admin-frontend:
     networks:
       - backend
 
-store-owner-frontend:
+  store-owner-frontend:
     build:
-      context: "./HA_Store Owner"
+      context: "../HA_Store Owner"
       dockerfile: Dockerfile
       args:
         VITE_API_BASE_URL: https://api.buivietquangvinh.xyz
@@ -221,35 +204,7 @@ store-owner-frontend:
       - "127.0.0.1:5175:80"
     networks:
       - backend
-    build:
-      context: ../HA.USER/hoi-an-app
-      dockerfile: Dockerfile
-      args:
-        VITE_API_BASE_URL: https://api.buivietquangvinh.xyz
-    container_name: hoian-frontend-user
-    restart: unless-stopped
-    networks:
-      - backend
-  hoian-frontend-admin:
-    build:
-      context: ../HA_ADMIN
-      dockerfile: Dockerfile
-      args:
-        VITE_API_BASE_URL: https://api.buivietquangvinh.xyz
-    container_name: hoian-frontend-admin
-    restart: unless-stopped
-    networks:
-      - backend
-  hoian-frontend-owner:
-    build:
-      context: "./HA_Store Owner"
-      dockerfile: Dockerfile
-      args:
-        VITE_API_BASE_URL: https://api.buivietquangvinh.xyz
-    container_name: hoian-frontend-owner
-    restart: unless-stopped
-    networks:
-      - backend
+
   cloudflared:
     image: cloudflare/cloudflared:latest
     container_name: hoian-cloudflared
