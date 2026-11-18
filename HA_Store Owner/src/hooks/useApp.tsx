@@ -29,14 +29,6 @@ export function useApp() {
 }
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [currentPage, setCurrentPage] = useState<PageKey>('dashboard');
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('light');
-  const [language, setLanguage] = useState<'vi' | 'en'>('vi');
-  const [authToken, setAuthToken] = useState(() =>
-    localStorage.getItem('ha_auth_token') || sessionStorage.getItem('ha_auth_token'),
-  );
   const [authUser, setAuthUser] = useState<AuthUser | null>(() => {
     const stored = localStorage.getItem('ha_auth_user') || sessionStorage.getItem('ha_auth_user');
     if (!stored) return null;
@@ -48,6 +40,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return null;
     }
   });
+  const approvalRequired = authUser?.accountType === 'MERCHANT'
+    && authUser.role === 'MERCHANT'
+    && (authUser.approvalStatus === 'PENDING' || authUser.approvalStatus === 'REJECTED');
+  const [currentPage, setCurrentPageState] = useState<PageKey>(() =>
+    approvalRequired ? 'approval-status' : 'dashboard',
+  );
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('light');
+  const [language, setLanguage] = useState<'vi' | 'en'>('vi');
+  const [authToken, setAuthToken] = useState(() =>
+    localStorage.getItem('ha_auth_token') || sessionStorage.getItem('ha_auth_token'),
+  );
+
+  const setCurrentPage = useCallback((page: PageKey) => {
+    setCurrentPageState(approvalRequired ? 'approval-status' : page);
+  }, [approvalRequired]);
 
   const signIn = (token: string, user: AuthUser, remember: boolean) => {
     const storage = remember ? localStorage : sessionStorage;
@@ -58,6 +67,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     otherStorage.removeItem('ha_auth_user');
     setAuthToken(token);
     setAuthUser(user);
+    setCurrentPageState(
+      user.approvalStatus === 'PENDING' || user.approvalStatus === 'REJECTED'
+        ? 'approval-status'
+        : 'dashboard',
+    );
   };
 
   const signOut = useCallback(() => {
@@ -67,6 +81,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     sessionStorage.removeItem('ha_auth_user');
     setAuthToken(null);
     setAuthUser(null);
+    setCurrentPageState('dashboard');
   }, []);
 
   return (

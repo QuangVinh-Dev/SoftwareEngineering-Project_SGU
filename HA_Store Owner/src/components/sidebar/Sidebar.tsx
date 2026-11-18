@@ -39,6 +39,16 @@ const navSections: { title: string; items: NavItem[] }[] = [
 
 export default function Sidebar() {
   const { currentPage, setCurrentPage, sidebarCollapsed, setSidebarCollapsed, mobileSidebarOpen, setMobileSidebarOpen, authUser } = useApp();
+  const approvalRequired = authUser?.approvalStatus === 'PENDING'
+    || authUser?.approvalStatus === 'REJECTED';
+  const visibleSections = navSections
+    .map(section => ({
+      ...section,
+      items: approvalRequired
+        ? section.items.filter(item => item.key === 'approval-status')
+        : section.items,
+    }))
+    .filter(section => section.items.length > 0);
 
   return (
     <>
@@ -72,7 +82,7 @@ export default function Sidebar() {
 
         {/* Navigation Menu */}
         <nav className="flex-1 overflow-y-auto scrollbar-thin py-4 px-3 space-y-4">
-          {navSections.map((section, sIdx) => (
+          {visibleSections.map((section, sIdx) => (
             <div key={sIdx} className="space-y-1">
               {!sidebarCollapsed && (
                 <p className="px-3 pb-1 text-[10px] font-bold uppercase tracking-[0.16em] text-purple-300/60">

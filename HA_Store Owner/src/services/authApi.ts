@@ -6,6 +6,8 @@ export interface AuthUser {
   role: string;
   accountType: 'ADMIN' | 'MERCHANT';
   merchantId: number | null;
+  approvalStatus: 'PENDING' | 'APPROVED' | 'REJECTED' | null;
+  rejectionReason: string | null;
 }
 
 export interface AuthResponse {

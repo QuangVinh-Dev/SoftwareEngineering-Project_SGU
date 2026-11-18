@@ -9,7 +9,7 @@ import Account from '@/pages/Account';
 import ApprovalStatus from '@/pages/ApprovalStatus';
 
 function AppContent() {
-  const { isLoggedIn, currentPage } = useApp();
+  const { isLoggedIn, currentPage, authUser } = useApp();
 
   // Chưa đăng nhập -> Chỉ hiển thị trang Login độc lập
   if (!isLoggedIn) return <Login />;
@@ -23,8 +23,11 @@ function AppContent() {
     'approval-status': <ApprovalStatus />,
   };
 
+  const approvalRequired = authUser?.approvalStatus === 'PENDING'
+    || authUser?.approvalStatus === 'REJECTED';
+
   // Đã đăng nhập -> Hiển thị Layout Admin (có Sidebar, Header, Footer bên trong Layout nếu bạn muốn)
-  return <Layout>{pages[currentPage]}</Layout>;
+  return <Layout>{approvalRequired ? <ApprovalStatus /> : pages[currentPage] ?? <Dashboard />}</Layout>;
 }
 
 export default function App() {
