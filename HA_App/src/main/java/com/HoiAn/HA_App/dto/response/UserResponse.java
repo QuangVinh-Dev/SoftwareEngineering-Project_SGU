@@ -7,6 +7,8 @@ public record UserResponse(
         String email,
         String role,
         String accountType,
-        Integer merchantId
+        Integer merchantId,
+        String approvalStatus,
+        String rejectionReason
 ) {
 }

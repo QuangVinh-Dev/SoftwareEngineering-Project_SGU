@@ -89,26 +89,27 @@ public class AuthService {
         }
 
         Integer merchantId = null;
+        Merchant merchant = null;
         if ("MERCHANT".equals(account.getAccountType())) {
-            Merchant merchant = merchantRepository.findByAccountId(account.getId())
+            merchant = merchantRepository.findByAccountId(account.getId())
                     .orElseThrow(() -> new ApiException(HttpStatus.FORBIDDEN,
                             "Tài khoản chưa có thông tin gian hàng"));
 
             switch (merchant.getApprovalStatus()) {
                 case "APPROVED" -> merchantId = merchant.getId();
-                case "PENDING" -> throw new ApiException(HttpStatus.FORBIDDEN,
-                        "Gian hàng đang chờ quản trị viên duyệt");
+                case "PENDING", "REJECTED" -> {
+                    // Pending and rejected merchants may sign in to view their review status.
+                }
                 default -> throw new ApiException(HttpStatus.FORBIDDEN,
-                        merchant.getRejectReason() == null || merchant.getRejectReason().isBlank()
-                                ? "Đăng ký gian hàng đã bị từ chối"
-                                : "Đăng ký gian hàng đã bị từ chối: " + merchant.getRejectReason());
+                        "Trạng thái gian hàng không hợp lệ");
             }
         }
 
         AuthUser user = toAuthUser(account, merchantId);
         String token = jwtService.generateToken(user);
 
-        return new AuthResponse(token, "Bearer", jwtService.getTtlSeconds(), toUserResponse(account, merchantId));
+        return new AuthResponse(token, "Bearer", jwtService.getTtlSeconds(),
+                toUserResponse(account, merchantId, merchant));
     }
 
     // ------------------------------------------------------------------
@@ -249,8 +250,17 @@ public class AuthService {
     }
 
     private UserResponse toUserResponse(Account account, Integer merchantId) {
+        Merchant merchant = "MERCHANT".equals(account.getAccountType())
+                ? merchantRepository.findByAccountId(account.getId()).orElse(null)
+                : null;
+        return toUserResponse(account, merchantId, merchant);
+    }
+
+    private UserResponse toUserResponse(Account account, Integer merchantId, Merchant merchant) {
         return new UserResponse(account.getId(), account.getUsername(), account.getFullName(),
-                account.getEmail(), account.getRole().getName(), account.getAccountType(), merchantId);
+                account.getEmail(), account.getRole().getName(), account.getAccountType(), merchantId,
+                merchant == null ? null : merchant.getApprovalStatus(),
+                merchant == null ? null : merchant.getRejectReason());
     }
 
     private static String normalize(String value) {

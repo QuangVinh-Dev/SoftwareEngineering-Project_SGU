@@ -51,6 +51,13 @@ export default function ApprovalStatus() {
     if (isManual) setRefreshing(true);
     else setLoading(true);
 
+    if (!authUser?.merchantId) {
+      setPoi(null);
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
+
     try {
       const list = await getMerchantPois();
       setPoi(list.length > 0 ? list[0] : null);
@@ -82,7 +89,9 @@ export default function ApprovalStatus() {
     {
       title: 'Ban quản lý thẩm định',
       desc: 'Đối chiếu thông tin thực tế tại Phố Cổ Hội An.',
-      time: accountStatus === 'PENDING' ? 'Đang xử lý' : 'Đã duyệt',
+      time: accountStatus === 'PENDING'
+        ? 'Đang xử lý'
+        : accountStatus === 'REJECTED' ? 'Đã thẩm định' : 'Đã duyệt',
       done: accountStatus !== 'PENDING',
       current: accountStatus === 'PENDING',
     },
@@ -276,7 +285,7 @@ export default function ApprovalStatus() {
                   Lý do tài khoản chưa được duyệt:
                 </p>
                 <p className="text-red-900 pl-5">
-                  Thông tin giấy phép kinh doanh hoặc định danh chưa trùng khớp. Vui lòng cập nhật lại tại trang Hồ sơ gian hàng.
+                  {authUser?.rejectionReason || 'Thông tin giấy phép kinh doanh hoặc định danh chưa trùng khớp. Vui lòng liên hệ quản trị viên để được hướng dẫn.'}
                 </p>
               </div>
             )}
