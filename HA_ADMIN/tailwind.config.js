@@ -1,0 +1,130 @@
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  darkMode: 'class',
+  theme: {
+    extend: {
+      colors: {
+        primary: {
+          50: '#f0f8f9',
+          100: '#d9eef1',
+          200: '#b5dee4',
+          300: '#84c5cf',
+          400: '#4da4b4',
+          500: '#328899',
+          600: '#286b7b', // Theme Teal
+          700: '#205764',
+          800: '#1a4752',
+          900: '#163a43',
+          950: '#0d2228',
+        },
+        navy: {
+          50: '#f0f5fa',
+          100: '#e0ebf4',
+          200: '#bed7e9',
+          300: '#8ebbd7',
+          400: '#5698c1',
+          500: '#347aa9',
+          600: '#26628d',
+          700: '#1f4f72',
+          800: '#183a54', // Theme Deep Navy
+          900: '#142e44',
+          950: '#0d1e2d',
+          DEFAULT: '#183a54',
+        },
+        teal: {
+          50: '#f0f8f9',
+          100: '#d9eef1',
+          200: '#b5dee4',
+          300: '#84c5cf',
+          400: '#4da4b4',
+          500: '#328899',
+          600: '#286b7b', // Accent Teal
+          700: '#205764',
+          800: '#1a4752',
+          900: '#163a43',
+          DEFAULT: '#286b7b',
+        },
+        lime: {
+          50: '#f7fceb',
+          100: '#ecf9d4',
+          200: '#d9f2ae',
+          300: '#c0e880',
+          400: '#a4db77', // Accent Lime
+          500: '#87c33b',
+          600: '#6aa22b',
+          700: '#527d24',
+          DEFAULT: '#a4db77',
+        },
+        gold: {
+          50: '#f7fceb',
+          100: '#ecf9d4',
+          200: '#d9f2ae',
+          300: '#c0e880',
+          400: '#a4db77',
+          500: '#87c33b',
+          600: '#6aa22b',
+          700: '#527d24',
+          800: '#436421',
+          900: '#395420',
+          950: '#1f310f',
+        },
+        cream: {
+          50: '#f8fafc',
+          100: '#f1f5f9',
+          200: '#e2e8f0',
+          300: '#cbd5e1',
+          400: '#94a3b8',
+          500: '#64748b',
+        },
+        brown: {
+          50: '#f8fafc',
+          100: '#f1f5f9',
+          200: '#e2e8f0',
+          300: '#cbd5e1',
+          400: '#94a3b8',
+          500: '#64748b',
+          600: '#475569',
+          700: '#334155',
+          800: '#1e293b',
+          900: '#0f172a',
+          950: '#020617',
+        },
+      },
+      fontFamily: {
+        sans: ['Be Vietnam Pro', 'Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        display: ['Be Vietnam Pro', 'Inter', 'system-ui', 'sans-serif'],
+      },
+      boxShadow: {
+        card: '0 1px 3px 0 rgba(0,0,0,0.04), 0 1px 2px 0 rgba(0,0,0,0.02)',
+        'card-hover': '0 4px 12px 0 rgba(24,58,84,0.08), 0 1px 3px 0 rgba(24,58,84,0.04)',
+        sidebar: '4px 0 24px rgba(18,44,64,0.08)',
+      },
+      animation: {
+        'fade-in': 'fadeIn 0.2s ease-out',
+        'slide-up': 'slideUp 0.3s ease-out',
+        'slide-in-right': 'slideInRight 0.3s ease-out',
+        'scale-in': 'scaleIn 0.2s ease-out',
+      },
+      keyframes: {
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        slideUp: {
+          '0%': { transform: 'translateY(8px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
+        },
+        slideInRight: {
+          '0%': { transform: 'translateX(100%)', opacity: '0' },
+          '100%': { transform: 'translateX(0)', opacity: '1' },
+        },
+        scaleIn: {
+          '0%': { transform: 'scale(0.95)', opacity: '0' },
+          '100%': { transform: 'scale(1)', opacity: '1' },
+        },
+      },
+    },
+  },
+  plugins: [],
+};
