@@ -41,3 +41,13 @@ build/
 .env
 .env.*
 !.env.example
+
+# Runtime-generated data - preserve on production, never commit
+/Data_Storage/*
+!/Data_Storage/.gitkeep
+
+# Runtime backups
+/docker-compose.yml.backup-*
+
+# Piper model weights
+/tts-service/models/*.onnx
