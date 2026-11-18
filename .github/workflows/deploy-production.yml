@@ -1,0 +1,34 @@
+name: Production CD
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: production-deployment
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy to Production Server
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Deploy through SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_PORT }}
+          fingerprint: ${{ secrets.SERVER_FINGERPRINT }}
+          timeout: 60s
+          command_timeout: 30m
+          script: |
+            echo "Starting HA App production deployment"
+            /home/superadmin/deploy-ha-app.sh
