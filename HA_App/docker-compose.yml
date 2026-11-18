@@ -133,7 +133,7 @@ services:
       APP_SUPER_ADMIN_PASSWORD: ${APP_SUPER_ADMIN_PASSWORD:-}
       APP_SEED_MERCHANT_PASSWORD: ${APP_SEED_MERCHANT_PASSWORD:?Set APP_SEED_MERCHANT_PASSWORD in .env}
       APP_PROXY_TRUSTED_PROXIES: ${APP_PROXY_TRUSTED_PROXIES:-}
-      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:5174,http://localhost:5175}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:5174,http://localhost:5175,https://ha-user.buivietquangvinh.xyz,https://ha-admin.buivietquangvinh.xyz,https://ha-owner.buivietquangvinh.xyz}
 
       VNPAY_TMN_CODE: ${VNPAY_TMN_CODE:-}
       VNPAY_HASH_SECRET: ${VNPAY_HASH_SECRET:-}
@@ -166,6 +166,90 @@ services:
     # No application healthcheck is configured: the Spring app has no health endpoint/dependency.
 
   # Chỉ sửa phần Cloudflare Tunnel
+  # Frontend services (deduplicated)
+  user-frontend:
+    build:
+      context: ../HA.USER/hoi-an-app
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: https://api.buivietquangvinh.xyz
+    container_name: hoian-frontend-user
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5173:80"
+    networks:
+      - backend
+
+
+
+  store-owner-frontend:
+    build:
+      context: "./HA_Store Owner"
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: https://api.buivietquangvinh.xyz
+    container_name: hoian-frontend-owner
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5175:80"
+    networks:
+      - backend
+
+
+admin-frontend:
+    build:
+      context: ../HA_ADMIN
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: https://api.buivietquangvinh.xyz
+    container_name: hoian-frontend-admin
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5174:80"
+    networks:
+      - backend
+
+store-owner-frontend:
+    build:
+      context: "./HA_Store Owner"
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: https://api.buivietquangvinh.xyz
+    container_name: hoian-frontend-owner
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5175:80"
+    networks:
+      - backend
+    build:
+      context: ../HA.USER/hoi-an-app
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: https://api.buivietquangvinh.xyz
+    container_name: hoian-frontend-user
+    restart: unless-stopped
+    networks:
+      - backend
+  hoian-frontend-admin:
+    build:
+      context: ../HA_ADMIN
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: https://api.buivietquangvinh.xyz
+    container_name: hoian-frontend-admin
+    restart: unless-stopped
+    networks:
+      - backend
+  hoian-frontend-owner:
+    build:
+      context: "./HA_Store Owner"
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: https://api.buivietquangvinh.xyz
+    container_name: hoian-frontend-owner
+    restart: unless-stopped
+    networks:
+      - backend
   cloudflared:
     image: cloudflare/cloudflared:latest
     container_name: hoian-cloudflared
