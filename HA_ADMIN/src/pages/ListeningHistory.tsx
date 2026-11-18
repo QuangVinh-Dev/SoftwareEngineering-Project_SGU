@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Search, ChevronLeft, ChevronRight, ChevronsUpDown, Check, X, Filter, RotateCcw } from 'lucide-react';
 import { Card, Badge, Button } from '@/components/ui';
-import { useToast } from '@/components/toast/ToastProvider';
+import { useToast } from '@/components/toast/useToast';
 import { listeningHistory, pois, languages } from '@/data/mockData';
 import type { ListeningHistoryEntry } from '@/types';
 import { classNames } from '@/utils/helpers';

@@ -1,38 +1,9 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import {
   clearAccessToken, getAccessToken, getCurrentUser, onUnauthorized, saveAccessToken,
   type AuthUser,
 } from '@/services/authApi';
-
-type PageKey = 'dashboard' | 'accounts' | 'poi' | 'audio' | 'merchants' | 'history' | 'reports' | 'settings';
-type AuthStatus = 'loading' | 'anonymous' | 'admin' | 'forbidden' | 'error';
-
-interface AppState {
-  currentPage: PageKey;
-  setCurrentPage: (p: PageKey) => void;
-  sidebarCollapsed: boolean;
-  setSidebarCollapsed: (v: boolean) => void;
-  mobileSidebarOpen: boolean;
-  setMobileSidebarOpen: (v: boolean) => void;
-  theme: 'light' | 'dark' | 'system';
-  setTheme: (t: 'light' | 'dark' | 'system') => void;
-  language: 'vi' | 'en';
-  setLanguage: (l: 'vi' | 'en') => void;
-  authStatus: AuthStatus;
-  authError: string;
-  authUser: AuthUser | null;
-  signIn: (token: string, user: AuthUser) => void;
-  signOut: () => void;
-  retryAuth: () => void;
-}
-
-const AppContext = createContext<AppState | null>(null);
-
-export function useApp() {
-  const ctx = useContext(AppContext);
-  if (!ctx) throw new Error('useApp must be used within AppProvider');
-  return ctx;
-}
+import { AppContext, type AuthStatus, type PageKey } from './AppContext';
 
 function isAdmin(user: AuthUser) {
   return user.accountType === 'ADMIN' && user.role === 'ADMIN';

@@ -1,6 +1,7 @@
 package com.HoiAn.HA_App.service;
 
 import com.HoiAn.HA_App.dto.request.LoginRequest;
+import com.HoiAn.HA_App.dto.request.RegisterMerchantRequest;
 import com.HoiAn.HA_App.entity.Account;
 import com.HoiAn.HA_App.entity.Merchant;
 import com.HoiAn.HA_App.entity.Role;
@@ -17,6 +18,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -44,7 +46,9 @@ class AuthServiceTest {
     void setUp() {
         authService = new AuthService(accountRepository, merchantRepository, merchantImageRepository,
                 imageStorage, roleRepository, passwordEncoder, jwtService);
+    }
 
+    private void stubLogin() {
         when(accountRepository.findByUsername("owner")).thenReturn(Optional.of(account));
         when(account.getId()).thenReturn(17);
         when(account.getPasswordHash()).thenReturn("password-hash");
@@ -63,6 +67,7 @@ class AuthServiceTest {
 
     @Test
     void pendingMerchantCanSignInWithoutApprovedMerchantAccess() {
+        stubLogin();
         when(merchant.getApprovalStatus()).thenReturn("PENDING");
 
         var response = authService.login(new LoginRequest("owner", "password"));
@@ -75,6 +80,7 @@ class AuthServiceTest {
 
     @Test
     void rejectedMerchantCanSignInAndSeeRejectionReason() {
+        stubLogin();
         when(merchant.getApprovalStatus()).thenReturn("REJECTED");
         when(merchant.getRejectReason()).thenReturn("Thiếu giấy phép kinh doanh");
 
@@ -87,6 +93,7 @@ class AuthServiceTest {
 
     @Test
     void approvedMerchantRetainsMerchantAccess() {
+        stubLogin();
         when(merchant.getApprovalStatus()).thenReturn("APPROVED");
         when(merchant.getId()).thenReturn(42);
 
@@ -95,5 +102,35 @@ class AuthServiceTest {
         assertThat(response.user().approvalStatus()).isEqualTo("APPROVED");
         assertThat(response.user().merchantId()).isEqualTo(42);
         verify(jwtService).generateToken(argThat(user -> user.merchantId().equals(42)));
+    }
+
+    @Test
+    void registerMerchantNormalizesPlanAndBillingBeforeSaving() {
+        when(accountRepository.existsByUsername("new-owner")).thenReturn(false);
+        when(accountRepository.existsByEmailIgnoreCase("new@example.com")).thenReturn(false);
+        when(roleRepository.findByName("MERCHANT")).thenReturn(Optional.of(role));
+        when(passwordEncoder.encode("Password123")).thenReturn("password-hash");
+        when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(merchantRepository.save(any(Merchant.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var request = new RegisterMerchantRequest(
+                "new-owner",
+                "Password123",
+                "New Owner",
+                "new@example.com",
+                "New Shop",
+                null,
+                null,
+                null,
+                null,
+                List.of(),
+                new RegisterMerchantRequest.PlanInfo(" PREMIUM ", " YEARLY ")
+        );
+
+        authService.registerMerchant(request);
+
+        verify(merchantRepository).save(argThat(saved ->
+                "premium".equals(saved.getPlanId())
+                        && "yearly".equals(saved.getBillingCycle())));
     }
 }

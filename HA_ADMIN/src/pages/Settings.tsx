@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Languages, MapPin, Volume2, Shield, Play, Pause, Eye, Save, FileEdit, Send, Check } from 'lucide-react';
 import { Card, CardHeader, Badge, Button, Toggle } from '@/components/ui';
 import ConfirmDialog from '@/components/modals/ConfirmDialog';
-import { useToast } from '@/components/toast/ToastProvider';
+import { useToast } from '@/components/toast/useToast';
 import { languages as initialLangs, ttsVoices as initialVoices } from '@/data/mockData';
 import { classNames } from '@/utils/helpers';
 

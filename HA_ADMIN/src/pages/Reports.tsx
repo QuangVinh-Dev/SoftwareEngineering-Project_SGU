@@ -1,19 +1,17 @@
 import { useState } from 'react';
 import {
-  BarChart3, FileSpreadsheet, FileText, Download, Calendar,
-  TrendingUp, Clock, Globe2, Smartphone, Users, Award, CheckCircle2,
-  PieChart as PieIcon, Monitor, Tablet
+  BarChart3, FileSpreadsheet, FileText, Download, Calendar, Clock,
+  Globe2, Smartphone, Award, CheckCircle2, Monitor, Tablet
 } from 'lucide-react';
 import {
-  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell
 } from 'recharts';
-import { Card, CardHeader, Button, Badge } from '@/components/ui';
-import { useToast } from '@/components/toast/ToastProvider';
+import { Card, Button } from '@/components/ui';
+import { useToast } from '@/components/toast/useToast';
 import {
-  top10Pois, avgTimeByPoi, avgTimeByLanguage, languageDistribution
+  top10Pois, avgTimeByPoi, avgTimeByLanguage
 } from '@/data/mockData';
-import { classNames, formatNumber } from '@/utils/helpers';
+import { formatNumber } from '@/utils/helpers';
 
 const barColors = ['#a85f31', '#c07a3e', '#d99d2b', '#9a6d54', '#7e5742', '#cc9259', '#bd7a20', '#654536', '#b08870', '#cab09c'];
 

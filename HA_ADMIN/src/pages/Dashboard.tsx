@@ -15,11 +15,8 @@ import {
   ResponsiveContainer, PieChart, Pie, Cell
 } from 'recharts';
 import {
-  Users, MapPin, Store, Clock,
-  ArrowUpRight, ArrowRight, Activity, Globe2, ShieldCheck,
-  Radio, CheckCircle2, ChevronRight, Zap, AlertCircle, LoaderCircle
+  Clock, ArrowRight, ChevronRight, AlertCircle, LoaderCircle
 } from 'lucide-react';
-import { Card, Button } from '@/components/ui';
 import { useApp } from '@/hooks/useApp';
 import { formatNumber } from '@/utils/helpers';
 
@@ -326,7 +323,7 @@ export default function Dashboard() {
                   />
                   <YAxis tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} allowDecimals={false} />
                   <Tooltip
-                    formatter={(val: any, name: any) => [formatNumber(Number(val)), name]}
+                    formatter={(val, name) => [formatNumber(Number(val)), name]}
                     contentStyle={{ borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '12px' }}
                   />
                   <Bar dataKey="visitors" name="Lượt du khách" fill="#286b7b" radius={[4, 4, 0, 0]} maxBarSize={28} />
@@ -403,7 +400,7 @@ export default function Dashboard() {
                     tickLine={false}
                   />
                   <Tooltip
-                    formatter={(value: any, name: any) => name === 'Doanh thu'
+                    formatter={(value, name) => name === 'Doanh thu'
                       ? [formatVnd(Number(value)), 'Doanh thu']
                       : [`${formatNumber(Number(value))} giao dịch`, 'Số giao dịch']}
                     contentStyle={{ borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '12px' }}
@@ -482,7 +479,7 @@ export default function Dashboard() {
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
-                      <Tooltip formatter={(value: any, name: any) => [percentText(Number(value)), name]} />
+                      <Tooltip formatter={(value, name) => [percentText(Number(value)), name]} />
                     </PieChart>
                   </ResponsiveContainer>
 

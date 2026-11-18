@@ -1,15 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Check, X, Eye, Search, RefreshCw, Store, Phone, Mail, MapPin,
-  Calendar, ShieldCheck, AlertCircle, Clock, CheckCircle2, XCircle,
-  Tag, CreditCard, Building2, User, Send, Compass
+  Check, X, Eye, Search, RefreshCw, Store, MapPin, Send
 } from 'lucide-react';
 import { Badge, Button, Card } from '@/components/ui';
 import Modal from '@/components/modals/Modal';
-import { useToast } from '@/components/toast/ToastProvider';
+import { useToast } from '@/components/toast/useToast';
 import { apiMessage } from '@/services/authApi';
 import {
-  getAdminMerchants, approveMerchant, rejectMerchant, resolveMerchantImageUrl,
+  getAdminMerchants, approveMerchant, rejectMerchant,
   type AdminMerchant
 } from '@/services/adminMerchantApi';
 import {

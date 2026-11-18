@@ -1,11 +1,10 @@
 import { useState, useMemo } from 'react';
 import {
-  Users, UserPlus, Lock, Unlock, Edit2, Search,
-  Clock, CheckCircle, AlertCircle, UserCheck
+  Users, UserPlus, Lock, Unlock, Edit2, Search, Clock, UserCheck
 } from 'lucide-react';
 import { Card, Button, Badge } from '@/components/ui';
 import Modal from '@/components/modals/Modal';
-import { useToast } from '@/components/toast/ToastProvider';
+import { useToast } from '@/components/toast/useToast';
 
 interface AdminAccount {
   id: number;
@@ -16,6 +15,10 @@ interface AdminAccount {
   status: 'ACTIVE' | 'LOCKED';
   createdAt: string;
   lastLogin?: string;
+}
+
+function isAccountRole(value: string): value is AdminAccount['role'] {
+  return value === 'ADMIN' || value === 'MERCHANT';
 }
 
 interface ActionLog {
@@ -494,7 +497,9 @@ export default function Accounts() {
             <label className="block text-xs font-semibold text-slate-700 mb-1">Vai trò hệ thống</label>
             <select
               value={formRole}
-              onChange={e => setFormRole(e.target.value as any)}
+              onChange={e => {
+                if (isAccountRole(e.target.value)) setFormRole(e.target.value);
+              }}
               className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white outline-none focus:border-[#286b7b]"
             >
               <option value="ADMIN">ADMIN (Quản trị viên toàn quyền)</option>
@@ -542,7 +547,9 @@ export default function Accounts() {
               <label className="block text-xs font-semibold text-slate-700 mb-1">Vai trò</label>
               <select
                 value={formRole}
-                onChange={e => setFormRole(e.target.value as any)}
+                onChange={e => {
+                  if (isAccountRole(e.target.value)) setFormRole(e.target.value);
+                }}
                 className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white outline-none focus:border-[#286b7b]"
               >
                 <option value="ADMIN">ADMIN (Quản trị viên)</option>

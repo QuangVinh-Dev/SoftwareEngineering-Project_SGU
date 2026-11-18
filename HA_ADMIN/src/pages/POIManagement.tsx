@@ -1,12 +1,12 @@
 ﻿import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Check, Edit2, Languages, MapPin, Plus, RefreshCw, Search, Volume2, X,
-  Clock, CheckCircle2, XCircle, AlertCircle, Eye, ExternalLink, Compass
+  AlertCircle, Eye, ExternalLink
 } from 'lucide-react';
 import { Badge, Button, Card } from '@/components/ui';
 import Modal from '@/components/modals/Modal';
 import AudioPlayer from '@/components/AudioPlayer';
-import { useToast } from '@/components/toast/ToastProvider';
+import { useToast } from '@/components/toast/useToast';
 import { apiMessage } from '@/services/authApi';
 import {
   approveTranslation, createPoi, generatePoiAudio, getAdminPois, getPoiAudios, getPoiContent,

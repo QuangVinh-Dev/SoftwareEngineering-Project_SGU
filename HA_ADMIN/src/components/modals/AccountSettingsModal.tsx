@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Sun, Moon, Monitor, Bell, Mail, Volume2, Save } from 'lucide-react';
 import Modal from '@/components/modals/Modal';
 import { Button, Toggle } from '@/components/ui';
-import { useToast } from '@/components/toast/ToastProvider';
+import { useToast } from '@/components/toast/useToast';
 import { useApp } from '@/hooks/useApp';
 import { classNames } from '@/utils/helpers';
 
