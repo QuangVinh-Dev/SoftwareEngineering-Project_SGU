@@ -16,7 +16,7 @@
 
 ---
 
-## 👥 THÀNH VIÊN NHÓM THỰC HIỆN
+##  THÀNH VIÊN NHÓM THỰC HIỆN
 
 | STT | Họ và tên | GitHub Account | Email |
 | :---: | :--- | :--- | :--- |
@@ -79,7 +79,7 @@ flowchart TD
 
 ---
 
-## 🚀 QUY TRÌNH CI/CD TỰ ĐỘNG HÓA (GITHUB ACTIONS)
+##  QUY TRÌNH CI/CD TỰ ĐỘNG HÓA (GITHUB ACTIONS)
 
 Toàn bộ mã nguồn được áp dụng quy trình **CI/CD** khép kín được cấu hình tại thư mục [`.github/workflows/`](./.github/workflows):
 
@@ -113,7 +113,7 @@ flowchart LR
 
 ---
 
-## 🌟 CÁC TÍNH NĂNG NỔI BẬT CỦA HỆ THỐNG
+##  CÁC TÍNH NĂNG NỔI BẬT CỦA HỆ THỐNG
 
 1. **Định vị Geofencing & Tự động phát thuyết minh**:
    - Khi du khách tiến vào bán kính quét (Radius) của điểm tham quan (POI), hệ thống tự động kích hoạt bài thuyết minh đúng vị trí toạ độ GPS.
@@ -168,7 +168,7 @@ cd "HA_Store Owner" && npm install && npm run dev
 
 ---
 
-## 🔑 TÀI KHOẢN TRUY CẬP HỆ THỐNG
+##  TÀI KHOẢN TRUY CẬP HỆ THỐNG
 
 | Phân hệ | Đường dẫn truy cập | Tên đăng nhập | Mật khẩu mặc định |
 | :--- | :--- | :--- | :--- |
