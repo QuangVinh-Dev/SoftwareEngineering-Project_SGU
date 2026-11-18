@@ -5,7 +5,6 @@ import ProfileDropdown from './ProfileDropdown';
 const pageNames: Record<string, string> = {
   dashboard: 'Tổng quan & Thống kê lượt nghe',
   'my-poi': 'Điểm tham quan (POI) của gian hàng',
-  'edit-poi': 'Chỉnh sửa & Gửi duyệt lại POI',
   stats: 'Tổng quan & Thống kê lượt nghe',
   account: 'Hồ sơ gian hàng',
   'approval-status': 'Theo dõi trạng thái phê duyệt',

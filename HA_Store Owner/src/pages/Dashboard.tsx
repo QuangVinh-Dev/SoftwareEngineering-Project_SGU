@@ -384,8 +384,8 @@ export default function Dashboard() {
                     <span>Ảnh: <strong>{poi.images.length}/5</strong></span>
                   </div>
                   <div className="pt-3 flex gap-2">
-                    <Button size="sm" variant="secondary" onClick={() => setCurrentPage('edit-poi')} icon={<Edit3 className="w-3.5 h-3.5 text-[#7c3aed]" />}>
-                      Chỉnh sửa & Gửi duyệt lại
+                    <Button size="sm" variant="secondary" onClick={() => setCurrentPage('my-poi')} icon={<Edit3 className="w-3.5 h-3.5 text-[#7c3aed]" />}>
+                      Quản lý & chỉnh sửa POI
                     </Button>
                     <Button size="sm" variant="secondary" onClick={() => setCurrentPage('my-poi')}>
                       Xem chi tiết POI

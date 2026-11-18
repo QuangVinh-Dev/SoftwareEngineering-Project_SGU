@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useState, type ReactNode } from 'react';
 import type { AuthUser } from '@/services/authApi';
 
-type PageKey = 'dashboard' | 'my-poi' | 'edit-poi' | 'stats' | 'account' | 'approval-status';
+type PageKey = 'dashboard' | 'my-poi' | 'stats' | 'account' | 'approval-status';
 
 interface AppState {
   currentPage: PageKey;

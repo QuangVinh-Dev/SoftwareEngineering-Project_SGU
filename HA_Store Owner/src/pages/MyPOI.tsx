@@ -82,7 +82,7 @@ function PoiModal({ initialPoi, onClose, onSaved }: PoiModalProps) {
 
   const handleGetCurrentGPS = () => {
     if (!navigator.geolocation) {
-      setFormError('Trình duyệt của bạn không hỗ trợ định vị GPS.');
+      setFormError('Trình duyệt của bạn không hỗ trợ định vị GPS. Vui lòng nhập thủ công vĩ độ và kinh độ.');
       return;
     }
     setGettingGPS(true);
@@ -101,13 +101,13 @@ function PoiModal({ initialPoi, onClose, onSaved }: PoiModalProps) {
       },
       err => {
         setGettingGPS(false);
-        let msg = 'Không thể lấy vị trí hiện tại.';
-        if (err.code === 1) msg = 'Bạn đã từ chối quyền truy cập vị trí trên trình duyệt. Vui lòng cấp quyền hoặc nhập thủ công.';
-        else if (err.code === 2) msg = 'Không tìm thấy tín hiệu vị trí GPS.';
-        else if (err.code === 3) msg = 'Quá thời gian xác định vị trí GPS. Vui lòng thử lại hoặc nhập thủ công.';
+        let msg = 'Không thể lấy vị trí hiện tại. Vui lòng nhập thủ công vĩ độ và kinh độ.';
+        if (err.code === 1) msg = 'Bạn đã từ chối quyền truy cập vị trí trên trình duyệt. Vui lòng cấp quyền hoặc nhập thủ công vĩ độ và kinh độ.';
+        else if (err.code === 2) msg = 'Không tìm thấy tín hiệu vị trí GPS. Vui lòng nhập thủ công vĩ độ và kinh độ.';
+        else if (err.code === 3) msg = 'Quá thời gian xác định vị trí GPS. Vui lòng thử lại hoặc nhập thủ công vĩ độ và kinh độ.';
         setFormError(msg);
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 7000, maximumAge: 0 }
     );
   };
 
