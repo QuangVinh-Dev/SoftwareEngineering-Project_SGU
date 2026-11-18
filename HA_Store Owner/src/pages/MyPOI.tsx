@@ -394,6 +394,11 @@ function PoiModal({ initialPoi, onClose, onSaved }: PoiModalProps) {
                 disabled={submitting}
               />
               <p className="mt-1 text-[11px] text-slate-400">Định dạng: JPG, PNG, GIF, BMP. Tối đa 10MB mỗi ảnh.</p>
+              {isEdit && (
+                <p className="mt-1 text-[11px] text-amber-700">
+                  Nếu chọn ảnh mới, toàn bộ ảnh hiện tại sẽ được thay thế. Không chọn ảnh mới để giữ nguyên ảnh cũ.
+                </p>
+              )}
               {images.length > 0 && (
                 <div className="mt-2 p-2.5 bg-purple-50/60 rounded-xl border border-purple-100 text-xs text-[#6b21a8]">
                   <p className="font-semibold mb-1">Đã chọn {images.length} tệp ảnh mới:</p>

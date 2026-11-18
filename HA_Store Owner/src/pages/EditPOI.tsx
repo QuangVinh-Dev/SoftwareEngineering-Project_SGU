@@ -407,9 +407,12 @@ export default function EditPOI() {
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
                     <span className="inline-flex items-center gap-1.5">
-                      <ImagePlus className="h-4 w-4 text-[#7c3aed]" /> Cập nhật hình ảnh (Tải thêm tối đa 5 ảnh)
+                      <ImagePlus className="h-4 w-4 text-[#7c3aed]" /> Cập nhật hình ảnh (Tối đa 5 ảnh)
                     </span>
                   </label>
+                  <p className="mb-2 text-[11px] text-slate-500">
+                    Nếu chọn ảnh mới, toàn bộ ảnh hiện tại sẽ được thay thế. Không chọn ảnh mới để giữ nguyên ảnh cũ.
+                  </p>
                   <input
                     type="file"
                     accept="image/*"
