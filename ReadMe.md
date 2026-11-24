@@ -2,6 +2,9 @@
 
 [![Backend & Services CI/CD Pipeline](https://github.com/QuangVinh-Dev/SoftwareEngineering-Project_SGU/actions/workflows/backend-services-ci-cd.yml/badge.svg)](https://github.com/QuangVinh-Dev/SoftwareEngineering-Project_SGU/actions/workflows/backend-services-ci-cd.yml)
 [![Frontend CI Pipeline](https://github.com/QuangVinh-Dev/SoftwareEngineering-Project_SGU/actions/workflows/frontend-ci.yml/badge.svg)](https://github.com/QuangVinh-Dev/SoftwareEngineering-Project_SGU/actions/workflows/frontend-ci.yml)
+[![Live Demo - User](https://img.shields.io/badge/Live_Demo-Khách_Du_Lịch-success?logo=googlechrome&logoColor=white)](https://ha-user.buivietquangvinh.xyz)
+[![Live Demo - Admin](https://img.shields.io/badge/Live_Demo-Quản_Trị_Viên-blue?logo=googlechrome&logoColor=white)](https://ha-admin.buivietquangvinh.xyz)
+[![Live Demo - Owner](https://img.shields.io/badge/Live_Demo-Chủ_Gian_Hàng-orange?logo=googlechrome&logoColor=white)](https://ha-owner.buivietquangvinh.xyz)
 ![Java 21](https://img.shields.io/badge/Java-21-orange.svg)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.1.1-brightgreen.svg)
 ![Python 3.11](https://img.shields.io/badge/Python-3.11-blue.svg)
@@ -13,16 +16,33 @@
 > **Đồ án môn học**: Công nghệ phần mềm (Software Engineering Project - SGU)  
 > **Giảng viên hướng dẫn**: Thầy Nguyễn Quốc Huy  
 > **Phân công đề tài**: **Mục 3 - BE Dev: Tạo các services giao tiếp với nhau bao gồm CI/CD**  
+> 
+> 🌐 **Hệ thống đã triển khai trực tuyến (Live Production)**:
+> - **Cổng Khách du lịch (`HA.USER`)**: [https://ha-user.buivietquangvinh.xyz](https://ha-user.buivietquangvinh.xyz)
+> - **Cổng Quản trị viên (`HA_ADMIN`)**: [https://ha-admin.buivietquangvinh.xyz](https://ha-admin.buivietquangvinh.xyz)
+> - **Cổng Chủ gian hàng (`HA_Store Owner`)**: [https://ha-owner.buivietquangvinh.xyz](https://ha-owner.buivietquangvinh.xyz)
 
 ---
 
-##  THÀNH VIÊN NHÓM THỰC HIỆN
+## 👥 THÀNH VIÊN NHÓM THỰC HIỆN
 
 | STT | Họ và tên | GitHub Account | MSSV |
 | :---: | :--- | :--- | :--- |
 | 1 | **Võ Thị Thảo Vy** | [@VOTHITHAOVY](https://github.com/VOTHITHAOVY) | `3124411356` |
 | 2 | **Bùi Viết Quang Vinh** | [@QuangVinh-Dev](https://github.com/QuangVinh-Dev) | `3124411347` |
 | 3 | **Nguyễn Như Thảo** | [@Nhuthaonguyen26](https://github.com/Nhuthaonguyen26) | `3124411281` |
+
+---
+
+## 🚀 ĐƯỜNG DẪN TRUY CẬP HỆ THỐNG TRỰC TUYẾN (PRODUCTION LIVE)
+
+Toàn bộ hệ thống Multi-Services và các ứng dụng Frontend đã được đóng gói container hóa và triển khai thành công trên môi trường Server Production với tên miền trực tuyến có HTTPS an toàn:
+
+| Phân hệ / Cổng ứng dụng | Tên miền trực tuyến (Live Domain) | Môi trường Local (Dev) | Đối tượng & Chức năng cốt lõi |
+| :--- | :--- | :--- | :--- |
+| **Cổng Khách du lịch (`HA.USER`)** | [https://ha-user.buivietquangvinh.xyz](https://ha-user.buivietquangvinh.xyz) | `http://localhost:5173` | Du khách tham quan, bản đồ số di động, định vị GPS Geofencing tự động phát thuyết minh đa ngôn ngữ, thanh toán mở khóa |
+| **Cổng Quản trị viên (`HA_ADMIN`)** | [https://ha-admin.buivietquangvinh.xyz](https://ha-admin.buivietquangvinh.xyz) | `http://localhost:5174` | Duyệt hồ sơ gian hàng, phê duyệt nội dung POI, dịch thuật AI, sinh audio TTS, thống kê Heatmap & doanh thu |
+| **Cổng Chủ gian hàng (`HA_Store Owner`)** | [https://ha-owner.buivietquangvinh.xyz](https://ha-owner.buivietquangvinh.xyz) | `http://localhost:5175` | Đăng ký gian hàng, tạo & sửa POI quán, nhập tọa độ GPS tự động/tay, xem thống kê lượt nghe du khách theo thời gian thực |
 
 ---
 
@@ -73,33 +93,44 @@ flowchart TD
 5. **`postgres` (PostgreSQL 16)**:
    - Hoạt động trên cổng `5433` (ánh xạ từ 5432).
    - Quản trị dữ liệu quan hệ với ràng buộc toàn vẹn, chỉ mục không gian toạ độ và bảo vệ giao dịch ACID.
-6. **Dịch vụ tích hợp bên ngoài (External Services)**:
-   - **VNPay Sandbox**: Cổng thanh toán trực tuyến mua gói dịch vụ nghe audio du lịch.
-   - **Google Mail SMTP**: Tự động gửi email thông báo kết quả duyệt/từ chối hồ sơ kèm link đăng nhập cho chủ gian hàng.
+6. **Dịch vụ tích hợp bên ngoài**:
+   - **VNPay Payment Gateway**: Xử lý giao dịch thanh toán mở khóa quyền nghe trực tuyến của du khách.
+   - **Google Mail SMTP**: Tự động gửi thư điện tử thông báo kết quả kiểm duyệt hồ sơ cho chủ gian hàng.
 
 ---
 
-##  QUY TRÌNH CI/CD TỰ ĐỘNG HÓA (GITHUB ACTIONS)
+## 🔄 QUY TRÌNH CI/CD TỰ ĐỘNG HÓA (GITHUB ACTIONS)
 
-Toàn bộ mã nguồn được áp dụng quy trình **CI/CD** khép kín được cấu hình tại thư mục [`.github/workflows/`](./.github/workflows):
+Hệ thống CI/CD được thiết lập hoàn chỉnh với 2 workflows chạy độc lập và song song nhằm kiểm tra chất lượng mã nguồn trước khi hợp nhất và triển khai:
 
 ```mermaid
 flowchart LR
-    A["Developer Push / PR"] --> B{"GitHub Actions Runner"}
+    A["Mã nguồn push lên GitHub"] --> B["GitHub Actions Trigger"]
     
-    subgraph CI["Giai đoạn CI (Continuous Integration)"]
-        B --> C1["CI Spring Boot: Setup Java 21 & Biên dịch Maven"]
-        B --> C2["CI Python TTS: Setup Python 3.11 & Kiểm tra cú pháp"]
-        B --> C3["CI Frontend: Build các Portal React"]
+    subgraph BACKEND_CI["Backend & Services CI/CD Pipeline"]
+        direction TB
+        B1["Job 1: ci-spring-boot<br/>(JDK 21 Temurin / Maven Compile)"]
+        B2["Job 2: ci-python-tts-service<br/>(Python 3.11 / Syntax Verification)"]
+        B3["Job 3: cd-docker-services-build<br/>(Docker Compose Build multi-services)"]
+        B1 & B2 --> B3
+    end
+
+    subgraph FRONTEND_CI["Frontend CI Pipeline"]
+        direction TB
+        C1["Job 4: ci-store-owner<br/>(Node 20 / npm ci & build Store Owner)"]
+        C2["Job 5: ci-admin-portal<br/>(Node 20 / npm ci & build Admin Portal)"]
+    end
+
+    B --> BACKEND_CI
+    B --> FRONTEND_CI
+    
+    subgraph DEPLOY["Continuous Deployment (CD)"]
+        D1["Tự động cập nhật Production Server"]
+        D2["Docker Compose redeploy cho cụm Services"]
     end
     
-    subgraph CD["Giai đoạn CD (Continuous Delivery)"]
-        C1 & C2 --> D1["CD Docker: Nạp biến môi trường ảo"]
-        D1 --> D2["Validate Docker Compose Configuration"]
-        D2 --> D3["Đóng gói Docker Images cho cụm Services"]
-    end
-    
-    D3 & C3 --> E["✅ All Checks Passed (Tích xanh)"]
+    B3 & C1 & C2 --> DEPLOY
+    DEPLOY --> E["✅ All Checks Passed & Deployed"]
 ```
 
 - **Quy trình CI Backend & Services (`backend-services-ci-cd.yml`)**:
@@ -110,10 +141,12 @@ flowchart LR
   - Đóng gói Docker Images cho các services (`ha_app-app`, `ha_app-piper-tts`).
 - **Quy trình CI Frontend (`frontend-ci.yml`)**:
   - Tự động kiểm tra cài đặt dependencies và chạy `npm run build` cho các giao diện React.
+- **Quy trình CD Production (`cd-production-deploy.yml`)**:
+  - Tự động deploy mã nguồn lên Production Server khi có cập nhật trên nhánh `main`.
 
 ---
 
-##  CÁC TÍNH NĂNG NỔI BẬT CỦA HỆ THỐNG
+## ✨ CÁC TÍNH NĂNG NỔI BẬT CỦA HỆ THỐNG
 
 1. **Định vị Geofencing & Tự động phát thuyết minh**:
    - Khi du khách tiến vào bán kính quét (Radius) của điểm tham quan (POI), hệ thống tự động kích hoạt bài thuyết minh đúng vị trí toạ độ GPS.
@@ -168,13 +201,29 @@ cd "HA_Store Owner" && npm install && npm run dev
 
 ---
 
-##  TÀI KHOẢN TRUY CẬP HỆ THỐNG
+## 🔐 TÀI KHOẢN TRUY CẬP & THÔNG TIN THANH TOÁN THỬ NGHIỆM
 
-| Phân hệ | Đường dẫn truy cập | Tên đăng nhập | Mật khẩu mặc định |
-| :--- | :--- | :--- | :--- |
-| **Quản trị viên (Admin)** | `http://localhost:5174/login` | `admin` | `Admin@123` |
-| **Chủ gian hàng (Store Owner)** | `http://localhost:5175/login` | `chugianhang` | `Mc-d9280d239f` *(hoặc `123456`)* |
-| **Khách du lịch (User Web)** | `http://localhost:5173` | *(Truy cập trực tiếp không cần đăng nhập)* | — |
+### 1. Tài khoản đăng nhập hệ thống
+
+| Phân hệ | Đường dẫn truy cập trực tuyến (Production) | Đường dẫn Local (Dev) | Tên đăng nhập | Mật khẩu mặc định |
+| :--- | :--- | :--- | :--- | :--- |
+| **Quản trị viên (Admin)** | [https://ha-admin.buivietquangvinh.xyz/login](https://ha-admin.buivietquangvinh.xyz/login) | `http://localhost:5174/login` | `admin` | `Admin@123` |
+| **Chủ gian hàng (Store Owner)** | [https://ha-owner.buivietquangvinh.xyz/login](https://ha-owner.buivietquangvinh.xyz/login) | `http://localhost:5175/login` | `chugianhang` | `Mc-d9280d239f` *(hoặc `123456`)* |
+| **Khách du lịch (User Web)** | [https://ha-user.buivietquangvinh.xyz](https://ha-user.buivietquangvinh.xyz) | `http://localhost:5173` | *(Truy cập trực tiếp không cần đăng nhập)* | — |
+
+---
+
+### 2. Thông tin thẻ Test thanh toán VNPAY Sandbox
+
+Dùng để thử nghiệm tính năng du khách thanh toán mở khóa thuyết minh du lịch không giới hạn qua cổng VNPay:
+
+| Thông tin trường | Dữ liệu thử nghiệm (Sandbox Test Data) |
+| :--- | :--- |
+| **Ngân hàng** | `NCB` |
+| **Số thẻ** | `9704198526191432198` |
+| **Tên chủ thẻ** | `NGUYEN VAN A` |
+| **Ngày phát hành** | `07/15` |
+| **Mật khẩu OTP** | `123456` |
 
 ---
 
@@ -184,7 +233,8 @@ cd "HA_Store Owner" && npm install && npm run dev
 ├── .github/
 │   └── workflows/                # Cấu hình GitHub Actions CI/CD Pipeline
 │       ├── backend-services-ci-cd.yml
-│       └── frontend-ci.yml
+│       ├── frontend-ci.yml
+│       └── cd-production-deploy.yml
 ├── HA_App/                       # Backend Spring Boot & Cụm Services Docker
 │   ├── src/main/java/            # Mã nguồn Java 21 (Mô hình 3 lớp Controller - Service - Repository)
 │   ├── tts-service/              # Microservice AI Text-To-Speech (FastAPI Python)
