@@ -17,14 +17,14 @@
 > **Giảng viên hướng dẫn**: Thầy Nguyễn Quốc Huy  
 > **Phân công đề tài**: **Mục 3 - BE Dev: Tạo các services giao tiếp với nhau bao gồm CI/CD**  
 > 
-> 🌐 **Hệ thống đã triển khai trực tuyến (Live Production)**:
+>  **Hệ thống đã triển khai trực tuyến (Live Production)**:
 > - **Cổng Khách du lịch (`HA.USER`)**: [https://ha-user.buivietquangvinh.xyz](https://ha-user.buivietquangvinh.xyz)
 > - **Cổng Quản trị viên (`HA_ADMIN`)**: [https://ha-admin.buivietquangvinh.xyz](https://ha-admin.buivietquangvinh.xyz)
 > - **Cổng Chủ gian hàng (`HA_Store Owner`)**: [https://ha-owner.buivietquangvinh.xyz](https://ha-owner.buivietquangvinh.xyz)
 
 ---
 
-## 👥 THÀNH VIÊN NHÓM THỰC HIỆN
+##  THÀNH VIÊN NHÓM THỰC HIỆN
 
 | STT | Họ và tên | GitHub Account | MSSV |
 | :---: | :--- | :--- | :--- |
@@ -34,7 +34,7 @@
 
 ---
 
-## 🚀 ĐƯỜNG DẪN TRUY CẬP HỆ THỐNG TRỰC TUYẾN (PRODUCTION LIVE)
+##  ĐƯỜNG DẪN TRUY CẬP HỆ THỐNG TRỰC TUYẾN (PRODUCTION LIVE)
 
 Toàn bộ hệ thống Multi-Services và các ứng dụng Frontend đã được đóng gói container hóa và triển khai thành công trên môi trường Server Production với tên miền trực tuyến có HTTPS an toàn:
 
@@ -46,7 +46,7 @@ Toàn bộ hệ thống Multi-Services và các ứng dụng Frontend đã đư�
 
 ---
 
-## 🏛️ TỔNG QUAN HỆ THỐNG (MỤC 3: MULTI-SERVICES & CI/CD)
+##🏛️ TỔNG QUAN HỆ THỐNG (MỤC 3: MULTI-SERVICES & CI/CD)
 
 Dự án áp dụng kiến trúc **Multi-Services (Nhiều dịch vụ độc lập)** được điều phối và đóng gói tự động bằng **Docker Compose**, phục vụ nền tảng thuyết minh di sản du lịch thông minh tại phố cổ Hội An:
 
@@ -99,7 +99,7 @@ flowchart TD
 
 ---
 
-## 🔄 QUY TRÌNH CI/CD TỰ ĐỘNG HÓA (GITHUB ACTIONS)
+##  QUY TRÌNH CI/CD TỰ ĐỘNG HÓA (GITHUB ACTIONS)
 
 Hệ thống CI/CD được thiết lập hoàn chỉnh với 2 workflows chạy độc lập và song song nhằm kiểm tra chất lượng mã nguồn trước khi hợp nhất và triển khai:
 
@@ -146,7 +146,7 @@ flowchart LR
 
 ---
 
-## ✨ CÁC TÍNH NĂNG NỔI BẬT CỦA HỆ THỐNG
+##  CÁC TÍNH NĂNG NỔI BẬT CỦA HỆ THỐNG
 
 1. **Định vị Geofencing & Tự động phát thuyết minh**:
    - Khi du khách tiến vào bán kính quét (Radius) của điểm tham quan (POI), hệ thống tự động kích hoạt bài thuyết minh đúng vị trí toạ độ GPS.
@@ -201,7 +201,7 @@ cd "HA_Store Owner" && npm install && npm run dev
 
 ---
 
-## 🔐 TÀI KHOẢN TRUY CẬP & THÔNG TIN THANH TOÁN THỬ NGHIỆM
+##  TÀI KHOẢN TRUY CẬP & THÔNG TIN THANH TOÁN THỬ NGHIỆM
 
 ### 1. Tài khoản đăng nhập hệ thống
 
