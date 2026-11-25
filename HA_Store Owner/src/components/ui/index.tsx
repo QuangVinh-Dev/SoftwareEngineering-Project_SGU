@@ -10,8 +10,8 @@ interface CardProps {
 export function Card({ children, className, noPadding }: CardProps) {
   return (
     <div className={classNames(
-      'bg-white rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow',
-      !noPadding && 'p-6',
+      'bg-white rounded-xl border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow',
+      !noPadding && 'p-5',
       className
     )}>
       {children}
@@ -54,7 +54,7 @@ const badgeVariants = {
   skipped: 'bg-rose-50 text-rose-700 border-rose-200',
   inactive: 'bg-slate-100 text-slate-600 border-slate-200',
   disabled: 'bg-slate-100 text-slate-600 border-slate-200',
-  default: 'bg-[#f0f8f9] text-[#286b7b] border-[#286b7b]/20',
+  default: 'bg-purple-50 text-purple-700 border-purple-200',
 };
 
 export function Badge({ children, variant = 'default', className }: BadgeProps) {
@@ -72,7 +72,6 @@ export function Badge({ children, variant = 'default', className }: BadgeProps) 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
   size?: 'sm' | 'md' | 'lg';
-  icon?: ReactNode;
 }
 
 export function Button({
@@ -81,16 +80,15 @@ export function Button({
   size = 'md',
   className = '',
   disabled,
-  icon,
   ...props
 }: ButtonProps) {
-  const base = 'inline-flex items-center justify-center font-semibold rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
+  const base = 'inline-flex items-center justify-center font-semibold rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
   
   const variants = {
-    primary: 'bg-[#286b7b] text-white hover:bg-[#205764] focus:ring-[#286b7b]/30 shadow-sm active:bg-[#1a4752]',
-    secondary: 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 focus:ring-slate-200 shadow-sm active:bg-slate-100',
+    primary: 'bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500 shadow-sm shadow-primary-500/20 active:bg-primary-800',
+    secondary: 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 focus:ring-slate-300 shadow-sm active:bg-slate-100',
     danger: 'bg-rose-600 text-white hover:bg-rose-700 focus:ring-rose-500 shadow-sm active:bg-rose-800',
-    ghost: 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 focus:ring-slate-200',
+    ghost: 'text-slate-600 hover:bg-purple-50 hover:text-primary-700 focus:ring-primary-300',
   };
 
   const sizes = {
@@ -105,7 +103,6 @@ export function Button({
       disabled={disabled}
       {...props}
     >
-      {icon && <span className="flex-shrink-0">{icon}</span>}
       {children}
     </button>
   );

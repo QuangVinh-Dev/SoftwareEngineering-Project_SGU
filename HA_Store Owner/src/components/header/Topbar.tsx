@@ -23,7 +23,7 @@ export default function Topbar({ onProfile }: TopbarProps) {
       <div className="flex min-w-0 items-center gap-3">
         <button
           onClick={() => setMobileSidebarOpen(true)}
-          className="rounded-lg p-2 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 lg:hidden"
+          className="rounded-lg p-2 text-slate-600 transition-colors hover:bg-purple-50 hover:text-primary-700 lg:hidden"
           aria-label="Mở menu"
         >
           <Menu className="h-5 w-5" />
