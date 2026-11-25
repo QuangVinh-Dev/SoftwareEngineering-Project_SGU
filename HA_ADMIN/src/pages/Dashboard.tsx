@@ -187,11 +187,11 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Card 2: Lượt nghe thuyết minh — số liệu thật từ bảng listen_log */}
+        {/* Card 2: Lượt nghe thuyết minh — chỉ hiển thị lượt nghe hôm nay */}
         <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm hover:shadow-md transition-shadow min-w-0">
           <div>
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              Lượt nghe thuyết minh
+              Lượt nghe hôm nay
             </span>
           </div>
 
@@ -210,12 +210,9 @@ export default function Dashboard() {
               </span>
             </div>
           ) : (
-            <div className="mt-5 flex flex-wrap items-baseline gap-2">
+            <div className="mt-5 flex items-baseline gap-2">
               <span className="text-4xl 2xl:text-5xl font-extrabold text-[#183a54] tracking-tight tabular-nums">
-                {engagementLoading && !engagement ? '—' : formatNumber(engagement?.totalListens ?? 0)}
-              </span>
-              <span className="text-xs font-bold text-[#286b7b] bg-[#f0f8f9] px-2 py-0.5 rounded">
-                {formatNumber(engagement?.todayListens ?? 0)} hôm nay
+                {engagementLoading && !engagement ? '—' : formatNumber(engagement?.todayListens ?? 0)}
               </span>
             </div>
           )}
