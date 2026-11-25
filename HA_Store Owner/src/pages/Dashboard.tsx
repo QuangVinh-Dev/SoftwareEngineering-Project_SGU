@@ -1,8 +1,5 @@
-import { useEffect, useState } from 'react';
-import {
-  MapPin, Clock, ArrowRight, CheckCircle2, AlertCircle, Plus, Eye,
-  Edit3, RefreshCw, BarChart2
-} from 'lucide-react';
+import { useEffect, useState, useCallback } from 'react';
+import { RefreshCw } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
@@ -26,39 +23,47 @@ export default function Dashboard() {
   const [range, setRange] = useState<ListeningRange>('week');
   const [loading, setLoading] = useState(true);
   const [loadingStats, setLoadingStats] = useState(false);
-  const [error, setError] = useState('');
 
-  const loadData = async (activeRange: ListeningRange) => {
+  const loadData = useCallback(async (activeRange: ListeningRange) => {
     try {
-      const [poisRes, statsRes] = await Promise.all([
+      const [poisResult, statsResult] = await Promise.allSettled([
         getMerchantPois(),
         getListeningStats(activeRange),
       ]);
-      setPoi(poisRes.length > 0 ? poisRes[0] : null);
-      setStats(statsRes);
+
+      if (poisResult.status === 'fulfilled' && Array.isArray(poisResult.value)) {
+        setPoi(poisResult.value.length > 0 ? poisResult.value[0] : null);
+      }
+
+      if (statsResult.status === 'fulfilled') {
+        setStats(statsResult.value);
+      }
     } catch (cause: unknown) {
       if (cause instanceof ApiError && cause.status === 401) {
         signOut();
         return;
       }
-      setError(cause instanceof Error ? cause.message : 'Không tải được dữ liệu.');
     } finally {
       setLoading(false);
       setLoadingStats(false);
     }
-  };
+  }, [signOut]);
 
   useEffect(() => {
     void loadData(range);
-  }, []);
+  }, [loadData, range]);
 
-  const handleRangeChange = (newRange: ListeningRange) => {
+  const handleRangeChange = async (newRange: ListeningRange) => {
     setRange(newRange);
     setLoadingStats(true);
-    getListeningStats(newRange)
-      .then(res => setStats(res))
-      .catch(() => {})
-      .finally(() => setLoadingStats(false));
+    try {
+      const res = await getListeningStats(newRange);
+      setStats(res);
+    } catch {
+      // Giữ nguyên stats cũ nếu lỗi
+    } finally {
+      setLoadingStats(false);
+    }
   };
 
   const isApproved = poi?.approvalStatus === 'APPROVED';
@@ -73,52 +78,53 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Welcome Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#240c52] via-[#2e1065] to-[#7c3aed] p-6 lg:p-8 text-white shadow-xl shadow-purple-950/20 border border-purple-800/40">
-        <div className="absolute top-0 right-0 -mt-10 -mr-10 w-72 h-72 rounded-full bg-purple-500/10 blur-3xl pointer-events-none" />
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
+      {/* 1. Welcome Banner Tinh Gọn & Sang Trọng */}
+      <div className="rounded-2xl bg-gradient-to-r from-[#183a54] via-[#1f4f72] to-[#286b7b] p-6 lg:p-7 text-white shadow-sm border border-slate-700/20">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
           <div>
-            <p className="text-purple-300 text-xs font-bold uppercase tracking-wider mb-1.5">
-              Cổng quản trị gian hàng Hội An Heritage
+            <p className="text-teal-200 text-xs font-bold uppercase tracking-wider mb-1">
+              Cổng quản trị gian hàng • Hội An Heritage
             </p>
             <h1 className="text-2xl lg:text-3xl font-extrabold tracking-tight text-white">
-              Xin chào, {authUser?.fullName || authUser?.stallName || 'Chủ gian hàng'}!
+              Xin chào, {authUser?.fullName || authUser?.username || 'Chủ gian hàng'}!
             </h1>
-            <p className="mt-1.5 text-sm text-purple-100/80 max-w-xl leading-relaxed">
-              Theo dõi trực tiếp lượt nghe thuyết minh tự động, tình trạng thẩm định và quản lý điểm tham quan (POI) duy nhất của bạn.
+            <p className="mt-1 text-sm text-slate-200 max-w-xl leading-relaxed">
+              Theo dõi lượt nghe thuyết minh tự động, tình trạng thẩm định và quản lý điểm tham quan (POI) của gian hàng.
             </p>
           </div>
           <div className="flex items-center gap-3">
             {poi ? (
               <Button
+                variant="secondary"
+                size="sm"
                 onClick={() => setCurrentPage('my-poi')}
-                className="bg-white text-purple-950 hover:bg-purple-50 shadow-lg font-bold text-xs px-4 py-2.5 rounded-xl border-none transition-transform active:scale-95"
+                className="bg-white text-[#183a54] hover:bg-slate-100 font-bold border-none px-4 py-2"
               >
-                <Eye className="w-4 h-4 mr-1.5 text-purple-700" />
                 Xem POI của tôi
               </Button>
             ) : (
               <Button
+                variant="secondary"
+                size="sm"
                 onClick={() => setCurrentPage('my-poi')}
-                className="bg-white text-purple-950 hover:bg-purple-50 shadow-lg font-bold text-xs px-4 py-2.5 rounded-xl border-none transition-transform active:scale-95"
+                className="bg-white text-[#183a54] hover:bg-slate-100 font-bold border-none px-4 py-2"
               >
-                <Plus className="w-4 h-4 mr-1.5 text-purple-700" />
-                Thiết lập POI
+                Thiết lập POI mới
               </Button>
             )}
           </div>
         </div>
       </div>
 
-      {/* 4 Thẻ KPI Tinh Gọn (Không dùng các khối icon đóng hộp) */}
+      {/* 2. 4 Thẻ KPI Tinh Gọn (Không dùng icon màu mè rối mắt) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {/* KPI 1: Trạng thái POI */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
+        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Trạng thái POI</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Trạng thái POI</span>
             {poi && (
-              <Badge variant={isApproved ? 'active' : isPending ? 'partial' : 'skipped'}>
-                {isApproved ? 'Hoạt động' : isPending ? 'Chờ duyệt' : 'Từ chối'}
+              <Badge variant={isApproved ? 'approved' : isPending ? 'pending' : 'rejected'}>
+                {isApproved ? 'Đã duyệt' : isPending ? 'Chờ duyệt' : 'Từ chối'}
               </Badge>
             )}
           </div>
@@ -126,39 +132,39 @@ export default function Dashboard() {
             <span className={`text-xl font-extrabold tracking-tight ${
               isApproved ? 'text-emerald-700' :
               isPending ? 'text-amber-600' :
-              isRejected ? 'text-red-600' :
-              'text-slate-700'
+              isRejected ? 'text-rose-600' :
+              'text-slate-600'
             }`}>
-              {!poi ? 'Chưa thiết lập' : isApproved ? 'Đã kích hoạt' : isPending ? 'Chờ duyệt' : 'Bị từ chối'}
+              {!poi ? 'Chưa thiết lập' : isApproved ? 'Đang phát sóng' : isPending ? 'Đang xét duyệt' : 'Cần chỉnh sửa'}
             </span>
-            <p className="mt-1 text-xs text-slate-400 truncate">
-              {poi ? poi.name : 'Vui lòng nộp hồ sơ POI'}
+            <p className="mt-1 text-xs text-slate-500 truncate">
+              {poi ? poi.name : 'Vui lòng nộp thông tin điểm POI'}
             </p>
           </div>
         </div>
 
         {/* KPI 2: Lượt nghe hôm nay */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
+        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm flex flex-col justify-between">
           <div>
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Lượt nghe hôm nay</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Lượt nghe hôm nay</span>
             <div className="mt-3 flex items-baseline gap-2">
-              <span className="text-3xl font-extrabold text-[#7c3aed] tracking-tight tabular-nums">
+              <span className="text-3xl font-extrabold text-[#286b7b] tracking-tight tabular-nums">
                 {stats?.todaySessions ? formatNumber(stats.todaySessions) : '0'}
               </span>
               <span className="text-xs font-semibold text-slate-500">lượt</span>
             </div>
           </div>
-          <p className="mt-2 text-xs text-slate-400">Du khách ghé thăm hôm nay</p>
+          <p className="mt-2 text-xs text-slate-400">Du khách ghé thăm trong ngày</p>
         </div>
 
         {/* KPI 3: Lượt nghe trong kỳ lọc */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
+        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm flex flex-col justify-between">
           <div>
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
               Lượt nghe {ranges.find(r => r.key === range)?.label.toLowerCase()}
             </span>
             <div className="mt-3 flex items-baseline gap-2">
-              <span className="text-3xl font-extrabold text-[#2e1065] tracking-tight tabular-nums">
+              <span className="text-3xl font-extrabold text-[#183a54] tracking-tight tabular-nums">
                 {selectedTotal ? formatNumber(selectedTotal) : '0'}
               </span>
               <span className="text-xs font-semibold text-slate-500">lượt</span>
@@ -170,9 +176,9 @@ export default function Dashboard() {
         </div>
 
         {/* KPI 4: Tổng lượt nghe tích lũy */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
+        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm flex flex-col justify-between">
           <div>
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Tổng lượt nghe tích lũy</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Tổng lượt nghe tích lũy</span>
             <div className="mt-3 flex items-baseline gap-2">
               <span className="text-3xl font-extrabold text-emerald-700 tracking-tight tabular-nums">
                 {stats?.totalSessions ? formatNumber(stats.totalSessions) : '0'}
@@ -180,37 +186,35 @@ export default function Dashboard() {
               <span className="text-xs font-semibold text-slate-500">lượt</span>
             </div>
           </div>
-          <p className="mt-2 text-xs text-slate-400">Toàn thời gian phát sóng</p>
+          <p className="mt-2 text-xs text-slate-400">Toàn thời gian kích hoạt</p>
         </div>
       </div>
 
-      {/* ========================================================= */}
-      {/* KHU VỰC THỐNG KÊ LƯỢT NGHE POI TÍCH HỢP */}
-      {/* ========================================================= */}
-      <div className="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-sm">
+      {/* 3. Khu vực Thống kê Lượt nghe & Biểu đồ Xu hướng */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-100">
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-lg font-extrabold text-slate-900">
-                Thống kê lượt nghe thuyết minh của gian hàng
+              <h2 className="text-lg font-bold text-slate-900">
+                Thống kê lượt nghe thuyết minh
               </h2>
-              <Badge variant="active">Realtime</Badge>
+              <Badge variant="active">Thời gian thực</Badge>
             </div>
             <p className="text-xs text-slate-500 mt-1">
               {poi ? `Dữ liệu lượt nghe của "${poi.name}" kích hoạt tự động theo tọa độ GPS.` : 'Dữ liệu lắng nghe bài thuyết minh tự động.'}
             </p>
           </div>
 
-          {/* Bộ lọc thời gian (Ngày / Tuần / Tháng) */}
+          {/* Bộ lọc thời gian (Ngày / Tuần / Tháng) & Nút Làm mới */}
           <div className="flex items-center gap-2.5">
-            <div className="inline-flex rounded-xl bg-slate-100 p-1 border border-slate-200">
+            <div className="inline-flex rounded-lg bg-slate-100 p-1 border border-slate-200">
               {ranges.map(item => (
                 <button
                   key={item.key}
                   onClick={() => handleRangeChange(item.key)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
                     range === item.key
-                      ? 'bg-[#7c3aed] text-white shadow-sm'
+                      ? 'bg-[#286b7b] text-white shadow-sm'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
@@ -233,17 +237,14 @@ export default function Dashboard() {
         {/* Biểu đồ xu hướng AreaChart */}
         {loadingStats ? (
           <div className="py-20 text-center">
-            <div className="inline-block w-8 h-8 border-4 border-purple-200 border-t-[#7c3aed] rounded-full animate-spin mb-2" />
+            <div className="inline-block w-8 h-8 border-4 border-slate-200 border-t-[#286b7b] rounded-full animate-spin mb-2" />
             <p className="text-xs text-slate-500">Đang cập nhật biểu đồ thống kê…</p>
           </div>
         ) : stats?.totalSessions === 0 ? (
           <div className="py-16 text-center">
-            <div className="w-12 h-12 rounded-2xl bg-purple-50 text-[#7c3aed] flex items-center justify-center mx-auto mb-3">
-              <BarChart2 className="w-6 h-6" />
-            </div>
-            <p className="text-sm font-bold text-slate-800">Chưa có dữ liệu lượt nghe</p>
+            <p className="text-sm font-bold text-slate-700">Chưa ghi nhận lượt nghe nào</p>
             <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
-              Khi du khách đến gần gian hàng và nghe bài thuyết minh tự động, biểu đồ thời gian thực sẽ hiển thị tại đây.
+              Khi du khách di chuyển vào bán kính GPS của gian hàng và nghe thuyết minh, số liệu sẽ tự động xuất hiện tại đây.
             </p>
           </div>
         ) : (
@@ -255,8 +256,8 @@ export default function Dashboard() {
                   <AreaChart data={stats?.trend || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <defs>
                       <linearGradient id="dashboardStatsGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#7c3aed" stopOpacity={0.4} />
-                        <stop offset="95%" stopColor="#7c3aed" stopOpacity={0.0} />
+                        <stop offset="5%" stopColor="#286b7b" stopOpacity={0.35} />
+                        <stop offset="95%" stopColor="#286b7b" stopOpacity={0.0} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
@@ -274,20 +275,20 @@ export default function Dashboard() {
                     />
                     <Tooltip
                       contentStyle={{
-                        backgroundColor: '#2e1065',
-                        borderColor: '#3b0764',
-                        borderRadius: '12px',
+                        backgroundColor: '#183a54',
+                        borderColor: '#286b7b',
+                        borderRadius: '10px',
                         color: '#fff',
                         fontSize: '12px',
                       }}
-                      itemStyle={{ color: '#c084fc' }}
+                      itemStyle={{ color: '#84c5cf' }}
                       formatter={(value) => [`${formatNumber(Number(value))} lượt nghe`, 'Lượt nghe']}
                     />
                     <Area
                       type="monotone"
                       dataKey="sessions"
-                      stroke="#7c3aed"
-                      strokeWidth={3}
+                      stroke="#286b7b"
+                      strokeWidth={2.5}
                       fill="url(#dashboardStatsGradient)"
                     />
                   </AreaChart>
@@ -295,20 +296,20 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Chi tiết từng mốc */}
+            {/* Chi tiết từng mốc thời gian */}
             <div>
-              <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4">
+              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
                 <p className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-3">
-                  Nhật ký lượt nghe gần nhất
+                  Nhật ký ghi nhận gần nhất
                 </p>
                 <div className="space-y-2 max-h-56 overflow-y-auto scrollbar-thin divide-y divide-slate-100">
                   {(stats?.trend || []).slice().reverse().map((point, idx) => (
                     <div key={idx} className="pt-2 pb-1 flex items-center justify-between text-xs">
                       <div>
                         <p className="font-semibold text-slate-800">{point.date}</p>
-                        <p className="text-[10px] text-slate-400">Ghi nhận từ Geofence</p>
+                        <p className="text-[10px] text-slate-400">Định vị GPS Geofence</p>
                       </div>
-                      <span className="font-extrabold text-[#7c3aed] bg-purple-50 px-2 py-1 rounded-lg">
+                      <span className="font-bold text-[#286b7b] bg-[#f0f8f9] px-2.5 py-1 rounded-md border border-[#286b7b]/20">
                         {formatNumber(point.sessions)} lượt
                       </span>
                     </div>
@@ -320,18 +321,17 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Main Single POI Overview Card & Quy trình */}
+      {/* 4. Thông tin POI của gian hàng & Quy trình xét duyệt */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
           <Card>
             <CardHeader
               title="Điểm tham quan (POI) của gian hàng"
-              subtitle="Mỗi gian hàng quản lý duy nhất 1 điểm thuyết minh"
+              subtitle="Mỗi gian hàng quản lý duy nhất 1 điểm thuyết minh tại Hội An"
               action={
                 poi && (
                   <Button size="sm" variant="secondary" onClick={() => setCurrentPage('my-poi')}>
                     Chi tiết POI
-                    <ArrowRight className="w-3.5 h-3.5 ml-1" />
                   </Button>
                 )
               }
@@ -341,51 +341,51 @@ export default function Dashboard() {
               <p className="py-12 text-center text-sm text-slate-400">Đang tải thông tin điểm tham quan...</p>
             ) : !poi ? (
               <div className="text-center py-12 px-4 rounded-xl border border-dashed border-slate-200">
-                <MapPin className="w-10 h-10 text-purple-300 mx-auto mb-3" />
-                <h4 className="text-sm font-bold text-slate-700">Chưa thiết lập điểm tham quan</h4>
-                <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
-                  Hãy gửi hồ sơ điểm POI duy nhất của gian hàng để du khách có thể nghe thuyết minh khi đến gần.
+                <h4 className="text-sm font-bold text-slate-800">Chưa thiết lập điểm tham quan</h4>
+                <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+                  Hãy gửi hồ sơ điểm POI của gian hàng để du khách có thể nghe thuyết minh khi đến gần vị trí quán.
                 </p>
                 <Button size="sm" className="mt-4" onClick={() => setCurrentPage('my-poi')}>
-                  <Plus className="w-3.5 h-3.5 mr-1" /> Thiết lập POI ngay
+                  Thiết lập POI ngay
                 </Button>
               </div>
             ) : (
               <div className="flex flex-col sm:flex-row items-start gap-4 pt-2">
-                {poi.images[0] ? (
+                {poi.images && poi.images.length > 0 && poi.images[0] ? (
                   <img
                     src={resolveMerchantPoiImage(poi.images[0])}
                     alt={poi.name}
                     className="w-full sm:w-44 h-36 rounded-xl object-cover border border-slate-200 shadow-sm flex-shrink-0"
                   />
                 ) : (
-                  <div className="w-full sm:w-44 h-36 rounded-xl bg-purple-50 text-purple-400 flex items-center justify-center flex-shrink-0">
-                    <MapPin className="w-8 h-8" />
+                  <div className="w-full sm:w-44 h-36 rounded-xl bg-slate-100 text-slate-400 flex items-center justify-center flex-shrink-0 text-xs font-semibold border border-slate-200">
+                    Chưa có ảnh
                   </div>
                 )}
                 <div className="min-w-0 flex-1 space-y-2">
                   <div className="flex items-center gap-2">
                     <h3 className="text-base font-extrabold text-slate-900">{poi.name}</h3>
-                    <Badge variant={isApproved ? 'active' : isPending ? 'partial' : 'skipped'}>
+                    <Badge variant={isApproved ? 'approved' : isPending ? 'pending' : 'rejected'}>
                       {isApproved ? 'Đã duyệt' : isPending ? 'Chờ duyệt' : 'Từ chối'}
                     </Badge>
                   </div>
                   <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed">
-                    {poi.originalDescription || 'Chưa cập nhật nội dung giới thiệu.'}
+                    {poi.originalDescription || 'Chưa cập nhật nội dung giới thiệu thuyết minh.'}
                   </p>
-                  <div className="pt-2 flex flex-wrap items-center gap-3 text-xs text-slate-500">
-                    <span className="flex items-center gap-1">
-                      <MapPin className="w-3.5 h-3.5 text-[#7c3aed]" />
+                  <div className="pt-2 flex flex-wrap items-center gap-2 text-xs text-slate-600">
+                    <span className="px-2 py-0.5 rounded bg-slate-100 font-mono text-[11px]">
                       {poi.latitude.toFixed(4)}, {poi.longitude.toFixed(4)}
                     </span>
-                    <span>·</span>
-                    <span>Bán kính: <strong>{poi.radius}m</strong></span>
-                    <span>·</span>
-                    <span>Ảnh: <strong>{poi.images.length}/5</strong></span>
+                    <span className="px-2 py-0.5 rounded bg-slate-100">
+                      Bán kính: <strong>{poi.radius}m</strong>
+                    </span>
+                    <span className="px-2 py-0.5 rounded bg-slate-100">
+                      Hình ảnh: <strong>{poi.images ? poi.images.length : 0}/5</strong>
+                    </span>
                   </div>
                   <div className="pt-3 flex gap-2">
-                    <Button size="sm" variant="secondary" onClick={() => setCurrentPage('edit-poi')} icon={<Edit3 className="w-3.5 h-3.5 text-[#7c3aed]" />}>
-                      Chỉnh sửa & Gửi duyệt lại
+                    <Button size="sm" variant="secondary" onClick={() => setCurrentPage('edit-poi')}>
+                      Chỉnh sửa thông tin
                     </Button>
                     <Button size="sm" variant="secondary" onClick={() => setCurrentPage('my-poi')}>
                       Xem chi tiết POI
@@ -397,33 +397,33 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* Quy trình phê duyệt POI với số thứ tự tinh gọn */}
+        {/* 5. Quy trình 3 bước xét duyệt tinh gọn */}
         <div>
           <Card>
             <CardHeader title="Quy trình phê duyệt POI" subtitle="3 bước kiểm duyệt & phát sóng" />
             <div className="space-y-4">
               <div className="flex gap-3 items-start">
-                <span className="w-6 h-6 rounded-full bg-purple-100 text-purple-700 text-xs font-extrabold flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="w-6 h-6 rounded-full bg-slate-100 text-slate-700 text-xs font-extrabold flex items-center justify-center flex-shrink-0 mt-0.5 border border-slate-200">
                   1
                 </span>
                 <div>
                   <h4 className="text-xs font-bold text-slate-800">Gửi thông tin POI</h4>
-                  <p className="text-[11px] text-slate-500 mt-0.5">Nhập tên, tọa độ GPS, bán kính quét và hình ảnh đại diện.</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">Nhập tên quán, tọa độ GPS, bán kính quét và hình ảnh đại diện.</p>
                 </div>
               </div>
 
               <div className="flex gap-3 items-start">
-                <span className="w-6 h-6 rounded-full bg-purple-100 text-purple-700 text-xs font-extrabold flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="w-6 h-6 rounded-full bg-slate-100 text-slate-700 text-xs font-extrabold flex items-center justify-center flex-shrink-0 mt-0.5 border border-slate-200">
                   2
                 </span>
                 <div>
                   <h4 className="text-xs font-bold text-slate-800">Ban quản lý xét duyệt</h4>
-                  <p className="text-[11px] text-slate-500 mt-0.5">Admin đối chiếu vị trí thực tế tại Phố Cổ và phê duyệt.</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">Admin kiểm tra vị trí thực tế tại Phố Cổ và phê duyệt.</p>
                 </div>
               </div>
 
               <div className="flex gap-3 items-start">
-                <span className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 text-xs font-extrabold flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 text-xs font-extrabold flex items-center justify-center flex-shrink-0 mt-0.5 border border-emerald-200">
                   3
                 </span>
                 <div>
@@ -437,10 +437,9 @@ export default function Dashboard() {
               <Button
                 variant="secondary"
                 size="sm"
-                className="w-full text-xs font-semibold text-purple-700 hover:bg-purple-50"
+                className="w-full text-xs font-semibold text-[#286b7b] hover:bg-[#f0f8f9]"
                 onClick={() => setCurrentPage('approval-status')}
               >
-                <CheckCircle2 className="w-3.5 h-3.5 mr-1 text-purple-600" />
                 Kiểm tra tiến trình xét duyệt
               </Button>
             </div>
