@@ -548,7 +548,7 @@ export default function Login() {
                     <Clock className="h-9 w-9 text-[#7c3aed]" strokeWidth={2} />
                   </div>
                 </div>
-                <h2 className="text-[22px] font-bold text-[#1F2937]">Đăng ký thành công!</h2>
+                <h2 className="text-[22px] font-bold text-[#1F2937]">Hello {account.fullName ? `${account.fullName}! ` : ''}Đăng ký thành công!</h2>
                 <p className="mt-2 max-w-sm text-[13.5px] leading-relaxed text-[#6B7280]">
                   Hồ sơ đang chờ quản trị viên xét duyệt. Chúng tôi sẽ xác minh trong vòng 24–48 giờ.
                 </p>
