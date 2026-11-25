@@ -6,10 +6,12 @@ import com.HoiAn.HA_App.dto.response.ActionLogResponse;
 import com.HoiAn.HA_App.dto.response.AdminAccountResponse;
 import com.HoiAn.HA_App.entity.Account;
 import com.HoiAn.HA_App.entity.ActionLog;
+import com.HoiAn.HA_App.entity.Merchant;
 import com.HoiAn.HA_App.entity.Role;
 import com.HoiAn.HA_App.exception.ApiException;
 import com.HoiAn.HA_App.repository.AccountRepository;
 import com.HoiAn.HA_App.repository.ActionLogRepository;
+import com.HoiAn.HA_App.repository.MerchantRepository;
 import com.HoiAn.HA_App.repository.RoleRepository;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
@@ -28,6 +30,7 @@ public class AdminAccountService {
     private final AccountRepository accountRepository;
     private final RoleRepository roleRepository;
     private final ActionLogRepository actionLogRepository;
+    private final MerchantRepository merchantRepository;
     private final PasswordEncoder passwordEncoder;
 
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -36,10 +39,12 @@ public class AdminAccountService {
     public AdminAccountService(AccountRepository accountRepository,
                                RoleRepository roleRepository,
                                ActionLogRepository actionLogRepository,
+                               MerchantRepository merchantRepository,
                                PasswordEncoder passwordEncoder) {
         this.accountRepository = accountRepository;
         this.roleRepository = roleRepository;
         this.actionLogRepository = actionLogRepository;
+        this.merchantRepository = merchantRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -109,6 +114,22 @@ public class AdminAccountService {
         account.setCreatedAt(LocalDateTime.now());
 
         Account saved = accountRepository.save(account);
+
+        if ("MERCHANT".equalsIgnoreCase(roleName)) {
+            Merchant merchant = new Merchant();
+            merchant.setAccount(saved);
+            merchant.setName(saved.getFullName() != null && !saved.getFullName().isBlank()
+                    ? saved.getFullName() : saved.getUsername());
+            merchant.setPlanId("free");
+            merchant.setBillingCycle("monthly");
+            merchant.setApprovalStatus("APPROVED");
+            merchant.setRegisteredAt(LocalDateTime.now());
+            merchant.setApprovedAt(LocalDateTime.now());
+            merchant.setAddress("Hội An, Quảng Nam");
+            merchant.setCategory("Ẩm thực & Đồ uống");
+            merchant.setDescription("Gian hàng do Quản trị viên khởi tạo");
+            merchantRepository.save(merchant);
+        }
 
         logAction(currentUsername, "Tạo tài khoản @" + saved.getUsername(), "ACCOUNT", saved.getId());
 

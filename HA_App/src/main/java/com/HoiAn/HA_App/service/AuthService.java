@@ -68,7 +68,7 @@ public class AuthService {
     // ------------------------------------------------------------------
     // Đăng nhập (admin + chủ gian hàng)
     // ------------------------------------------------------------------
-    @Transactional(readOnly = true)
+    @Transactional
     public AuthResponse login(LoginRequest request) {
         String username = normalize(request.username());
 
@@ -92,8 +92,22 @@ public class AuthService {
         Merchant merchant = null;
         if ("MERCHANT".equals(account.getAccountType())) {
             merchant = merchantRepository.findByAccountId(account.getId())
-                    .orElseThrow(() -> new ApiException(HttpStatus.FORBIDDEN,
-                            "Tài khoản chưa có thông tin gian hàng"));
+                    .orElseGet(() -> {
+                        // Tự động tạo hồ sơ gian hàng mặc định nếu tài khoản được Admin tạo nhưng chưa có record merchant
+                        Merchant m = new Merchant();
+                        m.setAccount(account);
+                        m.setName(account.getFullName() != null && !account.getFullName().isBlank()
+                                ? account.getFullName() : account.getUsername());
+                        m.setPlanId("free");
+                        m.setBillingCycle("monthly");
+                        m.setApprovalStatus("APPROVED");
+                        m.setRegisteredAt(LocalDateTime.now());
+                        m.setApprovedAt(LocalDateTime.now());
+                        m.setAddress("Hội An, Quảng Nam");
+                        m.setCategory("Ẩm thực & Đồ uống");
+                        m.setDescription("Gian hàng đối tác");
+                        return merchantRepository.save(m);
+                    });
 
             switch (merchant.getApprovalStatus()) {
                 case "APPROVED" -> merchantId = merchant.getId();
