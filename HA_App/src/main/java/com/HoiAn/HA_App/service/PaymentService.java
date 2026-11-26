@@ -1,8 +1,5 @@
 package com.HoiAn.HA_App.service;
 
-
-
-
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -38,6 +35,15 @@ import java.util.*;
 public class PaymentService {
 
     private static final Logger log = LoggerFactory.getLogger(PaymentService.class);
+
+    /**
+     * Các đơn vị tiền tệ mà VNPay có thể thanh toán.
+     * VNPay chỉ hỗ trợ VND. Muốn thêm loại tiền khác thì phải quy đổi sang VND trước khi tạo đơn.
+     */
+    private static final Set<String> SUPPORTED_CURRENCIES = Set.of("VND");
+
+    /** VNPay yêu cầu số tiền được nhân 100 trước khi gửi. */
+    private static final BigDecimal VNPAY_AMOUNT_MULTIPLIER = new BigDecimal("100");
 
     private final ApplicationEventPublisher eventPublisher;
 
@@ -75,7 +81,7 @@ public class PaymentService {
     /**
      * Tạo đơn thanh toán mới.
      *
-     * Giá được lấy từ database, không tin giá từ frontend.
+     * Giá và loại tiền được lấy từ database, không tin dữ liệu từ frontend.
      * Đơn được lưu PENDING trước khi frontend chuyển sang VNPay.
      */
     @Transactional
@@ -93,15 +99,9 @@ public class PaymentService {
 
         // 1. Lấy giá và loại tiền từ cấu hình hệ thống.
         BigDecimal amount = configService.getUnlockPrice();
-        String currency = configService.getRequiredValue(
-                "UNLOCK_CURRENCY"
+        String currency = normalizeCurrency(
+                configService.getRequiredValue("UNLOCK_CURRENCY")
         );
-
-        if (!"VND".equals(currency)) {
-            throw new IllegalStateException(
-                    "Cấu hình thanh toán VNPay hiện chỉ hỗ trợ VND"
-            );
-        }
 
         // 2. Tạo mã giao dịch nội bộ đủ duy nhất.
         String txnRef = generateTxnRef();
@@ -121,13 +121,13 @@ public class PaymentService {
         payment.setStatus(PaymentStatus.PENDING);
         payment.setCreatedAt(LocalDateTime.now(VN_ZONE));
 
-        // Giao dịch luôn được gắn với guest session đã upsert ở trên.
         paymentRepository.save(payment);
 
-        // 5. Tạo các tham số yêu cầu thanh toán.
+        // 5. Tạo các tham số yêu cầu thanh toán, lấy loại tiền từ đơn.
         Map<String, String> params = buildPaymentParams(
                 txnRef,
                 amount,
+                currency,
                 clientIp,
                 customReturnUrl
         );
@@ -163,12 +163,11 @@ public class PaymentService {
     private Map<String, String> buildPaymentParams(
             String txnRef,
             BigDecimal amount,
+            String currency,
             String clientIp,
             String customReturnUrl
     ) {
-        long vnpAmount = amount
-                .multiply(new BigDecimal("100"))
-                .longValueExact();
+        long vnpAmount = toVnPayAmount(amount);
 
         LocalDateTime now = LocalDateTime.now(VN_ZONE);
         LocalDateTime expireAt = now.plusDays(2);
@@ -179,7 +178,7 @@ public class PaymentService {
         params.put("vnp_Command", "pay");
         params.put("vnp_TmnCode", vnpayProperties.tmnCode());
         params.put("vnp_Amount", Long.toString(vnpAmount));
-        params.put("vnp_CurrCode", "VND");
+        params.put("vnp_CurrCode", currency);
         params.put("vnp_TxnRef", txnRef);
         params.put("vnp_OrderInfo", "Mo khoa dich vu thuyet minh");
         params.put("vnp_OrderType", "other");
@@ -190,12 +189,40 @@ public class PaymentService {
                 expireAt.format(VNPAY_DATE_FORMAT));
         params.put("vnp_IpAddr", normalizeIp(clientIp));
 
-        String effectiveReturnUrl = (customReturnUrl != null && !customReturnUrl.isBlank() && isAbsolutePaymentUrl(customReturnUrl, false))
+        String effectiveReturnUrl = (customReturnUrl != null && !customReturnUrl.isBlank()
+                && isAbsolutePaymentUrl(customReturnUrl, false))
                 ? customReturnUrl
                 : vnpayProperties.returnUrl();
         params.put("vnp_ReturnUrl", effectiveReturnUrl);
 
         return params;
+    }
+
+    /**
+     * Chuẩn hóa mã tiền tệ và kiểm tra có nằm trong danh sách được hỗ trợ không.
+     */
+    private String normalizeCurrency(String raw) {
+        if (raw == null || raw.isBlank()) {
+            throw new IllegalStateException("Thiếu cấu hình UNLOCK_CURRENCY");
+        }
+        String currency = raw.trim().toUpperCase(Locale.ROOT);
+        if (!SUPPORTED_CURRENCIES.contains(currency)) {
+            throw new IllegalStateException(
+                    "Đơn vị tiền tệ không được hỗ trợ: " + currency
+                            + ". VNPay hiện chỉ hỗ trợ: " + SUPPORTED_CURRENCIES
+            );
+        }
+        return currency;
+    }
+
+    /**
+     * Đổi số tiền sang đơn vị mà VNPay yêu cầu (nhân 100).
+     * Báo lỗi nếu số tiền có phần thập phân sau khi nhân.
+     */
+    private long toVnPayAmount(BigDecimal amount) {
+        return amount
+                .multiply(VNPAY_AMOUNT_MULTIPLIER)
+                .longValueExact();
     }
 
     private void validatePaymentConfiguration() {
@@ -236,7 +263,7 @@ public class PaymentService {
 
         return "HA"
                 + LocalDateTime.now(VN_ZONE)
-                    .format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
+                    .format(VNPAY_DATE_FORMAT)
                 + HexFormat.of().formatHex(bytes);
     }
 
@@ -335,7 +362,14 @@ public class PaymentService {
 
         Payment payment = found.get();
 
-        // 5. Đối chiếu tiền: VNPay gửi số tiền nhân 100.
+        // 5. Đối chiếu tiền: VNPay gửi số tiền đã nhân 100.
+        // Đơn phải dùng loại tiền được hỗ trợ, và số tiền phải khớp.
+        if (!SUPPORTED_CURRENCIES.contains(payment.getCurrency())) {
+            return ipnResult(
+                    "04", "Unsupported currency"
+            );
+        }
+
         final long receivedAmount;
 
         try {
@@ -348,9 +382,7 @@ public class PaymentService {
             );
         }
 
-        long expectedAmount = payment.getAmount()
-                .multiply(new BigDecimal("100"))
-                .longValueExact();
+        long expectedAmount = toVnPayAmount(payment.getAmount());
 
         if (receivedAmount != expectedAmount) {
             return ipnResult(
@@ -370,7 +402,8 @@ public class PaymentService {
         if (success && (transactionNo == null || transactionNo.isBlank())) {
             return ipnResult("99", "Missing transaction number");
         }
-        log.info("VNPay IPN validated paymentId={} signatureValid=true amountMatch=true", payment.getId());
+        log.info("VNPay IPN validated paymentId={} currency={} signatureValid=true amountMatch=true",
+                payment.getId(), payment.getCurrency());
 
         // 6. Đơn đã xử lý thì không cấp quyền lần nữa.
         if (payment.getStatus() == PaymentStatus.PAID) {
