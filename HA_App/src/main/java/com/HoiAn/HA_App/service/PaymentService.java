@@ -20,6 +20,10 @@ import com.HoiAn.HA_App.repository.PaymentRepository;
 import com.HoiAn.HA_App.util.VnPayUtil;
 
 import java.math.BigDecimal;
+import java.time.Instant;
+import com.HoiAn.HA_App.service.ExchangeRateService;
+import com.HoiAn.HA_App.service.ConvertedPrice;
+import com.HoiAn.HA_App.service.ConversionMath;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -35,12 +39,6 @@ import java.util.*;
 public class PaymentService {
 
     private static final Logger log = LoggerFactory.getLogger(PaymentService.class);
-
-    /**
-     * Các đơn vị tiền tệ mà VNPay có thể thanh toán.
-     * VNPay chỉ hỗ trợ VND. Muốn thêm loại tiền khác thì phải quy đổi sang VND trước khi tạo đơn.
-     */
-    private static final Set<String> SUPPORTED_CURRENCIES = Set.of("VND");
 
     /** VNPay yêu cầu số tiền được nhân 100 trước khi gửi. */
     private static final BigDecimal VNPAY_AMOUNT_MULTIPLIER = new BigDecimal("100");
@@ -61,6 +59,7 @@ public class PaymentService {
     private final AppConfigService configService;
     private final VnPayProperties vnpayProperties;
     private final AccessTokenService accessTokenService;
+    private final ExchangeRateService exchangeRateService;
 
     public PaymentService(
             PaymentRepository paymentRepository,
@@ -68,8 +67,17 @@ public class PaymentService {
             AppConfigService configService,
             VnPayProperties vnpayProperties,
             AccessTokenService accessTokenService,
+            ExchangeRateService exchangeRateService,
             ApplicationEventPublisher eventPublisher
     ) {
+        this.paymentRepository = paymentRepository;
+        this.guestSessionService = guestSessionService;
+        this.configService = configService;
+        this.vnpayProperties = vnpayProperties;
+        this.accessTokenService = accessTokenService;
+        this.exchangeRateService = exchangeRateService;
+        this.eventPublisher = eventPublisher;
+    }
         this.paymentRepository = paymentRepository;
         this.guestSessionService = guestSessionService;
         this.configService = configService;
@@ -87,6 +95,13 @@ public class PaymentService {
     @Transactional
     public CreatePaymentResponse createPayment(
             String clientIp, String anonymousDeviceId, String languageCode, String device) {
+        // default displayCurrency is VND
+        return createPayment(clientIp, anonymousDeviceId, languageCode, device, null, "VND");
+    }
+        // default displayCurrency is VND
+        return createPayment(clientIp, anonymousDeviceId, languageCode, device, null, "VND");
+    }
+
         return createPayment(clientIp, anonymousDeviceId, languageCode, device, null);
     }
 
@@ -97,11 +112,9 @@ public class PaymentService {
         var guestSession = guestSessionService.registerOrUpdate(
                 anonymousDeviceId, languageCode, device);
 
-        // 1. Lấy giá và loại tiền từ cấu hình hệ thống.
+        // 1. Lấy giá và loại tiền từ cấu hình hệ thống (đã được kiểm tra trong AppConfigService).
         BigDecimal amount = configService.getUnlockPrice();
-        String currency = normalizeCurrency(
-                configService.getRequiredValue("UNLOCK_CURRENCY")
-        );
+        String currency = configService.getUnlockCurrency();
 
         // 2. Tạo mã giao dịch nội bộ đủ duy nhất.
         String txnRef = generateTxnRef();
@@ -196,23 +209,6 @@ public class PaymentService {
         params.put("vnp_ReturnUrl", effectiveReturnUrl);
 
         return params;
-    }
-
-    /**
-     * Chuẩn hóa mã tiền tệ và kiểm tra có nằm trong danh sách được hỗ trợ không.
-     */
-    private String normalizeCurrency(String raw) {
-        if (raw == null || raw.isBlank()) {
-            throw new IllegalStateException("Thiếu cấu hình UNLOCK_CURRENCY");
-        }
-        String currency = raw.trim().toUpperCase(Locale.ROOT);
-        if (!SUPPORTED_CURRENCIES.contains(currency)) {
-            throw new IllegalStateException(
-                    "Đơn vị tiền tệ không được hỗ trợ: " + currency
-                            + ". VNPay hiện chỉ hỗ trợ: " + SUPPORTED_CURRENCIES
-            );
-        }
-        return currency;
     }
 
     /**
@@ -362,14 +358,8 @@ public class PaymentService {
 
         Payment payment = found.get();
 
-        // 5. Đối chiếu tiền: VNPay gửi số tiền đã nhân 100.
-        // Đơn phải dùng loại tiền được hỗ trợ, và số tiền phải khớp.
-        if (!SUPPORTED_CURRENCIES.contains(payment.getCurrency())) {
-            return ipnResult(
-                    "04", "Unsupported currency"
-            );
-        }
-
+        // 5. Đối chiếu số tiền: VNPay gửi số tiền đã nhân 100.
+        // Loại tiền của đơn đã được kiểm tra lúc tạo đơn (AppConfigService.getUnlockCurrency).
         final long receivedAmount;
 
         try {

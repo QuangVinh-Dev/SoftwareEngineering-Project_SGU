@@ -54,6 +54,51 @@ public class Payment {
 
     // ---------- Getter và Setter ----------
 
+    private BigDecimal originalAmount;
+
+    @Column(name = "original_amount", precision = 18, scale = 2)
+    public BigDecimal getOriginalAmount() {
+        return originalAmount;
+    }
+
+    public void setOriginalAmount(BigDecimal originalAmount) {
+        this.originalAmount = originalAmount;
+    }
+
+    private String originalCurrency;
+
+    @Column(name = "original_currency", length = 3)
+    public String getOriginalCurrency() {
+        return originalCurrency;
+    }
+
+    public void setOriginalCurrency(String originalCurrency) {
+        this.originalCurrency = originalCurrency;
+    }
+
+    private BigDecimal exchangeRate;
+
+    @Column(name = "exchange_rate", precision = 18, scale = 6)
+    public BigDecimal getExchangeRate() {
+        return exchangeRate;
+    }
+
+    public void setExchangeRate(BigDecimal exchangeRate) {
+        this.exchangeRate = exchangeRate;
+    }
+
+    private java.time.Instant exchangeRateFetchedAt;
+
+    @Column(name = "exchange_rate_fetched_at")
+    public java.time.Instant getExchangeRateFetchedAt() {
+        return exchangeRateFetchedAt;
+    }
+
+    public void setExchangeRateFetchedAt(java.time.Instant exchangeRateFetchedAt) {
+        this.exchangeRateFetchedAt = exchangeRateFetchedAt;
+    }
+
+
     public Integer getId() {
         return id;
     }
