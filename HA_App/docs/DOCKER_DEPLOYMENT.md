@@ -14,6 +14,8 @@ This guide covers the Spring Boot API and its current runtime dependencies. The 
 
 The current Compose file mounts `hoian_database.sql` as a PostgreSQL initialization script. The PostgreSQL image runs initialization scripts only when the data directory is empty. The SQL file contains destructive `DROP ... CASCADE` statements, so use it only for a new, empty volume. Never use `docker compose down -v` on a database whose data must be retained. Changing `POSTGRES_USER` or `POSTGRES_PASSWORD` in `.env` does not change credentials inside an already initialized volume; the values must match the existing database or be changed through a separately planned PostgreSQL operation.
 
+For an existing database, apply schema updates using their dedicated scripts under `docs/sql/`. To allow deleting a POI and its listening history, review and run `docs/sql/fix_listen_log_poi_cascade.sql` against that database. This deletes `listen_log` rows for a POI when that POI is deleted; back up the database and schedule the schema change appropriately. Do not rerun `hoian_database.sql` on an existing data directory.
+
 ## Prepare local environment
 
 Run these commands from `HA_App/`:

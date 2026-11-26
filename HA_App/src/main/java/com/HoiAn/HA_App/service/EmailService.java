@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
@@ -35,6 +36,7 @@ public class EmailService {
     /**
      * Gửi email thông báo hồ sơ gian hàng đã được phê duyệt
      */
+    @Async
     public void sendMerchantApprovedEmail(String toEmail, String merchantName) {
         if (toEmail == null || toEmail.isBlank()) {
             log.warn("Không thể gửi email phê duyệt gian hàng: Email trống cho merchant '{}'", merchantName);
@@ -51,6 +53,7 @@ public class EmailService {
     /**
      * Gửi email thông báo hồ sơ gian hàng bị từ chối
      */
+    @Async
     public void sendMerchantRejectedEmail(String toEmail, String merchantName, String reason) {
         if (toEmail == null || toEmail.isBlank()) {
             log.warn("Không thể gửi email từ chối gian hàng: Email trống cho merchant '{}'", merchantName);

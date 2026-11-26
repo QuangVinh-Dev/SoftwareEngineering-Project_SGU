@@ -9,6 +9,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -54,7 +56,7 @@ public class AdminPoiService {
         poi.setCreatedAt(LocalDateTime.now());
         poi.setUpdatedAt(poi.getCreatedAt());
         poi = pois.save(poi);
-        addImages(poi.getId(), images);
+        addImages(poi.getId(), images, false);
         return response(poi);
     }
 
@@ -72,7 +74,7 @@ public class AdminPoiService {
         apply(poi, request);
         poi.setUpdatedAt(LocalDateTime.now());
         poi = pois.save(poi);
-        addImages(poi.getId(), images);
+        addImages(poi.getId(), images, true);
         return response(poi);
     }
 
@@ -96,7 +98,7 @@ public class AdminPoiService {
         poi.setCreatedAt(LocalDateTime.now());
         poi.setUpdatedAt(poi.getCreatedAt());
         poi = pois.save(poi);
-        addImages(poi.getId(), images);
+        addImages(poi.getId(), images, false);
         return response(poi);
     }
 
@@ -111,7 +113,7 @@ public class AdminPoiService {
         poi.setRejectionReason(null);
         poi.setUpdatedAt(LocalDateTime.now());
         poi = pois.save(poi);
-        addImages(poi.getId(), images);
+        addImages(poi.getId(), images, true);
         return response(poi);
     }
 
@@ -145,19 +147,23 @@ public class AdminPoiService {
                 poi.getApprovalStatus(), poi.getRejectionReason(), poiImages.findPaths(poi.getId()));
     }
 
-    private void addImages(int poiId, List<MultipartFile> requestedImages) {
+    private void addImages(int poiId, List<MultipartFile> requestedImages, boolean replaceExisting) {
         List<MultipartFile> images = requestedImages == null ? Collections.emptyList()
                 : requestedImages.stream().filter(file -> file != null && !file.isEmpty()).toList();
         if (images.isEmpty()) return;
 
         poiImages.lockPoi(poiId);
-        int currentCount = poiImages.count(poiId);
+        List<String> replacedImages = replaceExisting ? poiImages.findPaths(poiId) : List.of();
+        int currentCount = replaceExisting ? 0 : poiImages.count(poiId);
         if (currentCount + images.size() > 5) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Mỗi POI được tải tối đa 5 hình ảnh");
         }
 
         List<PoiImageStorageService.StoredImage> stored = imageStorage.storeAll(images);
         try {
+            if (replaceExisting) {
+                poiImages.deleteAll(poiId);
+            }
             for (int index = 0; index < stored.size(); index++) {
                 poiImages.add(poiId, stored.get(index).publicUrl(), currentCount + index + 1);
             }
@@ -165,6 +171,22 @@ public class AdminPoiService {
             imageStorage.deleteAll(stored);
             throw e;
         }
+        deleteReplacedImagesAfterCommit(replacedImages);
+    }
+
+    private void deleteReplacedImagesAfterCommit(List<String> replacedImages) {
+        if (replacedImages.isEmpty()) return;
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            imageStorage.deleteByPublicUrls(replacedImages);
+            return;
+        }
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                imageStorage.deleteByPublicUrls(replacedImages);
+            }
+        });
     }
 
     private String blankToNull(String value) { return value == null || value.isBlank() ? null : value.trim(); }

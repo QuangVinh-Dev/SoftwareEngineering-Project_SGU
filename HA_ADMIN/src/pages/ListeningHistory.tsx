@@ -1,8 +1,11 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Search, ChevronLeft, ChevronRight, ChevronsUpDown, Check, X, Filter, RotateCcw } from 'lucide-react';
 import { Card, Badge, Button } from '@/components/ui';
-import { useToast } from '@/components/toast/ToastProvider';
-import { listeningHistory, pois, languages } from '@/data/mockData';
+import { useState, useMemo, useEffect } from 'react';
+import { Search, ChevronLeft, ChevronRight, ChevronsUpDown, Check, X, Filter, RotateCcw } from 'lucide-react';
+import { Card, Badge, Button } from '@/components/ui';
+import { useToast } from '@/components/toast/useToast';
+import { getListeningHistoryApi } from '@/services/adminStatsApi';
 import type { ListeningHistoryEntry } from '@/types';
 import { classNames } from '@/utils/helpers';
 
@@ -60,6 +63,8 @@ function MultiSelect({ options, selected, onChange, label }: {
 
 export default function ListeningHistory() {
   const { showToast } = useToast();
+  const [historyList, setHistoryList] = useState<ListeningHistoryEntry[]>([]);
+  const [loading, setLoading] = useState(true);
   const [timeFilter, setTimeFilter] = useState('Last 7 days');
   const [poiFilter, setPoiFilter] = useState<string[]>([]);
   const [langFilter, setLangFilter] = useState<string[]>([]);
@@ -70,11 +75,29 @@ export default function ListeningHistory() {
   const [appliedFilters, setAppliedFilters] = useState({ poi: [] as string[], lang: [] as string[], time: 'Last 7 days' });
   const pageSize = 10;
 
-  const poiNames = pois.map(p => p.name);
-  const langNames = languages.map(l => l.name);
+  useEffect(() => {
+    let mounted = true;
+    setLoading(true);
+    getListeningHistoryApi()
+      .then(data => {
+        if (!mounted) return;
+        setHistoryList(Array.isArray(data) ? data : []);
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setHistoryList([]);
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
+    return () => { mounted = false; };
+  }, []);
+
+  const poiNames = useMemo(() => Array.from(new Set(historyList.map(p => p.poi))).filter(Boolean), [historyList]);
+  const langNames = useMemo(() => Array.from(new Set(historyList.map(l => l.language))).filter(Boolean), [historyList]);
 
   const filtered = useMemo(() => {
-    let result = [...listeningHistory];
+    let result = [...historyList];
     if (appliedFilters.poi.length > 0) result = result.filter(r => appliedFilters.poi.includes(r.poi));
     if (appliedFilters.lang.length > 0) result = result.filter(r => appliedFilters.lang.includes(r.language));
     if (search) result = result.filter(r =>
@@ -88,7 +111,7 @@ export default function ListeningHistory() {
       return sortDir === 'asc' ? cmp : -cmp;
     });
     return result;
-  }, [appliedFilters, search, sortField, sortDir]);
+  }, [historyList, appliedFilters, search, sortField, sortDir]);
 
   const totalPages = Math.ceil(filtered.length / pageSize);
   const pageData = filtered.slice((page - 1) * pageSize, page * pageSize);

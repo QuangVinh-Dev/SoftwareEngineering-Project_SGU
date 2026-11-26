@@ -1,12 +1,12 @@
 ﻿import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Check, Edit2, Languages, MapPin, Plus, RefreshCw, Search, Volume2, X,
-  Clock, CheckCircle2, XCircle, AlertCircle, Eye, ExternalLink, Compass
+  AlertCircle, Eye, ExternalLink
 } from 'lucide-react';
 import { Badge, Button, Card } from '@/components/ui';
 import Modal from '@/components/modals/Modal';
 import AudioPlayer from '@/components/AudioPlayer';
-import { useToast } from '@/components/toast/ToastProvider';
+import { useToast } from '@/components/toast/useToast';
 import { apiMessage } from '@/services/authApi';
 import {
   approveTranslation, createPoi, generatePoiAudio, getAdminPois, getPoiAudios, getPoiContent,
@@ -188,9 +188,8 @@ export default function POIManagement() {
 
   const handleImageSelection = (files: FileList | null) => {
     const selected = Array.from(files ?? []);
-    const available = 5 - (poiEditor?.images.length ?? 0);
-    if (selected.length > available) {
-      setPoiFormError(`POI này còn có thể thêm tối đa ${available} hình.`);
+    if (selected.length > 5) {
+      setPoiFormError('Mỗi POI được tải tối đa 5 hình ảnh.');
       return;
     }
     setPoiFormError('');
@@ -808,10 +807,10 @@ export default function POIManagement() {
           <label className="block text-sm font-medium text-brown-700">Mô tả gốc<textarea maxLength={10000} rows={4} value={poiForm.originalDescription} onChange={event => setPoiForm(form => ({ ...form, originalDescription: event.target.value }))} className="mt-1 w-full rounded-lg border border-brown-200 px-3 py-2 text-sm" /></label>
           <label className="block text-sm font-medium text-brown-700">Liên kết chỉ đường<input maxLength={500} value={poiForm.directionLink} onChange={event => setPoiForm(form => ({ ...form, directionLink: event.target.value }))} className="mt-1 w-full rounded-lg border border-brown-200 px-3 py-2 text-sm" /></label>
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-brown-700">Hình ảnh (tối đa 5)<input type="file" accept="image/jpeg,image/png,image/gif,image/bmp" multiple disabled={(poiEditor?.images.length ?? 0) >= 5} onChange={event => handleImageSelection(event.target.files)} className="mt-1 block w-full text-sm" /></label>
+            <label className="block text-sm font-medium text-brown-700">Hình ảnh (tối đa 5)<input type="file" accept="image/jpeg,image/png,image/gif,image/bmp" multiple onChange={event => handleImageSelection(event.target.files)} className="mt-1 block w-full text-sm" /></label>
             {!!poiEditor?.images.length && <div className="flex flex-wrap gap-2">{poiEditor.images.map((path, index) => <img key={path} src={resolvePoiImageUrl(path)} alt={`POI ${index + 1}`} className="h-16 w-16 rounded object-cover" />)}</div>}
             {imageFiles.length > 0 && <p className="text-xs text-brown-500">Ảnh mới: {imageFiles.map(file => file.name).join(', ')}</p>}
-            <p className="text-xs text-brown-400">Ảnh hiện có được giữ lại; mỗi file tối đa 10 MB.</p>
+            <p className="text-xs text-brown-400">{poiEditor ? 'Chọn ảnh mới sẽ thay thế toàn bộ ảnh hiện tại; không chọn ảnh mới để giữ nguyên.' : 'Mỗi file tối đa 10 MB.'} Mỗi POI tối đa 5 ảnh.</p>
           </div>
           <label className="block text-sm font-medium text-brown-700">Trạng thái<select value={poiForm.status} onChange={event => setPoiForm(form => ({ ...form, status: event.target.value as PoiFormState['status'] }))} className="mt-1 w-full rounded-lg border border-brown-200 bg-white px-3 py-2 text-sm"><option value="ACTIVE">Đang hoạt động</option><option value="INACTIVE">Ngừng hoạt động</option></select></label>
         </form>

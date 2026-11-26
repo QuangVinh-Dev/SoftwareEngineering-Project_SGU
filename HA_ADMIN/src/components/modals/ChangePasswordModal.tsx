@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Lock, Eye, EyeOff, Check } from 'lucide-react';
 import Modal from '@/components/modals/Modal';
 import { Button } from '@/components/ui';
-import { useToast } from '@/components/toast/ToastProvider';
+import { useToast } from '@/components/toast/useToast';
 
 interface ChangePasswordModalProps {
   open: boolean;

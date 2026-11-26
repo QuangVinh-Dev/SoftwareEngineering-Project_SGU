@@ -1,5 +1,6 @@
 package com.HoiAn.HA_App.controller;
 
+import com.HoiAn.HA_App.dto.response.AdminExtendedStatsResponse;
 import com.HoiAn.HA_App.dto.response.EngagementStatsResponse;
 import com.HoiAn.HA_App.dto.response.RevenueStatsResponse;
 import com.HoiAn.HA_App.service.EngagementStatsService;
@@ -8,11 +9,16 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 /**
  * API thống kê cho Dashboard quản trị.
  *
  * GET /api/admin/stats/revenue     — tiền khách tham quan đã trả (VNPay PAID)
  * GET /api/admin/stats/engagement  — lượt nghe thuyết minh, lượt khách, ngôn ngữ
+ * GET /api/admin/stats/history     — nhật ký chi tiết lịch sử nghe thuyết minh
+ * GET /api/admin/stats/analytics   — dữ liệu biểu đồ phân tích POI và thời lượng
+ * GET /api/admin/stats/heatmap     — mật độ phân bố lượt nghe trên bản đồ
  *
  * Yêu cầu ROLE_ADMIN (đã cấu hình chung cho /api/admin/**).
  */
@@ -37,5 +43,20 @@ public class AdminStatsController {
     @GetMapping("/engagement")
     public EngagementStatsResponse getEngagementStats() {
         return engagementStatsService.getStats();
+    }
+
+    @GetMapping("/history")
+    public List<AdminExtendedStatsResponse.ListeningHistoryItem> getListeningHistory() {
+        return engagementStatsService.getListeningHistory();
+    }
+
+    @GetMapping("/analytics")
+    public AdminExtendedStatsResponse.AnalyticsStatsResponse getAnalyticsStats() {
+        return engagementStatsService.getAnalyticsStats();
+    }
+
+    @GetMapping("/heatmap")
+    public List<AdminExtendedStatsResponse.HeatmapAreaResponse> getHeatmapStats() {
+        return engagementStatsService.getHeatmapStats();
     }
 }

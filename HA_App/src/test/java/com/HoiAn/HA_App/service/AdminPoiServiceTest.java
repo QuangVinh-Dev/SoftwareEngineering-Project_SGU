@@ -17,7 +17,9 @@ import java.util.List;
 import com.HoiAn.HA_App.exception.ApiException;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.web.multipart.MultipartFile;
 import java.lang.reflect.Field;
+import java.nio.file.Path;
 
 @ExtendWith(MockitoExtension.class)
 class AdminPoiServiceTest {
@@ -73,6 +75,53 @@ class AdminPoiServiceTest {
                 .extracting(error -> ((ApiException) error).getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
         verifyNoInteractions(imageStorage);
         verify(poiImages).lockPoi(3);
+    }
+
+    @Test
+    void updateReplacesExistingImagesInsteadOfCountingThemAgainstNewImages() throws Exception {
+        Poi poi = savedWithId(new Poi(), 5);
+        poi.setName("Test POI");
+        when(pois.findById(5)).thenReturn(java.util.Optional.of(poi));
+        when(pois.save(any(Poi.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        List<String> oldPaths = List.of("/uploads/poi-images/old-1.jpg",
+                "/uploads/poi-images/old-2.jpg", "/uploads/poi-images/old-3.jpg");
+        when(poiImages.findPaths(5)).thenReturn(oldPaths,
+                List.of("/uploads/poi-images/new-1.jpg", "/uploads/poi-images/new-2.jpg",
+                        "/uploads/poi-images/new-3.jpg"));
+        List<MultipartFile> images = List.of(
+                new MockMultipartFile("images", "new-1.jpg", "image/jpeg", new byte[]{1}),
+                new MockMultipartFile("images", "new-2.jpg", "image/jpeg", new byte[]{2}),
+                new MockMultipartFile("images", "new-3.jpg", "image/jpeg", new byte[]{3}));
+        when(imageStorage.storeAll(images)).thenReturn(List.of(
+                new PoiImageStorageService.StoredImage(Path.of("new-1.jpg"), "/uploads/poi-images/new-1.jpg"),
+                new PoiImageStorageService.StoredImage(Path.of("new-2.jpg"), "/uploads/poi-images/new-2.jpg"),
+                new PoiImageStorageService.StoredImage(Path.of("new-3.jpg"), "/uploads/poi-images/new-3.jpg")));
+        AdminPoiService service = new AdminPoiService(pois, contentService, poiImages, imageStorage);
+
+        var response = service.update(5, request(), images);
+
+        verify(poiImages).deleteAll(5);
+        verify(poiImages).add(5, "/uploads/poi-images/new-1.jpg", 1);
+        verify(poiImages).add(5, "/uploads/poi-images/new-2.jpg", 2);
+        verify(poiImages).add(5, "/uploads/poi-images/new-3.jpg", 3);
+        verify(imageStorage).deleteByPublicUrls(oldPaths);
+        assertThat(response.images()).hasSize(3);
+    }
+
+    @Test
+    void updateWithoutNewImagesKeepsExistingImages() throws Exception {
+        Poi poi = savedWithId(new Poi(), 6);
+        poi.setName("Test POI");
+        when(pois.findById(6)).thenReturn(java.util.Optional.of(poi));
+        when(pois.save(any(Poi.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(poiImages.findPaths(6)).thenReturn(List.of("/uploads/poi-images/existing.jpg"));
+        AdminPoiService service = new AdminPoiService(pois, contentService, poiImages, imageStorage);
+
+        service.update(6, request(), List.of());
+
+        verify(poiImages, never()).deleteAll(6);
+        verify(poiImages, never()).add(any(), any(), anyInt());
+        verifyNoInteractions(imageStorage);
     }
 
     @Test

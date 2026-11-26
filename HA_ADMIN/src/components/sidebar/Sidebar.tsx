@@ -26,7 +26,7 @@ const navItems: NavItem[] = [
 ];
 
 export default function Sidebar() {
-  const { currentPage, setCurrentPage, sidebarCollapsed, setSidebarCollapsed, mobileSidebarOpen, setMobileSidebarOpen, authUser } = useApp();
+  const { currentPage, setCurrentPage, sidebarCollapsed, setSidebarCollapsed, mobileSidebarOpen, setMobileSidebarOpen } = useApp();
   const displayedItems = navItems;
 
   return (

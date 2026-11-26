@@ -82,7 +82,7 @@ function PoiModal({ initialPoi, onClose, onSaved }: PoiModalProps) {
 
   const handleGetCurrentGPS = () => {
     if (!navigator.geolocation) {
-      setFormError('Trình duyệt của bạn không hỗ trợ định vị GPS.');
+      setFormError('Trình duyệt của bạn không hỗ trợ định vị GPS. Vui lòng nhập thủ công vĩ độ và kinh độ.');
       return;
     }
     setGettingGPS(true);
@@ -101,13 +101,13 @@ function PoiModal({ initialPoi, onClose, onSaved }: PoiModalProps) {
       },
       err => {
         setGettingGPS(false);
-        let msg = 'Không thể lấy vị trí hiện tại.';
-        if (err.code === 1) msg = 'Bạn đã từ chối quyền truy cập vị trí trên trình duyệt. Vui lòng cấp quyền hoặc nhập thủ công.';
-        else if (err.code === 2) msg = 'Không tìm thấy tín hiệu vị trí GPS.';
-        else if (err.code === 3) msg = 'Quá thời gian xác định vị trí GPS. Vui lòng thử lại hoặc nhập thủ công.';
+        let msg = 'Không thể lấy vị trí hiện tại. Vui lòng nhập thủ công vĩ độ và kinh độ.';
+        if (err.code === 1) msg = 'Bạn đã từ chối quyền truy cập vị trí trên trình duyệt. Vui lòng cấp quyền hoặc nhập thủ công vĩ độ và kinh độ.';
+        else if (err.code === 2) msg = 'Không tìm thấy tín hiệu vị trí GPS. Vui lòng nhập thủ công vĩ độ và kinh độ.';
+        else if (err.code === 3) msg = 'Quá thời gian xác định vị trí GPS. Vui lòng thử lại hoặc nhập thủ công vĩ độ và kinh độ.';
         setFormError(msg);
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 7000, maximumAge: 0 }
     );
   };
 
@@ -394,6 +394,11 @@ function PoiModal({ initialPoi, onClose, onSaved }: PoiModalProps) {
                 disabled={submitting}
               />
               <p className="mt-1 text-[11px] text-slate-400">Định dạng: JPG, PNG, GIF, BMP. Tối đa 10MB mỗi ảnh.</p>
+              {isEdit && (
+                <p className="mt-1 text-[11px] text-amber-700">
+                  Nếu chọn ảnh mới, toàn bộ ảnh hiện tại sẽ được thay thế. Không chọn ảnh mới để giữ nguyên ảnh cũ.
+                </p>
+              )}
               {images.length > 0 && (
                 <div className="mt-2 p-2.5 bg-purple-50/60 rounded-xl border border-purple-100 text-xs text-[#6b21a8]">
                   <p className="font-semibold mb-1">Đã chọn {images.length} tệp ảnh mới:</p>

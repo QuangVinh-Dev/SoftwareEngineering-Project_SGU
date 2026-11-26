@@ -4,7 +4,6 @@ import Layout from '@/components/layout/Layout';
 import Login from '@/pages/Login';
 import Dashboard from '@/pages/Dashboard';
 import MyPOI from '@/pages/MyPOI';
-import EditPOI from '@/pages/EditPOI';
 import Account from '@/pages/Account';
 import ApprovalStatus from '@/pages/ApprovalStatus';
 
@@ -17,7 +16,6 @@ function AppContent() {
   const pages: Record<string, React.ReactNode> = {
     dashboard: <Dashboard />,
     'my-poi': <MyPOI />,
-    'edit-poi': <EditPOI />,
     stats: <Dashboard />,
     account: <Account />,
     'approval-status': <ApprovalStatus />,

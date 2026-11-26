@@ -370,7 +370,7 @@ export default function ApprovalStatus() {
                   <Button
                     size="sm"
                     variant="secondary"
-                    onClick={() => setCurrentPage('edit-poi')}
+                    onClick={() => setCurrentPage('my-poi')}
                     icon={<Edit3 className="w-3.5 h-3.5 text-[#7c3aed]" />}
                     className="flex-shrink-0 text-xs"
                   >
@@ -391,7 +391,7 @@ export default function ApprovalStatus() {
                     <div className="pt-2 pl-5">
                       <Button
                         size="sm"
-                        onClick={() => setCurrentPage('edit-poi')}
+                        onClick={() => setCurrentPage('my-poi')}
                         icon={<ArrowUpRight className="w-3.5 h-3.5" />}
                       >
                         Chỉnh sửa & Gửi duyệt lại ngay

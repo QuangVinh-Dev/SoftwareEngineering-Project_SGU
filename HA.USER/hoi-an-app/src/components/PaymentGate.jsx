@@ -101,9 +101,6 @@ export default function PaymentGate({ onUnlock, accessStatus = 'missing', access
         if (key.startsWith('vnp_')) returnParams[key] = value;
       });
 
-      // Xóa query param trên thanh URL để nhìn gọn gàng
-      window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
-
       confirmVnPayReturn(returnParams).then(async (result) => {
         console.log('[PaymentGate] VNPay return verification result:', result);
         if (!result.verified) {
@@ -111,8 +108,11 @@ export default function PaymentGate({ onUnlock, accessStatus = 'missing', access
         } else if (result.status === 'PAID') {
           setReturnNotice('Backend đã xác minh giao dịch thành công. Đang kích hoạt quyền sử dụng...');
           await finishPaidPayment(pending || { txnRef: returnedTxn, claimSecret: pending?.claimSecret });
+          // Chỉ xóa query params trên thanh URL sau khi backend đã xác minh và kích hoạt vé thành công
+          window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
         } else if (result.status === 'FAILED') {
           setReturnNotice('Backend đã xác minh giao dịch không thành công.');
+          window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
         }
       }).catch((returnError) => {
         console.error('[PaymentGate] confirmVnPayReturn error:', returnError);

@@ -26,6 +26,7 @@ export default function AudioPlayer({ src, title, className = '' }: AudioPlayerP
   useEffect(() => {
     let cancelled = false;
     let createdUrl = '';
+    const audio = audioRef.current;
 
     setObjectUrl('');
     setFetching(false);
@@ -34,7 +35,7 @@ export default function AudioPlayer({ src, title, className = '' }: AudioPlayerP
     setCurrentTime(0);
     setDuration(0);
     setError('');
-    audioRef.current?.pause();
+    audio?.pause();
 
     if (src) {
       const token = getAccessToken();
@@ -62,7 +63,7 @@ export default function AudioPlayer({ src, title, className = '' }: AudioPlayerP
     return () => {
       cancelled = true;
       if (createdUrl) URL.revokeObjectURL(createdUrl);
-      audioRef.current?.pause();
+      audio?.pause();
     };
   }, [src]);
 

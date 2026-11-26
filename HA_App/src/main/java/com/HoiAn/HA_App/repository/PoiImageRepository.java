@@ -30,4 +30,8 @@ public class PoiImageRepository {
     public void add(Integer poiId, String path, int order) {
         jdbc.update("INSERT INTO poi_image(poi_id,file_path,order_num) VALUES(?,?,?)", poiId, path, order);
     }
+
+    public void deleteAll(Integer poiId) {
+        jdbc.update("DELETE FROM poi_image WHERE poi_id=?", poiId);
+    }
 }

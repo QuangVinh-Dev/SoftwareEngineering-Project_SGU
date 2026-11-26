@@ -1,11 +1,11 @@
 import { useApp } from '@/hooks/useApp';
 import { classNames } from '@/utils/helpers';
 import {
-  LayoutDashboard, User, FileCheck, MapPin, Edit3,
+  LayoutDashboard, User, FileCheck, MapPin,
   BarChart3, ChevronLeft, ChevronRight, Store, Sparkles
 } from 'lucide-react';
 
-export type PageKey = 'dashboard' | 'my-poi' | 'edit-poi' | 'stats' | 'account' | 'approval-status';
+export type PageKey = 'dashboard' | 'my-poi' | 'stats' | 'account' | 'approval-status';
 
 interface NavItem {
   key: PageKey;
@@ -25,7 +25,6 @@ const navSections: { title: string; items: NavItem[] }[] = [
     title: 'Điểm tham quan (POI)',
     items: [
       { key: 'my-poi', label: 'POI của gian hàng', icon: MapPin },
-      { key: 'edit-poi', label: 'Chỉnh sửa & Gửi duyệt', icon: Edit3 },
     ],
   },
   {

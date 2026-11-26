@@ -9,13 +9,11 @@ COPY pom.xml .
 COPY .mvn .mvn
 COPY mvnw .
 
-RUN chmod +x mvnw
-
-RUN ./mvnw dependency:go-offline -B
+RUN sed -i 's/\r$//' mvnw 2>/dev/null || true && chmod +x mvnw 2>/dev/null || true
 
 COPY src src
 
-RUN ./mvnw clean package -DskipTests
+RUN mvn clean package -DskipTests || ./mvnw clean package -DskipTests
 
 
 # =========================

@@ -1,4 +1,5 @@
-import { AppProvider, useApp } from '@/hooks/useApp';
+import { AppProvider } from '@/hooks/AppProvider';
+import { useApp } from '@/hooks/useApp';
 import { ToastProvider } from '@/components/toast/ToastProvider';
 import Layout from '@/components/layout/Layout';
 import Login from '@/pages/Login';

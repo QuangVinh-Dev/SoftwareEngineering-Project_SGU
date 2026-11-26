@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { User, Mail, Phone, Shield, Calendar, Edit2, Save, X } from 'lucide-react';
 import Modal from '@/components/modals/Modal';
 import { Button } from '@/components/ui';
-import { useToast } from '@/components/toast/ToastProvider';
+import { useToast } from '@/components/toast/useToast';
 import { adminProfile } from '@/data/mockData';
 
 interface ProfileModalProps {

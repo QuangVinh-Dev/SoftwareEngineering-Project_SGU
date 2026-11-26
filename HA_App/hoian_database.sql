@@ -262,7 +262,7 @@ CREATE TABLE payment (
 -- listen_log = ListeningLog trong ERD
 CREATE TABLE listen_log (
     id               INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    poi_id           INT         NOT NULL REFERENCES poi(id),
+    poi_id           INT         NOT NULL REFERENCES poi(id) ON DELETE CASCADE,
     language_code    VARCHAR(10) REFERENCES language(code),
     trigger_method   VARCHAR(30),                              -- AUTO_GPS / TAP
     listened_at      TIMESTAMP   NOT NULL DEFAULT NOW(),

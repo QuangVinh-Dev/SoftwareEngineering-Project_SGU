@@ -1,5 +1,6 @@
 package com.HoiAn.HA_App.service;
 
+import com.HoiAn.HA_App.dto.response.AdminExtendedStatsResponse;
 import com.HoiAn.HA_App.dto.response.EngagementStatsResponse;
 import com.HoiAn.HA_App.repository.AdminStatsRepository;
 import org.springframework.stereotype.Service;
@@ -133,5 +134,27 @@ public class EngagementStatsService {
             labels.add(day.format(DAY_LABEL));
         }
         return labels;
+    }
+
+    @Transactional(readOnly = true)
+    public List<AdminExtendedStatsResponse.ListeningHistoryItem> getListeningHistory() {
+        return statsRepository.listeningHistory(200);
+    }
+
+    @Transactional(readOnly = true)
+    public AdminExtendedStatsResponse.AnalyticsStatsResponse getAnalyticsStats() {
+        return new AdminExtendedStatsResponse.AnalyticsStatsResponse(
+                statsRepository.topPois(10),
+                statsRepository.avgTimeByPoi(10),
+                statsRepository.avgTimeByLanguage(),
+                statsRepository.trendPoints(30),
+                statsRepository.trendPoints(90),
+                statsRepository.trendPoints(365)
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public List<AdminExtendedStatsResponse.HeatmapAreaResponse> getHeatmapStats() {
+        return statsRepository.heatmapAreas();
     }
 }

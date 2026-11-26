@@ -59,7 +59,8 @@ public class SecurityConfig {
                                 "/api/payments/vnpay/return").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/payments/vnpay/ipn").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/payments/*/status").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/poi/locations", "/api/poi/*/audio")
+                        .requestMatchers(HttpMethod.GET, "/api/poi/locations").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/poi/*/audio")
                             .hasAnyAuthority("SERVICE_ACCESS", "ROLE_ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/poi/*/listening")
                             .hasAuthority("SERVICE_ACCESS")
@@ -89,14 +90,14 @@ public class SecurityConfig {
 
     @Bean
     CorsConfigurationSource corsConfigurationSource(
-            @Value("${app.cors.allowed-origins:http://localhost:5173,http://localhost:5174}") String allowedOrigins) {
+            @Value("${app.cors.allowed-origins:http://localhost:5173,http://localhost:5174,http://localhost:5175}") String allowedOrigins) {
         List<String> origins = Arrays.stream(allowedOrigins.split(","))
                 .map(String::trim)
                 .filter(origin -> !origin.isEmpty())
                 .toList();
 
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(List.of("*"));
+        config.setAllowedOriginPatterns(origins.isEmpty() ? List.of("*") : origins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);

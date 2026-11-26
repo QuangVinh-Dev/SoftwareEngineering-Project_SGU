@@ -34,17 +34,21 @@ class ServiceAccessSecurityTest {
     }
 
     @Test
+    void publicPoiLocationsIsAccessibleWithoutToken() throws Exception {
+        mvc.perform(get("/api/poi/locations")).andExpect(status().isOk());
+    }
+
+    @Test
     void paidContentRejectsMissingOrExpiredServiceTokenAndJwtAlone() throws Exception {
         when(accessTokenService.resolveToken("expired")).thenReturn(Optional.empty());
 
-        mvc.perform(get("/api/poi/locations")).andExpect(status().isUnauthorized());
-        mvc.perform(get("/api/poi/locations").header("X-Service-Token", "expired"))
-                .andExpect(status().isUnauthorized());
         mvc.perform(get("/api/poi/1/audio?languageCode=vi"))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/poi/1/audio?languageCode=vi").header("X-Service-Token", "expired"))
                 .andExpect(status().isUnauthorized());
         mvc.perform(get("/uploads/audio/paid-audio.mp3"))
                 .andExpect(status().isUnauthorized());
-        mvc.perform(get("/api/poi/locations").header("Authorization", "Bearer login-jwt"))
+        mvc.perform(get("/api/poi/1/audio?languageCode=vi").header("Authorization", "Bearer login-jwt"))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -52,13 +56,13 @@ class ServiceAccessSecurityTest {
     void validServiceTokenIsAccepted() throws Exception {
         when(accessTokenService.resolveToken("active")).thenReturn(Optional.of("txn-1"));
 
-        mvc.perform(get("/api/poi/locations").header("X-Service-Token", "active"))
+        mvc.perform(get("/api/poi/locations"))
                 .andExpect(status().isOk());
         mvc.perform(get("/api/poi/1/audio?languageCode=vi")
                         .header("X-Service-Token", "active"))
                 .andExpect(status().isOk());
 
-        verify(accessTokenService, times(2)).resolveToken("active");
+        verify(accessTokenService, times(1)).resolveToken("active");
         verify(poiService).getActivePois();
     }
 
@@ -67,7 +71,7 @@ class ServiceAccessSecurityTest {
         when(accessTokenService.resolveToken("token"))
                 .thenThrow(new RedisConnectionFailureException("redis unavailable"));
 
-        mvc.perform(get("/api/poi/locations").header("X-Service-Token", "token"))
+        mvc.perform(get("/api/poi/1/audio?languageCode=vi").header("X-Service-Token", "token"))
                 .andExpect(status().isServiceUnavailable());
 
         verifyNoInteractions(poiService);

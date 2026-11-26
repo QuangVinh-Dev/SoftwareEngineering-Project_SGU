@@ -3,6 +3,8 @@ package com.HoiAn.HA_App.service;
 import com.HoiAn.HA_App.exception.ApiException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -17,6 +19,8 @@ import java.util.UUID;
 @Service
 public class PoiImageStorageService {
     private static final long MAX_IMAGE_SIZE = 10 * 1024 * 1024;
+    private static final Logger logger = LoggerFactory.getLogger(PoiImageStorageService.class);
+    private static final String PUBLIC_URL_PREFIX = "/uploads/poi-images/";
     private final Path storagePath;
 
     public PoiImageStorageService(@Value("${app.poi-image.storage-path:./Data_Storage/poi-images}") String storagePath) {
@@ -53,6 +57,28 @@ public class PoiImageStorageService {
                 Files.deleteIfExists(image.path());
             } catch (IOException ignored) {
                 // A failed cleanup must not hide the original upload or database error.
+            }
+        }
+    }
+
+    public void deleteByPublicUrls(List<String> publicUrls) {
+        for (String publicUrl : publicUrls) {
+            if (publicUrl == null || !publicUrl.startsWith(PUBLIC_URL_PREFIX)) {
+                logger.warn("Skipping POI image cleanup for unexpected public URL");
+                continue;
+            }
+
+            String fileName = publicUrl.substring(PUBLIC_URL_PREFIX.length());
+            Path target = storagePath.resolve(fileName).normalize();
+            if (fileName.isBlank() || !storagePath.equals(target.getParent())) {
+                logger.warn("Skipping POI image cleanup for an invalid storage path");
+                continue;
+            }
+
+            try {
+                Files.deleteIfExists(target);
+            } catch (IOException e) {
+                logger.warn("Could not delete replaced POI image {}", fileName, e);
             }
         }
     }
