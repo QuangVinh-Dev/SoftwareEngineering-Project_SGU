@@ -165,11 +165,19 @@ function PoiModal({ initialPoi, onClose, onSaved }: PoiModalProps) {
 
     try {
       if (isEdit && initialPoi) {
-        await updateMerchantPoi(initialPoi.id, payload, images);
-        showToast('success', 'Đã lưu chỉnh sửa POI và gửi duyệt lại cho ban quản lý!');
+        const savedPoi = await updateMerchantPoi(initialPoi.id, payload, images);
+        if (savedPoi.approvalStatus === 'REJECTED') {
+          showToast('error', savedPoi.rejectionReason || 'POI bị từ chối vì vùng vị trí chồng lấn với POI đã có.');
+        } else {
+          showToast('success', 'Đã lưu chỉnh sửa POI và gửi duyệt lại cho ban quản lý!');
+        }
       } else {
-        await createMerchantPoi(payload, images);
-        showToast('success', 'Đã gửi điểm tham quan thành công! Vui lòng chờ phê duyệt.');
+        const savedPoi = await createMerchantPoi(payload, images);
+        if (savedPoi.approvalStatus === 'REJECTED') {
+          showToast('error', savedPoi.rejectionReason || 'POI bị từ chối vì vùng vị trí chồng lấn với POI đã có.');
+        } else {
+          showToast('success', 'Đã gửi điểm tham quan thành công! Vui lòng chờ phê duyệt.');
+        }
       }
       setConfirmOpen(false);
       onSaved();
