@@ -1,5 +1,4 @@
-# HỘI AN HERITAGE - HỆ THỐNG THUYẾT MINH DU LỊCH TỰ ĐỘNG ĐA NGÔN NGỮ
-<img width="1024" height="1024" alt="image" src="https://github.com/user-attachments/assets/54bb6df8-b97d-4765-85a3-f826b4e4583d" />
+# HỘI AN HERITAGE - HỆ THỐNG THUYẾT MINH DU LỊCH TỰ ĐỘNG ĐA NGÔN NG
 
 [![Backend & Services CI/CD Pipeline](https://github.com/QuangVinh-Dev/SoftwareEngineering-Project_SGU/actions/workflows/backend-services-ci-cd.yml/badge.svg)](https://github.com/QuangVinh-Dev/SoftwareEngineering-Project_SGU/actions/workflows/backend-services-ci-cd.yml)
 [![Frontend CI Pipeline](https://github.com/QuangVinh-Dev/SoftwareEngineering-Project_SGU/actions/workflows/frontend-ci.yml/badge.svg)](https://github.com/QuangVinh-Dev/SoftwareEngineering-Project_SGU/actions/workflows/frontend-ci.yml)
