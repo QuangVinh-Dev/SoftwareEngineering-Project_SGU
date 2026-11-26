@@ -108,6 +108,15 @@ public class AudioRepository {
                 """, poiId, audioId);
     }
 
+    public List<String> findAllFilePathsByPoiId(Integer poiId) {
+        return jdbcTemplate.query("""
+                SELECT a.file_path
+                FROM audio a
+                JOIN translation t ON t.id = a.translation_id
+                WHERE t.poi_id = ?
+                """, (rs, row) -> rs.getString("file_path"), poiId);
+    }
+
     public boolean isFileUsedByAnotherAudio(String filePath, Integer excludedAudioId) {
         Integer count = jdbcTemplate.queryForObject("""
                 SELECT COUNT(*) FROM audio WHERE file_path = ? AND id <> ?

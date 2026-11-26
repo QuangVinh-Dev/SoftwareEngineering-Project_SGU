@@ -25,6 +25,7 @@ export interface AdminPoi extends PoiLocation {
   status: 'ACTIVE' | 'INACTIVE' | string;
   approvalStatus: 'APPROVED' | 'PENDING' | 'REJECTED' | string;
   rejectionReason: string | null;
+  reviewMessage?: string | null;
   images: string[];
 }
 

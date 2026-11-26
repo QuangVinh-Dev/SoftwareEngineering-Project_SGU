@@ -15,5 +15,6 @@ public record AdminPoiResponse(
         String status,
         String approvalStatus,
         String rejectionReason,
+        String reviewMessage,
         List<String> images
 ) {}

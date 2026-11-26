@@ -29,6 +29,7 @@ export default function POIManagement() {
 
   // POI Review modals state
   const [reviewingPoi, setReviewingPoi] = useState<AdminPoi | null>(null);
+  const [reviewNotice, setReviewNotice] = useState('');
   const [rejectingPoi, setRejectingPoi] = useState<AdminPoi | null>(null);
   const [rejectionReasonInput, setRejectionReasonInput] = useState('');
   const [reviewProcessing, setReviewProcessing] = useState(false);
@@ -52,6 +53,16 @@ export default function POIManagement() {
   const [busy, setBusy] = useState('');
   const [generationResults, setGenerationResults] = useState<AudioGenerationResult[]>([]);
   const [playable, setPlayable] = useState<Partial<Record<LanguageCode, boolean>>>({});
+
+  const duplicateApprovedPoiIds = useMemo(() => {
+    const names = new Map<string, number[]>();
+    pois.filter(poi => poi.approvalStatus === 'APPROVED').forEach(poi => {
+      const normalizedName = poi.name.trim().replace(/\s+/g, ' ').toLocaleLowerCase();
+      if (!normalizedName) return;
+      names.set(normalizedName, [...(names.get(normalizedName) ?? []), poi.id]);
+    });
+    return new Set([...names.values()].filter(ids => ids.length > 1).flat());
+  }, [pois]);
 
   const loadPois = useCallback(async () => {
     setLoading(true);
@@ -126,11 +137,14 @@ export default function POIManagement() {
     setPoiSaving(true);
     setPoiFormError('');
     try {
-      if (poiEditor) await updatePoi(poiEditor.id, payload, imageFiles);
-      else await createPoi(payload, imageFiles);
+      const savedPoi = poiEditor
+        ? await updatePoi(poiEditor.id, payload, imageFiles)
+        : await createPoi(payload, imageFiles);
       setPoiEditor(undefined);
       await loadPois();
-      showToast('success', poiEditor ? 'POI đã được cập nhật.' : 'POI đã được tạo và duyệt.');
+      const message = savedPoi.reviewMessage || (poiEditor ? 'POI đã được cập nhật.' : 'POI đã được tạo và duyệt.');
+      showToast('success', message);
+      if (savedPoi.reviewMessage) setReviewNotice(savedPoi.reviewMessage);
     } catch (error) { setPoiFormError(apiMessage(error)); }
     finally { setPoiSaving(false); }
   };
@@ -139,14 +153,11 @@ export default function POIManagement() {
   const handleApprovePoi = async (poi: AdminPoi) => {
     setReviewProcessing(true);
     try {
-      await reviewPoi(poi.id, 'APPROVED');
-      showToast('success', `Đã phê duyệt POI "${poi.name}".`);
-      setPois(current =>
-        current.map(item => item.id === poi.id
-          ? { ...item, approvalStatus: 'APPROVED', rejectionReason: null }
-          : item
-        )
-      );
+      const reviewedPoi = await reviewPoi(poi.id, 'APPROVED');
+      const message = reviewedPoi.reviewMessage || `Đã phê duyệt POI "${poi.name}".`;
+      showToast('success', message);
+      setReviewNotice(message);
+      await loadPois();
       if (reviewingPoi?.id === poi.id) {
         setReviewingPoi(prev => prev ? { ...prev, approvalStatus: 'APPROVED', rejectionReason: null } : null);
       }
@@ -314,6 +325,18 @@ export default function POIManagement() {
           </Button>
         </div>
       </div>
+
+      {duplicateApprovedPoiIds.size > 0 && (
+        <div role="alert" className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          Có {duplicateApprovedPoiIds.size} POI đã duyệt trùng tên. Mở chi tiết POI muốn giữ để xóa POI cũ bị trùng.
+        </div>
+      )}
+      {reviewNotice && (
+        <div role="status" className="mb-4 flex items-center justify-between rounded-lg border border-green-300 bg-green-50 px-4 py-3 text-sm text-green-800">
+          <span>{reviewNotice}</span>
+          <button type="button" onClick={() => setReviewNotice('')} className="ml-3 font-semibold hover:text-green-950">Đóng</button>
+        </div>
+      )}
 
       <Card noPadding>
         {/* Tab & Search Filter */}
@@ -609,6 +632,15 @@ export default function POIManagement() {
                       {reviewProcessing ? 'Đang duyệt…' : 'Phê duyệt POI'}
                     </Button>
                   </>
+                )}
+                {reviewingPoi.approvalStatus === 'APPROVED' && duplicateApprovedPoiIds.has(reviewingPoi.id) && (
+                  <Button
+                    variant="danger"
+                    onClick={() => void handleApprovePoi(reviewingPoi)}
+                    disabled={reviewProcessing}
+                  >
+                    {reviewProcessing ? 'Đang thay thế…' : 'Giữ POI này, xóa POI trùng'}
+                  </Button>
                 )}
               </div>
             </div>
